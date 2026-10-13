@@ -2,10 +2,11 @@
 import os
 import uuid
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from app.auth import CurrentUser, current_user, require_roles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 CODES = {400: "INVALID_STATE", 401: "UNAUTHENTICATED", 403: "FORBIDDEN", 404: "NOT_FOUND", 409: "CONFLICT"}
@@ -49,3 +50,13 @@ async def unhandled(request: Request, exc: Exception):
 @app.get("/api/v1/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/api/v1/me")
+def me(user: CurrentUser = Depends(current_user)) -> dict:
+    return {"id": user.id, "role": user.role}
+
+
+@app.get("/api/v1/teacher/ping")
+def teacher_ping(user: CurrentUser = Depends(require_roles("teacher", "admin"))) -> dict:
+    return {"ok": True}

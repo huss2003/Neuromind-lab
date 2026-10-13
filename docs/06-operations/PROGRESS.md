@@ -39,5 +39,6 @@ Date / Task / Summary / Files changed / Tests run and results / Decisions / Open
 ## Session 2026-10-13
 Task: import pack; T02 skeleton (partial); T04 API shell; T06 migrations/RLS applied to Supabase `neuronetwrks` (ddiwlgbllhwcdykqjfne).
 Tests: backend pytest 2 passed; ruff clean. Supabase security advisors: only intentional INFO (API-only tables) after revoking handle_new_user execute.
-Not done: T03 frontend shell, T05 auth/role guards, seed data, two-learner RLS tests.
-Next: T03 frontend shell, then T05.
+Also done: T03 frontend shell (routes, sign-in page, loading/error/not-found states; vitest 3 passed, eslint+tsc clean, build ok), T05 backend auth (token verification, /me, role guard; pytest 5 passed). Note: installed pnpm is 10.28.0, not the 9.15.4 pin.
+Not done: live sign-in test against Supabase (needs service-role key in .env), seed data, two-learner RLS tests.
+Next: T07 course/lecture APIs, then T06 seed + RLS tests.
