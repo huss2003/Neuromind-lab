@@ -184,8 +184,9 @@ def test_grader_outage_is_infrastructure_error_not_failure_and_not_counted(env):
     assert c.post(f"/api/v1/exercises/{EX}/submissions", headers=H("learner1", k()), json={"source_code": "GOOD"}).status_code == 202
 
 
-def test_attempt_limit_enforced(env):
-    c, *_ = env
+def test_attempt_limit_enforced_only_when_configured(env):
+    c, repo, _ = env
+    repo.d["exercise"]["max_attempts"] = 3
     answer(c, CP1, Q1, "b")
     answer(c, CP2, Q2, "a")
     for _ in range(3):
@@ -215,9 +216,11 @@ def test_grader_receives_tests_but_responses_never_expose_them(env):
 
 
 def test_cross_user_submission_access_denied(env):
-    c, *_ = env
+    c, repo, _ = env
     sid = pass_everything(c)
     assert c.get(f"/api/v1/submissions/{sid}", headers=H("learner2")).status_code == 404
+    assert c.get(f"/api/v1/submissions/{sid}", headers=H("teacher")).status_code == 404  # not assigned
+    repo.assignments["33333333-3333-4333-8333-333333333333"] = ["11111111-1111-4111-8111-111111111111"]
     assert c.get(f"/api/v1/submissions/{sid}", headers=H("teacher")).status_code == 200
     assert c.get(f"/api/v1/exercises/{EX}/submissions", headers=H("learner2")).json()["submissions"] == []
     assert c.get(f"/api/v1/checkpoints/{CP1}/attempts", headers=H("learner2")).json()["attempts"] == []
@@ -237,6 +240,7 @@ def test_teacher_endpoints_and_role_enforcement(env):
     l1 = "11111111-1111-4111-8111-111111111111"
     repo.profiles[l1] = {"id": l1, "display_name": "Asha", "role": "learner"}
     pass_everything(c)
+    repo.assignments["33333333-3333-4333-8333-333333333333"] = [l1]
     assert c.get("/api/v1/teacher/learners", headers=H("learner1")).status_code == 403
     assert c.get(f"/api/v1/teacher/learners/{l1}/results", headers=H("learner2")).status_code == 403
     assert c.get("/api/v1/teacher/learners").status_code == 401
@@ -244,6 +248,7 @@ def test_teacher_endpoints_and_role_enforcement(env):
     body = r.json()
     assert r.status_code == 200 and body["learner"]["display_name"] == "Asha"
     assert len(body["checkpoint_attempts"]) == 2 and body["submissions"][0]["status"] == "passed"
+    assert body["submissions"][0]["exercise"] == "Print" and body["checkpoint_attempts"][0]["checkpoint"]
     assert "source_code" not in json.dumps(body)
     assert c.get("/api/v1/teacher/learners/not-a-uuid/results", headers=H("teacher")).status_code == 404
 

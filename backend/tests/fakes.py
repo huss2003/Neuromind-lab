@@ -35,6 +35,7 @@ def build_data() -> dict[str, Any]:
 
     return {
         "course": {"id": CID, "slug": "c", "title": "C", "description": "", "status": "published"},
+        "module": {"id": "m", "module_number": 1, "title": "Module 1", "description": "", "sort_order": 1},
         "lecture": {"id": LID, "course_id": CID, "module_id": "m", "lecture_number": 9, "title": "L9", "summary": "",
                     "learning_objectives": [], "duration_seconds": 3600, "content_version": 1, "status": "published"},
         "segments": [
@@ -53,10 +54,13 @@ def build_data() -> dict[str, Any]:
         },
         "questions": {Q1: q(Q1, "b"), Q2: q(Q2, "a"), Q3: q(Q3, "c")},
         "exercise": {"id": EX, "lecture_id": LID, "title": "Print", "instructions": "Do it", "language": "python",
-                     "starter_code": "x=1", "practice_mode": "both", "pass_threshold": 80, "max_attempts": 3, "status": "published"},
+                     "starter_code": "x=1", "practice_mode": "both", "pass_threshold": 80, "max_attempts": None, "status": "published",
+                     "test_suite_version": 1, "hints": ["hint one", "hint two", "hint three"], "hint_penalty_percent": 10},
         "tests": [
             {"id": "t1", "exercise_id": EX, "test_order": 1, "test_type": "stdout", "definition": {"secret": "HIDDEN-EXPECTED"},
-             "points": 1, "is_hidden": True},
+             "points": 1, "is_hidden": True, "criterion_label": "SECRET-LABEL", "remediation": "Review how print works."},
+            {"id": "t2", "exercise_id": EX, "test_order": 2, "test_type": "stdout", "definition": {"description": "visible"},
+             "points": 1, "is_hidden": False, "criterion_label": "Prints a value", "remediation": "Add a print call."},
         ],
     }
 
@@ -69,6 +73,11 @@ class InMemoryRepository:
         self.submissions: list[dict] = []
         self.profiles: dict[str, dict] = {}
         self.progress: dict[tuple, dict] = {}
+        self.audit: list[dict] = []
+        self.reveals: list[dict] = []
+        self.drafts: dict[tuple, str] = {}
+        self.assignments: dict[str, list[str]] = {}
+        self.feedback: list[dict] = []
 
     # content
     async def list_published_courses(self): return [self.d["course"]]
@@ -130,8 +139,9 @@ class InMemoryRepository:
 
     async def insert_submission(self, row):
         n = 1 + len([s for s in self.submissions if s["learner_id"] == row["learner_id"] and s["exercise_id"] == row["exercise_id"]])
-        r = {**row, "id": str(uuid.uuid4()), "submission_number": n, "score": None, "passed_tests": 0, "total_tests": 0,
-             "safe_feedback": [], "execution_ms": None, "created_at": now()}
+        r = {"score": None, "raw_score": None, "passed_tests": 0, "total_tests": 0, "safe_feedback": [],
+             "execution_ms": None, "created_at": now(), "criteria_results": [], "hints_used": 0, "hint_penalty": 0,
+             "max_score": 100, **row, "id": str(uuid.uuid4()), "submission_number": n}
         self.submissions.append(r)
         return copy.deepcopy(r)
 
@@ -147,6 +157,50 @@ class InMemoryRepository:
         self.progress[(learner, course)] = row
         return row
 
+    async def list_published_modules(self, course_id): return [self.d["module"]]
+    async def insert_audit(self, row): self.audit.append(row)
+
+    async def list_hint_reveals(self, learner, exercise, number):
+        return sorted([r for r in self.reveals if r["learner_id"] == learner and r["exercise_id"] == exercise
+                       and r["attempt_number"] == number], key=lambda r: r["hint_index"])
+
+    async def insert_hint_reveal(self, row):
+        self.reveals.append(dict(row))
+        return dict(row)
+
+    async def get_draft(self, learner, exercise):
+        code = self.drafts.get((learner, exercise))
+        return {"source_code": code} if code is not None else None
+
+    async def upsert_draft(self, learner, exercise, code): self.drafts[(learner, exercise)] = code
+
+    async def submission_load(self, learner, since_iso):
+        mine = [s for s in self.submissions if s["learner_id"] == learner]
+        return len([s for s in mine if s["created_at"] >= since_iso]), len([s for s in mine if s["status"] in ("queued", "running")])
+
+    async def list_assigned_learner_ids(self, teacher): return list(self.assignments.get(teacher, []))
+
+    async def list_learners_page(self, ids, q, limit, offset):
+        rows = [p for p in self.profiles.values() if p["role"] == "learner" and (ids is None or p["id"] in ids)]
+        if q:
+            rows = [p for p in rows if q.lower() in p["display_name"].lower()]
+        rows.sort(key=lambda p: p["display_name"])
+        return rows[offset:offset + limit], len(rows)
+
+    async def titles(self, lecture_ids, checkpoint_ids, exercise_ids):
+        return {"lectures": {i: "Lecture 9: L9" for i in lecture_ids},
+                "checkpoints": {i: f"Check {i[-2:]}" for i in checkpoint_ids}, "exercises": {i: "Print" for i in exercise_ids}}
+
+    async def insert_feedback(self, row):
+        r = {**row, "id": str(uuid.uuid4()), "created_at": now()}
+        self.feedback.append(r)
+        return dict(r)
+
+    async def list_feedback(self, learner, published_only):
+        return [dict(f) for f in self.feedback if f["learner_id"] == learner and (f["published"] or not published_only)]
+
+    async def ping(self): return True
+
     async def list_learners(self): return [p for p in self.profiles.values() if p["role"] == "learner"]
     async def get_profile(self, uid): return self.profiles.get(uid)
     async def list_learner_sessions(self, learner): return [s for s in self.sessions.values() if s["learner_id"] == learner]
@@ -156,9 +210,11 @@ class InMemoryRepository:
 
 class FakeVerifier:
     users = {
-        "learner1": CurrentUser("11111111-1111-4111-8111-111111111111", "learner"),
-        "learner2": CurrentUser("22222222-2222-4222-8222-222222222222", "learner"),
-        "teacher": CurrentUser("33333333-3333-4333-8333-333333333333", "teacher"),
+        "learner1": CurrentUser("11111111-1111-4111-8111-111111111111", "learner", "l1@x.test", "Learner One"),
+        "learner2": CurrentUser("22222222-2222-4222-8222-222222222222", "learner", "l2@x.test", "Learner Two"),
+        "teacher": CurrentUser("33333333-3333-4333-8333-333333333333", "teacher", "t@x.test", "Teacher"),
+        "teacher2": CurrentUser("44444444-4444-4444-8444-444444444444", "teacher", "t2@x.test", "Teacher Two"),
+        "admin": CurrentUser("55555555-5555-4555-8555-555555555555", "admin", "a@x.test", "Admin"),
     }
 
     async def verify(self, token):
@@ -179,5 +235,10 @@ class FakeGrader:
         if self.down:
             return GradeResult("error", feedback=[{"kind": "infrastructure", "message": "grader unavailable"}])
         if "GOOD" in source_code:
-            return GradeResult("passed", 1, 1, 100.0, 10, [{"kind": "success", "message": "All required tests passed."}])
-        return GradeResult("failed", 0, 1, 0.0, 10, [{"kind": "failure", "message": "Test 1 failed."}])
+            return GradeResult("passed", 2, 2, 100.0, 10, [{"kind": "success", "message": "All required tests passed."}],
+                               [{"test_order": 1, "passed": True}, {"test_order": 2, "passed": True}], "test-1.0")
+        if "HALF" in source_code:
+            return GradeResult("failed", 1, 2, 50.0, 10, [{"kind": "failure", "message": "Some checks failed."}],
+                               [{"test_order": 1, "passed": False}, {"test_order": 2, "passed": True}], "test-1.0")
+        return GradeResult("failed", 0, 2, 0.0, 10, [{"kind": "failure", "message": "Test 1 failed."}],
+                           [{"test_order": 1, "passed": False}, {"test_order": 2, "passed": False}], "test-1.0")

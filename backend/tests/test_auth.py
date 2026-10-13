@@ -29,7 +29,7 @@ def test_me_requires_token():
 
 def test_me_returns_verified_identity_ignoring_client_role():
     r = client.get("/api/v1/me", headers={**auth("learner-token"), "X-Role": "admin"})
-    assert r.json() == {"id": "u1", "role": "learner"}
+    assert r.json()["id"] == "u1" and r.json()["role"] == "learner"
 
 
 def test_teacher_route_guard():

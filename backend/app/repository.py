@@ -35,6 +35,20 @@ class Repository(Protocol):
     async def insert_submission(self, row: Row) -> Row: ...
     async def update_submission(self, submission_id: str, fields: Row) -> Row | None: ...
     async def recompute_progress(self, learner_id: str, course_id: str) -> Row: ...
+    # --- v1.0 additions ---
+    async def list_published_modules(self, course_id: str) -> list[Row]: ...
+    async def insert_audit(self, row: Row) -> None: ...
+    async def list_hint_reveals(self, learner_id: str, exercise_id: str, attempt_number: int) -> list[Row]: ...
+    async def insert_hint_reveal(self, row: Row) -> Row: ...
+    async def get_draft(self, learner_id: str, exercise_id: str) -> Row | None: ...
+    async def upsert_draft(self, learner_id: str, exercise_id: str, source_code: str) -> None: ...
+    async def submission_load(self, learner_id: str, since_iso: str) -> tuple[int, int]: ...  # (recent, in-flight)
+    async def list_assigned_learner_ids(self, teacher_id: str) -> list[str]: ...
+    async def list_learners_page(self, ids: list[str] | None, q: str | None, limit: int, offset: int) -> tuple[list[Row], int]: ...
+    async def titles(self, lecture_ids: list[str], checkpoint_ids: list[str], exercise_ids: list[str]) -> dict[str, dict[str, str]]: ...
+    async def insert_feedback(self, row: Row) -> Row: ...
+    async def list_feedback(self, learner_id: str, published_only: bool) -> list[Row]: ...
+    async def ping(self) -> bool: ...
     # --- teacher ---
     async def list_learners(self) -> list[Row]: ...
     async def get_profile(self, user_id: str) -> Row | None: ...
@@ -214,6 +228,95 @@ class PostgrestRepository:
 
     async def list_learner_submissions(self, learner_id):
         return await self._get("lab_submissions", learner_id=f"eq.{learner_id}", select="*", order="created_at")
+
+    # v1.0 additions
+    async def list_published_modules(self, course_id):
+        return await self._get("modules", course_id=f"eq.{course_id}", status="eq.published",
+                               select="id,module_number,title,description,sort_order", order="sort_order")
+
+    async def insert_audit(self, row):
+        r = await self._req("POST", "audit_logs", json=row)
+        r.raise_for_status()
+
+    async def list_hint_reveals(self, learner_id, exercise_id, attempt_number):
+        return await self._get("exercise_hint_reveals", learner_id=f"eq.{learner_id}", exercise_id=f"eq.{exercise_id}",
+                               attempt_number=f"eq.{attempt_number}", select="*", order="hint_index")
+
+    async def insert_hint_reveal(self, row):
+        r = await self._req("POST", "exercise_hint_reveals", json=row, prefer="return=representation")
+        if r.status_code == 409:
+            rows = await self.list_hint_reveals(row["learner_id"], row["exercise_id"], row["attempt_number"])
+            return next(x for x in rows if x["hint_index"] == row["hint_index"])
+        r.raise_for_status()
+        return r.json()[0]
+
+    async def get_draft(self, learner_id, exercise_id):
+        return await self._one("lab_drafts", learner_id=f"eq.{learner_id}", exercise_id=f"eq.{exercise_id}", select="*")
+
+    async def upsert_draft(self, learner_id, exercise_id, source_code):
+        from datetime import UTC, datetime
+        r = await self._req("POST", "lab_drafts", {"on_conflict": "learner_id,exercise_id"}, json={
+            "learner_id": learner_id, "exercise_id": exercise_id, "source_code": source_code,
+            "updated_at": datetime.now(UTC).isoformat()}, prefer="resolution=merge-duplicates")
+        r.raise_for_status()
+
+    async def submission_load(self, learner_id, since_iso):
+        recent = await self._get("lab_submissions", learner_id=f"eq.{learner_id}", created_at=f"gte.{since_iso}", select="id")
+        inflight = await self._get("lab_submissions", learner_id=f"eq.{learner_id}", status="in.(queued,running)", select="id")
+        return len(recent), len(inflight)
+
+    async def list_assigned_learner_ids(self, teacher_id):
+        rows = await self._get("teacher_assignments", teacher_id=f"eq.{teacher_id}", revoked_at="is.null", select="learner_id")
+        return sorted({r["learner_id"] for r in rows})
+
+    async def list_learners_page(self, ids, q, limit, offset):
+        if ids is not None and not ids:
+            return [], 0
+        params = {"role": "eq.learner", "select": "id,display_name,created_at", "order": "display_name,created_at",
+                  "limit": str(limit), "offset": str(offset)}
+        if ids is not None:
+            params["id"] = _in(ids)
+        if q:
+            safe = "".join(ch for ch in q if ch.isalnum() or ch in " ._-")[:50]
+            if safe:
+                params["display_name"] = f"ilike.*{safe}*"
+        r = await self._req("GET", "profiles", params, prefer="count=exact")
+        r.raise_for_status()
+        total = int(r.headers.get("content-range", "0-0/0").split("/")[-1] or 0)
+        return r.json(), total
+
+    async def titles(self, lecture_ids, checkpoint_ids, exercise_ids):
+        out: dict[str, dict[str, str]] = {"lectures": {}, "checkpoints": {}, "exercises": {}}
+        if lecture_ids:
+            for r in await self._get("lectures", id=_in(lecture_ids), select="id,title,lecture_number"):
+                out["lectures"][r["id"]] = f"Lecture {r['lecture_number']}: {r['title']}"
+        if checkpoint_ids:
+            for r in await self._get("lecture_segments", checkpoint_id=_in(checkpoint_ids), select="checkpoint_id,title"):
+                out["checkpoints"][r["checkpoint_id"]] = r["title"]
+        if exercise_ids:
+            for r in await self._get("lecture_exercises", id=_in(exercise_ids), select="id,title"):
+                out["exercises"][r["id"]] = r["title"]
+        return out
+
+    async def insert_feedback(self, row):
+        r = await self._req("POST", "teacher_feedback", json=row, prefer="return=representation")
+        r.raise_for_status()
+        return r.json()[0]
+
+    async def list_feedback(self, learner_id, published_only):
+        params = {"learner_id": f"eq.{learner_id}", "select": "*", "order": "created_at.desc"}
+        if published_only:
+            params["published"] = "eq.true"
+        r = await self._req("GET", "teacher_feedback", params)
+        r.raise_for_status()
+        return r.json()
+
+    async def ping(self):
+        try:
+            r = await self._req("GET", "courses", {"select": "id", "limit": "1"})
+            return r.status_code == 200
+        except httpx.HTTPError:
+            return False
 
 
 def get_repository() -> Repository:

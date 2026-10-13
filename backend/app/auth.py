@@ -9,6 +9,9 @@ from dataclasses import dataclass
 import httpx
 from fastapi import Depends, HTTPException, Request
 
+from app.repository import Repository, get_repository
+from app.services import audit
+
 ROLES = ("learner", "teacher", "admin")
 
 
@@ -16,6 +19,8 @@ ROLES = ("learner", "teacher", "admin")
 class CurrentUser:
     id: str
     role: str
+    email: str = ""
+    display_name: str = ""
 
 
 class SupabaseVerifier:
@@ -29,13 +34,14 @@ class SupabaseVerifier:
                 raise HTTPException(401)
             uid = r.json()["id"]
             p = await c.get(
-                f"{url}/rest/v1/profiles", params={"id": f"eq.{uid}", "select": "role"},
+                f"{url}/rest/v1/profiles", params={"id": f"eq.{uid}", "select": "role,display_name"},
                 headers={"apikey": service, "Authorization": f"Bearer {service}"},
             )
             rows = p.json() if p.status_code == 200 else []
             if not rows or rows[0]["role"] not in ROLES:
                 raise HTTPException(403)
-            return CurrentUser(id=uid, role=rows[0]["role"])
+            return CurrentUser(id=uid, role=rows[0]["role"], email=r.json().get("email", ""),
+                               display_name=rows[0].get("display_name") or "")
 
 
 def get_verifier() -> SupabaseVerifier:
@@ -51,8 +57,11 @@ async def current_user(request: Request, verifier: SupabaseVerifier = Depends(ge
 
 
 def require_roles(*allowed: str):
-    async def guard(user: CurrentUser = Depends(current_user)) -> CurrentUser:
+    async def guard(request: Request, user: CurrentUser = Depends(current_user),
+                    repo: Repository = Depends(get_repository)) -> CurrentUser:
         if user.role not in allowed:
+            await audit.record(repo, request, user.id, "auth.denied", "route", None,
+                               {"role": user.role, "path": request.url.path})
             raise HTTPException(403)
         return user
 

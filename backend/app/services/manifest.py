@@ -12,6 +12,8 @@ class NextAction(BaseModel):
 class Media(BaseModel):
     provider: str | None
     url: str | None
+    captions_url: str | None = None
+    transcript: str | None = None
 
 
 class QuestionOut(BaseModel):
@@ -67,7 +69,9 @@ def build_segment(seg: dict[str, Any], checkpoint: dict[str, Any] | None) -> Seg
         required=seg["is_required"], next_action=next_action,
     )
     if stype == "video":
-        out.media = Media(provider=seg.get("media_provider"), url=seg.get("media_url"))
+        cfg = seg.get("settings") or {}
+        out.media = Media(provider=seg.get("media_provider"), url=seg.get("media_url"),
+                          captions_url=cfg.get("captions_url"), transcript=cfg.get("transcript"))
     elif stype in ("checkpoint", "exit_check"):
         if not checkpoint or not checkpoint.get("question"):
             raise ManifestError(f"segment {seg['id']}: checkpoint or question missing")

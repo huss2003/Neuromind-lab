@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Request
 from pydantic import BaseModel
 
 from app.auth import CurrentUser, current_user
 from app.errors import ApiError
 from app.repository import Repository, get_repository
 from app.routers.deps import idempotency_key, path_uuid
+from app.services.audit import record as audit_record
 from app.services.context import load_context
 from app.services.progress import attempt_meets_threshold, max_reachable_order
 
@@ -24,7 +25,7 @@ def _response(attempt: dict, q: dict, completed: bool) -> dict:
 
 
 @router.post("/checkpoints/{checkpoint_id}/attempts")
-async def submit_attempt(checkpoint_id: str, body: AttemptBody, user: CurrentUser = Depends(current_user),
+async def submit_attempt(checkpoint_id: str, body: AttemptBody, request: Request, user: CurrentUser = Depends(current_user),
                          repo: Repository = Depends(get_repository),
                          idempotency_key_header: str | None = Header(default=None, alias="Idempotency-Key")):
     checkpoint_id = path_uuid(checkpoint_id)
@@ -56,7 +57,10 @@ async def submit_attempt(checkpoint_id: str, body: AttemptBody, user: CurrentUse
     attempt = await repo.insert_attempt({
         "learner_id": user.id, "checkpoint_id": checkpoint_id, "question_id": q["id"],
         "selected_option_id": body.selected_option_id, "is_correct": is_correct,
-        "score": points if is_correct else 0, "idempotency_key": key})
+        "score": points if is_correct else 0, "idempotency_key": key,
+        "question_version": q.get("question_version"), "content_version": ctx.lecture.get("content_version")})
+    await audit_record(repo, request, user.id, "checkpoint.attempt", "checkpoint", checkpoint_id,
+                       {"checkpoint_id": checkpoint_id, "score": float(attempt["score"])})
     completed = checkpoint_id in ctx.progress.completed_checkpoint_ids or attempt_meets_threshold(attempt, cp, points)
     return _response(attempt, q, completed)
 

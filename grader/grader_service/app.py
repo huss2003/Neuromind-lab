@@ -6,7 +6,7 @@ from typing import Any, Protocol
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from grader_service.evaluate import RunResult, evaluate, required_vars
+from grader_service.evaluate import GRADER_VERSION, RunResult, evaluate, required_vars
 from grader_service.runner import DockerRunner
 
 
@@ -49,7 +49,10 @@ def create_app(runner: Runner | None = None) -> FastAPI:
         tests = [t.model_dump() for t in body.tests]
         async with sem:  # bounded concurrency: this is a laptop, not a worker pool
             run = await runner.run(body.source_code, required_vars(tests), body.timeout_seconds)
-        return evaluate(tests, run, body.pass_threshold)
+        result = evaluate(tests, run, body.pass_threshold)
+        result.setdefault("criteria", [])
+        result.setdefault("grader_version", GRADER_VERSION)
+        return result
 
     return app
 

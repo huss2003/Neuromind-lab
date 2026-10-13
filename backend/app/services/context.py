@@ -18,6 +18,7 @@ class LectureContext:
     attempts: list[Row]
     submissions: list[Row]
     progress: Progress
+    exercises: dict[str, Row]
 
 
 async def load_context(repo: Repository, learner_id: str, lecture_id: str) -> LectureContext:
@@ -37,6 +38,11 @@ async def load_context(repo: Repository, learner_id: str, lecture_id: str) -> Le
                 if q:
                     questions[cp["question_id"]] = q
     exercise_ids = [s["exercise_id"] for s in segments if s.get("exercise_id")]
+    exercises: dict[str, Row] = {}
+    for eid in exercise_ids:
+        ex = await repo.get_published_exercise(eid)
+        if ex:
+            exercises[eid] = ex
     attempts = await repo.list_attempts(learner_id, list(checkpoints))
     submissions = await repo.list_submissions(learner_id, exercise_ids)
     progress = Progress()
@@ -46,4 +52,4 @@ async def load_context(repo: Repository, learner_id: str, lecture_id: str) -> Le
         if cp and q and attempt_meets_threshold(a, cp, float(q["points"])):
             progress.completed_checkpoint_ids.add(a["checkpoint_id"])
     progress.completed_exercise_ids = {s["exercise_id"] for s in submissions if s["status"] == "passed"}
-    return LectureContext(lecture, segments, checkpoints, questions, attempts, submissions, progress)
+    return LectureContext(lecture, segments, checkpoints, questions, attempts, submissions, progress, exercises)

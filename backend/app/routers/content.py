@@ -6,6 +6,8 @@ from app.routers.deps import path_uuid as _uuid
 from app.services.manifest import LectureManifest, ManifestError, build_segment
 
 router = APIRouter(prefix="/api/v1")
+
+
 @router.get("/courses")
 async def list_courses(_: CurrentUser = Depends(current_user), repo: Repository = Depends(get_repository)):
     return {"courses": await repo.list_published_courses()}
@@ -16,7 +18,10 @@ async def get_course(course_id: str, _: CurrentUser = Depends(current_user), rep
     course = await repo.get_published_course(_uuid(course_id))
     if not course:
         raise HTTPException(404)
-    return {**course, "lectures": await repo.list_published_lectures(course["id"])}
+    lectures = await repo.list_published_lectures(course["id"])
+    modules = await repo.list_published_modules(course["id"])
+    grouped = [{**m, "lectures": [x for x in lectures if x.get("module_id") == m["id"]]} for m in modules]
+    return {**course, "lectures": lectures, "modules": grouped}
 
 
 @router.get("/lectures/{lecture_id}", response_model=LectureManifest)

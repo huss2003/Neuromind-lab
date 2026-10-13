@@ -2,6 +2,8 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+GRADER_VERSION = "1.1.0"
+
 
 @dataclass
 class RunResult:
@@ -65,6 +67,7 @@ def evaluate(tests: list[dict], run: RunResult, pass_threshold: float) -> dict[s
         feedback.append({"kind": "info", "message": "Your output was very long and was cut off."})
 
     earned, passed = 0.0, 0
+    criteria: list[dict[str, Any]] = []
     for t in sorted(tests, key=lambda x: x["test_order"]):
         try:
             ok = check(t["definition"], run) if not run.error else False
@@ -73,6 +76,7 @@ def evaluate(tests: list[dict], run: RunResult, pass_threshold: float) -> dict[s
                     "execution_ms": run.execution_ms,
                     "feedback": [{"kind": "infrastructure", "message": "This exercise has a test configuration problem. Please tell your teacher."}]}
         label = "A hidden test" if t["is_hidden"] else str(t["definition"].get("description", f"Test {t['test_order']}"))
+        criteria.append({"test_order": t["test_order"], "passed": bool(ok)})
         if ok:
             earned += float(t["points"])
             passed += 1
@@ -83,4 +87,5 @@ def evaluate(tests: list[dict], run: RunResult, pass_threshold: float) -> dict[s
     if status == "passed":
         feedback.insert(0, {"kind": "success", "message": "All required tests passed." if passed == len(tests) else "You reached the pass mark."})
     return {"status": status, "passed_tests": passed, "total_tests": len(tests), "score": score,
-            "execution_ms": run.execution_ms, "feedback": feedback}
+            "execution_ms": run.execution_ms, "feedback": feedback, "criteria": criteria,
+            "grader_version": GRADER_VERSION}

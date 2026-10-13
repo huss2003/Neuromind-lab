@@ -15,6 +15,8 @@ class GradeResult:
     score: float | None = None
     execution_ms: int | None = None
     feedback: list[dict[str, str]] = field(default_factory=list)
+    criteria: list[dict[str, Any]] = field(default_factory=list)
+    grader_version: str | None = None
 
 
 class Grader(Protocol):
@@ -39,7 +41,8 @@ class HttpGrader:
                 raise httpx.HTTPError(f"grader status {r.status_code}")
             d = r.json()
             return GradeResult(d["status"], d.get("passed_tests", 0), d.get("total_tests", 0), d.get("score"),
-                               d.get("execution_ms"), d.get("feedback", []))
+                               d.get("execution_ms"), d.get("feedback", []),
+                               d.get("criteria", []), d.get("grader_version"))
         except (httpx.HTTPError, KeyError, ValueError):
             # Infrastructure failure: never reported as a learner failure.
             return GradeResult("error", feedback=[{"kind": "infrastructure",

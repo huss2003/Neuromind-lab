@@ -116,3 +116,16 @@ def test_real_docker_end_to_end():  # runs only where Docker + the built image e
     from grader_service.runner import DockerRunner
     r = asyncio.run(DockerRunner().run("student_name='Z'\nprint(student_name)", ["student_name"], 5))
     assert r.status == "ok" and r.stdout.strip() == "Z"  # needs: docker build -t neuromind-grader-sandbox grader/
+
+
+def test_per_criterion_results_and_version_are_returned():
+    g = grade("student_name = 'Aarav'\nprint('something else')\n", threshold=100)
+    assert g["criteria"] == [{"test_order": 1, "passed": True}, {"test_order": 2, "passed": True}, {"test_order": 3, "passed": False}]
+    assert g["grader_version"]
+
+
+def test_service_adds_version_even_for_infrastructure_errors():
+    stub = StubRunner(RunResult("infra_error"))
+    c = TestClient(create_app(stub))
+    r = c.post("/grade", json={"source_code": "print(1)", "tests": TESTS, "pass_threshold": 80}, headers={"X-Grader-Secret": "s3cret"}).json()
+    assert r["status"] == "error" and r["grader_version"] and r["criteria"] == []
