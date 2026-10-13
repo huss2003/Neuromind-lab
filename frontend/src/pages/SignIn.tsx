@@ -31,6 +31,7 @@ export function SignIn() {
 
   return (
     <div className="auth-wrap">
+      <a className="skip-link" href="#auth-main">Skip to content</a>
       <aside className="auth-aside">
         <NeuralField />
         <div className="auth-aside-copy">
@@ -39,7 +40,7 @@ export function SignIn() {
           <p className="auth-sub">Short lessons, real code, and grading you can trust. Your work is saved as you go, and help is one click away.</p>
         </div>
       </aside>
-      <main className="auth-main">
+      <main id="auth-main" className="auth-main" tabIndex={-1}>
         <div className="auth-card">
           <div className="brand auth-brand"><BrandMark size={32} /><BrandName /></div>
           <h1>Sign in</h1>
