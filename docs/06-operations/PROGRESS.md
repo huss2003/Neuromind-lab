@@ -106,3 +106,8 @@ Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture
 - Tests run: eslint + tsc clean, vitest 34 passed, `pnpm test:ui` (Chromium, NETWORK MOCKED) 35 passed (34 in the full run + the one selector fix re-run singly).
 - NOT yet applied to Supabase: migration 0005, seeds 003 and 004 (enrolments are now required, so learners see no course until they are applied). Vercel still serves the older commit until redeployed.
 - Not built / unverified: see the conformance doc (authoring, cohorts, queue/outbox/leases, admin screens, load and latency measurement).
+
+## Session 2026-10-13 (g) — Applied DB changes + redeploy
+- Supabase (project `neuronetwrks`): applied migration `flow_v1_b` (0005) and the statements of seeds 003 and 004. Checked afterwards: 3 enrolments, Lecture 9 sections are intro, video, checkpoint, video, checkpoint, video, exercise, exit check; 3 tests carry objectives.
+- Vercel: frontend `dpl_3nvm4toE…` and API `dpl_2UfvMwsr…` both READY at commit 1c97cec. The first API attempt failed with FASTAPI_ENTRYPOINT_NOT_FOUND until the root directory was set to `backend`.
+- NOT verified: no request was made to either deployment (the fetch tool was denied and Bash cannot reach Vercel), so sign-in and the new screens on the live site are untested.
