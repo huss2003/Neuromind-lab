@@ -11,6 +11,7 @@ import { NotFound } from './pages/NotFound';
 import { Profile } from './pages/Profile';
 import { AttemptHistory } from './pages/AttemptHistory';
 import { Help } from './pages/Help';
+import { Legal } from './pages/Legal';
 import { Recover } from './pages/Recover';
 import { SignIn } from './pages/SignIn';
 import { Welcome } from './pages/Welcome';
@@ -25,6 +26,8 @@ export function App() {
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/recover" element={<Recover />} />
+      <Route path="/privacy" element={<Legal kind="privacy" />} />
+      <Route path="/terms" element={<Legal kind="terms" />} />
       <Route element={<AppShell />}>
         <Route element={<RequireAuth />}>
           <Route path="/" element={<Home />} />

@@ -218,3 +218,5 @@ details.card > summary { cursor: pointer; list-style: none; } details.card > sum
   #pane-task { grid-column: 1; grid-row: 1 / span 3; } #pane-code { grid-column: 2; grid-row: 1; } #pane-output { grid-column: 2; grid-row: 2; } #pane-result { grid-column: 2; grid-row: 3; }
   .lab > .row { padding: 0 var(--s1) var(--s5); }
 }
+.legal { padding-top: var(--s8); } .legal-brand { color: var(--text); text-decoration: none; } .legal .richtext { max-width: 70ch; }
+.auth-legal { margin-top: var(--s6); font-size: .88rem; }

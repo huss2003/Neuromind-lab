@@ -34,7 +34,7 @@ export function Help() {
           attempt history.
         </p>
       </section>
-      <p><Link to="/welcome">Read the lab walkthrough again</Link></p>
+      <p><Link to="/welcome">Read the lab walkthrough again</Link> · <Link to="/privacy">Privacy notice</Link> · <Link to="/terms">Terms of use</Link></p>
     </main>
   );
 }

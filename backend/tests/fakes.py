@@ -189,6 +189,13 @@ class InMemoryRepository:
             return True
         return False
 
+    async def queue_stats(self):
+        waiting = sorted((s for s in self.submissions if s["status"] == "queued"), key=lambda x: x["created_at"])
+        oldest = None
+        if waiting:
+            oldest = max(0, int((datetime.now(UTC) - datetime.fromisoformat(waiting[0]["created_at"])).total_seconds()))
+        return {"queued": len(waiting), "running": len([s for s in self.submissions if s["status"] == "running"]), "oldest_queued_seconds": oldest}
+
     async def recompute_progress(self, learner, course):
         done = len([s for s in self.sessions.values() if s["learner_id"] == learner and s["status"] == "completed"])
         row = {"learner_id": learner, "course_id": course, "completed_lectures": done, "total_lectures": 1}

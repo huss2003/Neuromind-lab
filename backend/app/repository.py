@@ -7,6 +7,8 @@ from typing import Any, Protocol
 
 import httpx
 
+from app import http
+
 Row = dict[str, Any]
 
 
@@ -38,6 +40,7 @@ class Repository(Protocol):
     async def claim_next_submission(self, worker_id: str, lease_seconds: int, max_claims: int) -> Row | None: ...
     async def extend_lease(self, submission_id: str, worker_id: str, lease_seconds: int) -> bool: ...
     async def release_submission(self, submission_id: str, worker_id: str) -> bool: ...
+    async def queue_stats(self) -> Row: ...
     async def recompute_progress(self, learner_id: str, course_id: str) -> Row: ...
     # --- v1.0 additions ---
     async def list_published_modules(self, course_id: str) -> list[Row]: ...
@@ -85,8 +88,7 @@ class PostgrestRepository:
         headers = dict(self.headers)
         if prefer:
             headers["Prefer"] = prefer
-        async with httpx.AsyncClient(timeout=8) as c:
-            return await c.request(method, f"{self.url}/{table}", params=params, json=json, headers=headers)
+        return await http.request(method, f"{self.url}/{table}", params=params, json=json, headers=headers)
 
     async def _get(self, table: str, **params: str) -> list[Row]:
         r = await self._req("GET", table, params)
@@ -233,6 +235,15 @@ class PostgrestRepository:
                             prefer="return=representation")
         r.raise_for_status()
         return bool(r.json())
+
+    async def queue_stats(self):
+        waiting = await self._get("lab_submissions", status="eq.queued", select="created_at", order="created_at.asc", limit="500")
+        running = await self._get("lab_submissions", status="eq.running", select="id", limit="500")
+        oldest = None
+        if waiting:
+            created = datetime.fromisoformat(str(waiting[0]["created_at"]).replace("Z", "+00:00"))
+            oldest = max(0, int((datetime.now(UTC) - created).total_seconds()))
+        return {"queued": len(waiting), "running": len(running), "oldest_queued_seconds": oldest}
 
     async def recompute_progress(self, learner_id, course_id):
         lectures = await self._get("lectures", course_id=f"eq.{course_id}", status="eq.published", select="id")

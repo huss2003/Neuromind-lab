@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from app.errors import ApiError
 from app.logging_setup import setup_logging
 from app.repository import Repository, get_repository
+from app import http
 from app.routers import admin, checkpoints, content, dashboard, exercises, sessions, teacher, worker
 from app.auth import CurrentUser, current_user, require_roles
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -52,11 +53,15 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], a
 async def request_id_middleware(request: Request, call_next):
     request.state.request_id = (request.headers.get("x-request-id") or uuid.uuid4().hex)[:64]
     started = time.monotonic()
+    calls: list[float] = []
+    http.upstream.set(calls)
     response = await call_next(request)
+    total = (time.monotonic() - started) * 1000
     response.headers["X-Request-ID"] = request.state.request_id
+    response.headers["Server-Timing"] = f'total;dur={total:.0f}, upstream;dur={sum(calls):.0f};desc="{len(calls)} calls"'
     log.info("request", extra={"ctx": {"request_id": request.state.request_id, "method": request.method,
                                        "path": request.url.path, "status": response.status_code,
-                                       "ms": int((time.monotonic() - started) * 1000)}})
+                                       "ms": int(total), "upstream_calls": len(calls), "upstream_ms": int(sum(calls))}})
     return response
 
 

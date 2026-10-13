@@ -7,9 +7,10 @@ Row = dict[str, Any]
 UNRESOLVED = ("failed", "runtime_error")
 
 
-async def remediation_queue(repo: Repository, learner_id: str) -> list[Row]:
+async def remediation_queue(repo: Repository, learner_id: str, subs: list[Row] | None = None) -> list[Row]:
     """Exercises with at least one evaluated failure and no later/earlier pass: what to work on next."""
-    subs = await repo.list_learner_submissions(learner_id)
+    if subs is None:
+        subs = await repo.list_learner_submissions(learner_id)
     by_ex: dict[str, list[Row]] = {}
     for s in subs:
         by_ex.setdefault(s["exercise_id"], []).append(s)
@@ -38,8 +39,9 @@ async def remediation_queue(repo: Repository, learner_id: str) -> list[Row]:
     return out
 
 
-async def recent_attempts(repo: Repository, learner_id: str, limit: int = 5) -> list[Row]:
-    subs = await repo.list_learner_submissions(learner_id)
+async def recent_attempts(repo: Repository, learner_id: str, limit: int = 5, subs: list[Row] | None = None) -> list[Row]:
+    if subs is None:
+        subs = await repo.list_learner_submissions(learner_id)
     ids = sorted({s["exercise_id"] for s in subs})
     basics = {e["id"]: e for e in await repo.list_exercises_basic(ids)}
     titles = await repo.titles([b["lecture_id"] for b in basics.values()], [], ids)
@@ -54,10 +56,13 @@ async def recent_attempts(repo: Repository, learner_id: str, limit: int = 5) -> 
              "best_score": best.get(s["exercise_id"]), "created_at": s["created_at"]} for s in latest]
 
 
-async def lecture_states(repo: Repository, learner_id: str, lectures: list[Row]) -> dict[str, str]:
+async def lecture_states(repo: Repository, learner_id: str, lectures: list[Row], subs: list[Row] | None = None,
+                         queue: list[Row] | None = None) -> dict[str, str]:
     """locked | available | in_progress | completed | needs_attention — decided by the server, never the browser."""
     sessions = {s["lecture_id"]: s for s in await repo.list_learner_sessions(learner_id)}
-    attention = {q["lecture_id"] for q in await remediation_queue(repo, learner_id)}
+    if queue is None:
+        queue = await remediation_queue(repo, learner_id, subs)
+    attention = {q["lecture_id"] for q in queue}
     out: dict[str, str] = {}
     for lec in lectures:
         prereqs = lec.get("prerequisites") or []

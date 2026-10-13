@@ -148,3 +148,14 @@ def test_worker_claim_payload_contains_tests_but_user_endpoints_never_do(env):
     job = claim(c).json()
     assert "HIDDEN-EXPECTED" in str(job["tests"])  # only over the worker-authenticated channel
     assert "HIDDEN-EXPECTED" not in str(c.get(f"/api/v1/submissions/{sid}", headers=H()).json())
+
+
+def test_queue_health_reports_depth_and_age_without_learner_data_and_needs_the_worker_token(env):
+    c, _, _ = env
+    assert c.get(f"{BASE}/health").status_code == 401
+    assert c.get(f"{BASE}/health", headers=W).json() == {"queued": 0, "running": 0, "oldest_queued_seconds": None}
+    submit(c)
+    body = c.get(f"{BASE}/health", headers=W).json()
+    assert body["queued"] == 1 and body["running"] == 0 and body["oldest_queued_seconds"] >= 0 and set(body) == {"queued", "running", "oldest_queued_seconds"}
+    claim(c)
+    assert c.get(f"{BASE}/health", headers=W).json()["running"] == 1

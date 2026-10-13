@@ -95,3 +95,9 @@ async def release(submission_id: str, body: ClaimBody, repo: Repository = Depend
     """The worker could not run the job for an infrastructure reason: put it back (bounded by MAX_CLAIMS)."""
     await _owned(repo, submission_id, body.worker_id)
     return {"released": await repo.release_submission(path_uuid(submission_id), body.worker_id)}
+
+
+@router.get("/health", dependencies=[Depends(require_worker)])
+async def queue_health(repo: Repository = Depends(get_repository)):
+    """Queue depth and the age of the oldest waiting job, for monitoring. Counts only; no learner data."""
+    return await repo.queue_stats()
