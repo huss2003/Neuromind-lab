@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import os
 from datetime import UTC, datetime, timedelta
@@ -171,13 +172,22 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
                             idempotency_key_header: str | None = Header(default=None, alias="Idempotency-Key")):
     exercise_id = path_uuid(exercise_id)
     key = idempotency_key(idempotency_key_header)
-    ex, ctx, segment = await _exercise_ctx(repo, user.id, exercise_id)
+    since = (datetime.now(UTC) - timedelta(seconds=60)).isoformat()
+    # The context, the idempotency lookup and the rate-limit counters are independent reads: fetch them together.
+    ctx_result, existing_result, load_result = await asyncio.gather(
+        _exercise_ctx(repo, user.id, exercise_id), repo.find_submission_by_key(user.id, key),
+        repo.submission_load(user.id, since), return_exceptions=True)
+    if isinstance(ctx_result, BaseException):
+        raise ctx_result
+    ex, ctx, segment = ctx_result
     if len(body.source_code.encode()) > _max_bytes() or not body.source_code.strip():
         raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "source_code", "issue": "Empty or too large"}])
     if body.language is not None and body.language.lower() != ex["language"]:
         raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "language", "issue": f"Only {ex['language']} is supported here"}])
 
-    existing = await repo.find_submission_by_key(user.id, key)
+    if isinstance(existing_result, BaseException):
+        raise existing_result
+    existing = existing_result
     if existing:
         if existing["exercise_id"] != exercise_id or existing["source_code"] != body.source_code:
             raise ApiError(409, "IDEMPOTENCY_CONFLICT", "Idempotency key reused with a different request")
@@ -190,8 +200,9 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
     counted = [s for s in ctx.submissions if s["exercise_id"] == exercise_id and s["status"] in COUNTED]
     if ex["max_attempts"] is not None and len(counted) >= ex["max_attempts"]:
         raise ApiError(409, "ATTEMPTS_EXHAUSTED", "No attempts remaining for this exercise")
-    since = (datetime.now(UTC) - timedelta(seconds=60)).isoformat()
-    recent, in_flight = await repo.submission_load(user.id, since)
+    if isinstance(load_result, BaseException):
+        raise load_result
+    recent, in_flight = load_result
     if in_flight >= MAX_IN_FLIGHT or recent >= MAX_SUBMISSIONS_PER_MINUTE:
         await audit.record(repo, request, user.id, "submission.rate_limited", "exercise", exercise_id,
                            {"exercise_id": exercise_id, "count": recent})
@@ -203,8 +214,8 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
         "snapshot_sha256": hashlib.sha256(body.source_code.encode()).hexdigest(),
         "test_suite_version": ex.get("test_suite_version"), "pass_threshold": ex["pass_threshold"],
         "correlation_id": getattr(request.state, "request_id", None)})
-    await audit.record(repo, request, user.id, "submission.created", "submission", sub["id"],
-                       {"submission_id": sub["id"], "exercise_id": exercise_id})
+    background.add_task(audit.record, repo, request, user.id, "submission.created", "submission", sub["id"],
+                        {"submission_id": sub["id"], "exercise_id": exercise_id})  # best-effort; off the request path
     if grading_mode() == "inline":  # queue mode: a private worker claims the job from the database
         background.add_task(_run_grading, repo, grader, sub, ex, ctx.lecture, getattr(request.state, "request_id", None))
     return {"submission_id": sub["id"], "status": "queued", "status_url": f"/api/v1/submissions/{sub['id']}"}

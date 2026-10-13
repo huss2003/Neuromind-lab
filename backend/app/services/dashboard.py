@@ -57,9 +57,9 @@ async def recent_attempts(repo: Repository, learner_id: str, limit: int = 5, sub
 
 
 async def lecture_states(repo: Repository, learner_id: str, lectures: list[Row], subs: list[Row] | None = None,
-                         queue: list[Row] | None = None) -> dict[str, str]:
+                         queue: list[Row] | None = None, session_rows: list[Row] | None = None) -> dict[str, str]:
     """locked | available | in_progress | completed | needs_attention — decided by the server, never the browser."""
-    sessions = {s["lecture_id"]: s for s in await repo.list_learner_sessions(learner_id)}
+    sessions = {s["lecture_id"]: s for s in (session_rows if session_rows is not None else await repo.list_learner_sessions(learner_id))}
     if queue is None:
         queue = await remediation_queue(repo, learner_id, subs)
     attention = {q["lecture_id"] for q in queue}

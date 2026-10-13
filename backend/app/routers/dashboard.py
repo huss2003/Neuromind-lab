@@ -19,8 +19,9 @@ async def my_dashboard(user: CurrentUser = Depends(current_user), repo: Reposito
         return {"enrolled": False, "course": None, "continue": None, "recent_attempts": [], "remediation_queue": []}
     course = courses[0]
     lectures, subs = await asyncio.gather(repo.list_published_lectures(course["id"]), repo.list_learner_submissions(user.id))
-    queue, attempts = await asyncio.gather(remediation_queue(repo, user.id, subs), recent_attempts(repo, user.id, subs=subs))
-    states = await lecture_states(repo, user.id, lectures, queue=queue)
+    queue, attempts, session_rows = await asyncio.gather(
+        remediation_queue(repo, user.id, subs), recent_attempts(repo, user.id, subs=subs), repo.list_learner_sessions(user.id))
+    states = await lecture_states(repo, user.id, lectures, queue=queue, session_rows=session_rows)
     nxt = next((x for x in lectures if states[x["id"]] in ("in_progress", "needs_attention")), None) \
         or next((x for x in lectures if states[x["id"]] == "available"), None)
     return {
