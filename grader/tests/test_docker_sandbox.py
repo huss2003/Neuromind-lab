@@ -56,11 +56,15 @@ def test_tmp_is_noexec_and_small():
     assert "NOEXEC" in r.stdout and "SMALL" in r.stdout and "EXEC\n" not in r.stdout.replace("NOEXEC", "")
 
 
+def _sandbox_ids() -> set[str]:
+    return set(subprocess.run(["docker", "ps", "-aq", "--filter", "name=nm-grade-"], capture_output=True, text=True).stdout.split())
+
+
 def test_infinite_loop_times_out_and_container_is_removed():
+    before = _sandbox_ids()  # a live worker on the same host may own other containers
     r = run("while True:\n    pass\n", timeout=2)
     assert r.status == "timeout"
-    left = subprocess.run(["docker", "ps", "-a", "--filter", "name=nm-grade-", "-q"], capture_output=True, text=True).stdout.strip()
-    assert left == ""
+    assert _sandbox_ids() - before == set()
 
 
 def test_memory_bomb_is_killed_not_graded_as_success():
