@@ -1,20 +1,27 @@
 """NeuroMind API shell (T04): health, request IDs, CORS, structured errors."""
 import os
 import uuid
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.routers.content import router as content_router
+from app.errors import ApiError
+from app.routers import checkpoints, content, exercises, sessions, teacher
 from app.auth import CurrentUser, current_user, require_roles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-CODES = {400: "INVALID_STATE", 401: "UNAUTHENTICATED", 403: "FORBIDDEN", 404: "NOT_FOUND", 409: "CONFLICT"}
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
+CODES = {400: "INVALID_STATE", 401: "UNAUTHENTICATED", 429: "RATE_LIMITED", 503: "DEPENDENCY_UNAVAILABLE", 403: "FORBIDDEN", 404: "NOT_FOUND", 409: "CONFLICT"}
 
 app = FastAPI(title="NeuroMind API", version="0.1.0")
 
-app.include_router(content_router)
+for _r in (content.router, sessions.router, checkpoints.router, exercises.router, teacher.router):
+    app.include_router(_r)
 
 origins = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
@@ -36,6 +43,8 @@ def _error(request: Request, status: int, code: str, message: str, details=None)
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exc(request: Request, exc: StarletteHTTPException):
+    if isinstance(exc, ApiError):
+        return _error(request, exc.status_code, exc.code, exc.message, exc.details)
     return _error(request, exc.status_code, CODES.get(exc.status_code, "ERROR"), "Request could not be processed")
 
 

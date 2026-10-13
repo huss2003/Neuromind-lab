@@ -1,28 +1,18 @@
-import re
-
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import CurrentUser, current_user
-from app.repository import ContentRepository, get_repository
+from app.repository import Repository, get_repository
+from app.routers.deps import path_uuid as _uuid
 from app.services.manifest import LectureManifest, ManifestError, build_segment
 
 router = APIRouter(prefix="/api/v1")
-UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-
-
-def _uuid(value: str) -> str:
-    if not UUID_RE.match(value):
-        raise HTTPException(404)  # not-found, not 422: no information about id format
-    return value
-
-
 @router.get("/courses")
-async def list_courses(_: CurrentUser = Depends(current_user), repo: ContentRepository = Depends(get_repository)):
+async def list_courses(_: CurrentUser = Depends(current_user), repo: Repository = Depends(get_repository)):
     return {"courses": await repo.list_published_courses()}
 
 
 @router.get("/courses/{course_id}")
-async def get_course(course_id: str, _: CurrentUser = Depends(current_user), repo: ContentRepository = Depends(get_repository)):
+async def get_course(course_id: str, _: CurrentUser = Depends(current_user), repo: Repository = Depends(get_repository)):
     course = await repo.get_published_course(_uuid(course_id))
     if not course:
         raise HTTPException(404)
@@ -30,7 +20,7 @@ async def get_course(course_id: str, _: CurrentUser = Depends(current_user), rep
 
 
 @router.get("/lectures/{lecture_id}", response_model=LectureManifest)
-async def get_lecture(lecture_id: str, _: CurrentUser = Depends(current_user), repo: ContentRepository = Depends(get_repository)):
+async def get_lecture(lecture_id: str, _: CurrentUser = Depends(current_user), repo: Repository = Depends(get_repository)):
     lec = await repo.get_published_lecture(_uuid(lecture_id))
     if not lec:
         raise HTTPException(404)
