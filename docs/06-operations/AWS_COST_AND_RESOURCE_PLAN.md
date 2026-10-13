@@ -61,3 +61,6 @@ Spend control: the new experience offers a **spend limit in AWS Settings** (paid
 | IAM role + instance profile | `neuromind-worker` | detach policies, remove role from profile, delete both |
 | SSM parameter | `/neuromind/worker-token` | `aws ssm delete-parameter` |
 Stopping the instance (not terminating) stops compute charges but the disk and the public IP still bill (~$4.9/month).
+
+## Addendum 2026-10-13: monitoring added
+SNS topic `neuromind-alerts` (e-mail), 4 CloudWatch alarms (about $0.10 each), 2 custom metrics in `NeuroMind/Grading` (about $0.30 each per month), systemd timer on the worker running `infra/aws/queue_monitor.sh` every minute (IAM `put-queue-metrics`, limited to that namespace). Added cost about $1/month; estimated total about $13.6/month against the $15 limit. Worker settings: concurrency 2, idle poll 5 s (about 520k API calls/month). No charges had appeared in Cost Explorer for October at the time of writing; verify at month end.

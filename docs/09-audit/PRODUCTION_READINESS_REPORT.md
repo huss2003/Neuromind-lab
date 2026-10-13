@@ -2,7 +2,9 @@
 
 Date: 2026-10-13 · Branch `claude/determined-bardeen-ip8pup`
 
-## Decision: **NO-GO**
+## Decision: **CONDITIONAL GO — controlled pilot only** (see the final update at the end of this file; the sections below are the history that led here)
+
+_Earlier decision on this page: NO-GO._
 Official grading has never been run through a real sandbox, the real learner journey has not been run end to end, secrets are not confirmed rotated, content is placeholder, and no hosted grader exists. Several items below are real progress, but a green unit-test run is not a release.
 
 ## Gate status
@@ -94,3 +96,31 @@ Timings are single samples, **not a load test**. The first attempt's 13 s shows 
 * Monaco editor and the Python practice runtime (CDN) were not exercised in the live run (tests used the plain-text editor); Run practice in a real browser is unverified.
 * Real lecture videos, the other 103 lectures, teacher content tools and the admin screens do not exist.
 * Retention, privacy policy and terms are not written.
+
+
+---
+## Update 2026-10-13 (final): load test, monitoring, content, restore rehearsal, live checks
+**Decision: CONDITIONAL GO for a small, supervised pilot (tens of learners) on the current stack. NOT a GO for open or 100-user use.** What the conditions are is listed at the end; none of them was waived silently.
+
+### Evidence
+| Area | What was done | Result |
+|---|---|---|
+| Load test | `scripts/load_test.py`, objectives fixed beforehand in `LOAD_TEST_PLAN.md`, 10/25/40 concurrent synthetic learners for 60 s each, plus 12 simultaneous submissions | Baseline was 3 to 5 s per request; after fixes server-side p95 is at most 473 ms and client p95 mostly under 800 ms. **Objectives still missed:** dashboard read p95 (809 / 831 / 1036 ms vs 800) and burst acknowledgement p95 (1130 ms vs 1000), measured at the client. Errors 0 to 0.06% (generator connect timeouts). Every burst submission finished and passed. Details and caveats in `LOAD_TEST_PLAN.md`. |
+| Grading latency | After idle poll 10 s to 5 s and worker concurrency 1 to 2 | Burst of 12: end to end p50 6.5 s, p95 10.4 s (was 13.7 / 17.2 s) |
+| Monitoring and alerts | Worker host publishes `WorkerActive` and `OldestQueuedSeconds` each minute; CloudWatch alarms: queue backlog (oldest job over 120 s for 3 min), worker down or silent, API unreachable from the worker, EC2 status check; SNS topic `neuromind-alerts` | Metrics verified arriving; all 4 alarms OK. **The e-mail subscription to Hussainsingapuri24@gmail.com must be confirmed by clicking the link AWS sent; until then no alert e-mail is delivered.** Alarm delivery itself was not triggered end to end. |
+| AWS cost | Budget `neuromind-monthly-15usd` exists; Cost Explorer shows no charges yet this month | Estimated about $12.6 plus about $1 for metrics and alarms, within the $15 limit; actual month-end figure not yet known |
+| Content | Lectures 10 to 12 authored (reading lessons, questions, labs, private test definitions kept out of Git) and applied to the dev database | 4 lectures exist in total (9 to 12). **Not** 104. The new labs were verified in the database only (counts), not walked through in a browser, because they unlock after Lecture 9. |
+| Practice runtime | Real Chromium against the live site: Monaco editor loads, Pyodide runs learner code and shows output, an infinite loop is stopped after 5 s and the page stays usable (`e2e/practice.spec.ts`) | Passed |
+| Smoke and security headers | Live site: sign-in routing, not-found, no overflow at 360 px, `/privacy` and `/terms` reachable, HSTS, nosniff, frame deny present | Passed (one first-attempt navigation timeout through the proxy, passed on re-run) |
+| Accessibility | axe WCAG 2.1 A/AA scans now include privacy and terms | Automated only; no screen-reader or by-hand audit |
+| Backup and restore | `scripts/backup_db.py`, `scripts/dr_rehearsal.sh`, runbook | Migrations 0001 to 0006 applied from an empty PostgreSQL; 19 of 19 tables restored with identical row counts. Auth users and RLS behaviour on the copy were **not** proved. |
+| Test suites | backend 112 passed + ruff clean; grader worker tests passed (Docker tests ran earlier on the host); frontend lint, tsc, vitest 37, `test:ui` 38 of 38 | CI workflow still has **never run on GitHub** (no `main` branch exists; it triggers on pull requests and pushes to `main`) |
+
+### Conditions that keep this from a full GO
+1. **Credentials (Gate 0):** the owner chose not to rotate the Supabase key or dev passwords. The old default password is in public Git history and the synthetic dev accounts still accept it. Real learners must use new accounts, and the dev/synthetic accounts should be deleted before launch. The service-role key was shared in chat and remains unrotated.
+2. **Single environment:** there is no separate staging project; development, drills and the pilot share one Supabase project. Decide whether to create a second project.
+3. **Capacity:** tested to 40 concurrent synthetic learners for 60 s on a free-tier stack with one worker host; no 100-user capacity claim.
+4. **Content:** 4 of 104 lectures; no recorded videos; teacher authoring and admin screens do not exist.
+5. **Policies:** privacy and terms pages are drafts without legal review; retention periods in `DATA_RETENTION_AND_POLICIES.md` are proposals.
+6. **Alerting:** confirm the SNS e-mail subscription; one worker host is still a single point of failure (submissions wait, then fail safe as a system issue).
+7. **Release process:** CI has never run on GitHub; production aliases currently serve builds of the working branch, not `main`.

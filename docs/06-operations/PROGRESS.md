@@ -131,3 +131,8 @@ Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture
 - Placeholders removed (seed 005 applied via REST because large SQL calls timed out in the Supabase tool). UI v2 deployed. Frontend project fixed (root directory). Live browser E2E A/B/C and smoke passed.
 - Fixed leaked sandbox processes (container deadline, die-with-parent, start-up sweep). Worker host updated and re-tested: 25 passed.
 - Decision unchanged: NO-GO for real learners; see the update section at the end of PRODUCTION_READINESS_REPORT.md.
+
+## Session 2026-10-13 (production push)
+Done: load test (objectives fixed first, baseline 3 to 5 s, fixes: pooled upstream client, token cache, hnd1 region, concurrent reads, 15 s published-content cache, audit off request path; final run server p95 at most 473 ms, two client-side objectives narrowly missed, results in LOAD_TEST_PLAN); worker idle poll 5 s and concurrency 2 (burst grading p95 10.4 s); CloudWatch metrics, 4 alarms, SNS topic; backup/restore scripts, local DR rehearsal (19/19 tables), runbook; retention proposals; Lectures 10 to 12 applied to dev DB; live Monaco/Pyodide E2E passed; privacy/terms in axe scan; readiness report final update (CONDITIONAL GO, supervised pilot).
+Tests run: backend 112 passed + ruff; grader worker tests passed; frontend lint/tsc/vitest 37; test:ui 38/38 (+ legal pages a11y re-run); live practice E2E and smoke passed. Not run: CI on GitHub (no main branch), 100-user load, screen reader audit.
+Open: owner decisions on credentials (not rotated by choice), staging project, legal review, SNS e-mail confirmation, merging the working branch to `main`, more lectures.
