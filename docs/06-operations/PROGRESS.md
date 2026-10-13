@@ -105,4 +105,4 @@ Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture
 - Gap analysis against the UX spec: `docs/09-audit/UX_SPEC_CONFORMANCE.md` (what is built, partial, missing, and the five decisions needed).
 - Tests run: eslint + tsc clean, vitest 34 passed, `pnpm test:ui` (Chromium, NETWORK MOCKED) 35 passed (34 in the full run + the one selector fix re-run singly).
 - NOT yet applied to Supabase: migration 0005, seeds 003 and 004 (enrolments are now required, so learners see no course until they are applied). Vercel still serves the older commit until redeployed.
-- Not built / unverified: see the conformance doc (authoring, cohorts, queue/outbox/leases, admin screens, load and latency measurement, `/api/v1` prefix).
+- Not built / unverified: see the conformance doc (authoring, cohorts, queue/outbox/leases, admin screens, load and latency measurement).

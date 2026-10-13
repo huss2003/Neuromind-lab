@@ -60,7 +60,7 @@ Loading (spinner and new skeleton), empty vs error, plain-language errors with r
 |---|---|
 | Idempotent submissions, server-authoritative score/completion, 404 for out-of-scope resources, rate limits (6/min, 2 in flight) | ✅ tested against fakes |
 | Draft autosave (debounced), saved/unsaved/local-only labels, reconcile by content version | ✅ |
-| `/api/v1` prefix | ❌ routes are unversioned; changing it alters the API contract, so it needs your approval |
+| `/api/v1` prefix | ✅ every router is mounted under `/api/v1` (correction: an earlier draft of this report wrongly said it was missing) |
 | Durable queue, transactional outbox, worker leases, retry with jitter, dead-letter, fair scheduling, shutdown handling | 🔒 Grading is a background task calling the grader over HTTP. A crash can leave an attempt unfinished until it expires. Queue technology and hosting are an open decision (no Redis/paid service without approval). |
 | Latency targets (p95/p99), queue-wait target, 10→100-user load test, hostile-code probes | ❌ **Never measured.** No claim of meeting any target is made. The sandbox could not be run here (no Docker daemon). |
 | Polling 1–2 s with back-off | 🟡 polling exists; back-off should be checked |
@@ -74,4 +74,3 @@ Added S02, S03, S15, S18 (guidance only), a help link in the navigation, a "how 
 2. A table for problem reports (S18/T16/A06).
 3. Authoring and publishing workflow (T10–T14).
 4. Queue technology and hosting (A03/A04, section 12).
-5. Whether to add the `/api/v1` prefix now.
