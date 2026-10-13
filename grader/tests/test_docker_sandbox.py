@@ -39,8 +39,9 @@ def test_environment_has_no_secrets():
 
 def test_root_filesystem_is_read_only_and_host_files_are_absent():
     r = run("import os\ntry:\n    open('/app/harness.py', 'a').write('x')\n    print('WROTE')\nexcept Exception:\n    print('READONLY')\n"
-            "print(os.path.exists('/var/run/docker.sock'), os.path.exists('/etc/neuromind'), os.path.exists('/home'))")
-    assert "WROTE" not in r.stdout and "READONLY" in r.stdout and "True" not in r.stdout
+            "print(os.path.exists('/var/run/docker.sock'), os.path.exists('/etc/neuromind'), os.path.exists('/opt/neuromind'), os.listdir('/home'))")
+    # /home exists (empty) in the base image; what matters is that no host path or socket is visible.
+    assert "WROTE" not in r.stdout and "READONLY" in r.stdout and "False False False []" in r.stdout
 
 
 def test_runs_as_unprivileged_user_without_capabilities():
