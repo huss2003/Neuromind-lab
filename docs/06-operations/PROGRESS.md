@@ -76,3 +76,8 @@ Tasks: T08 session API, T10-T13 checkpoint rules/MCQ scoring/results, T14-T15 Mo
 5. T26 (E2E fail/retry/resume), T27 security review, T28 preview deployment, T29 demo pack, T32 load tests.
 ### Next
 Run `scripts/dev.sh` locally per README, then `pnpm e2e`; report failures back for fixing.
+
+## Session 2026-10-13 (d) — Deployment + audit
+- Deployed to Vercel (projects `neuromind-lab`, `neuromind-lab-api`) from branch commit b533f79 via the Vercel connector; both READY. Not browser-verified (network blocked here).
+- Dev users created in Supabase via SQL (learner1-3, teacher). Public repo + default dev password: see audit F-01.
+- Audit against Requirements v1.0: `docs/09-audit/AUDIT_2026-10-13.md`. No application code changed. Next: rotate credentials, run local E2E, owner decisions F-09/F-10/F-12.
