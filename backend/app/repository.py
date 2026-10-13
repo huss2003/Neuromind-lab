@@ -1,7 +1,10 @@
 """Data access boundary. Services depend on the `Repository` protocol; production uses
 PostgREST with the server-only service-role key (bypasses RLS, so every query filters
 explicitly); tests use an in-memory implementation (tests/fakes.py)."""
+import copy
+import functools
 import os
+import time
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
@@ -10,6 +13,29 @@ import httpx
 from app import http
 
 Row = dict[str, Any]
+
+
+_CONTENT_TTL = float(os.getenv("CONTENT_CACHE_SECONDS", "15"))
+_content_cache: dict[tuple, tuple[float, Any]] = {}
+
+
+def cached_content(fn):
+    """Short in-process cache for PUBLISHED, learner-independent content (courses, lectures, segments, exercises).
+    Access control is still checked per request; learner state is never cached. A republish shows up within CONTENT_CACHE_SECONDS."""
+    @functools.wraps(fn)
+    async def wrapper(self, *args):
+        key = (fn.__name__, args)
+        hit = _content_cache.get(key)
+        now = time.monotonic()
+        if _CONTENT_TTL > 0 and hit and now - hit[0] < _CONTENT_TTL:
+            return copy.deepcopy(hit[1])
+        value = await fn(self, *args)
+        if _CONTENT_TTL > 0:
+            if len(_content_cache) > 500:
+                _content_cache.clear()
+            _content_cache[key] = (now, copy.deepcopy(value))
+        return value
+    return wrapper
 
 
 class Repository(Protocol):
@@ -100,20 +126,24 @@ class PostgrestRepository:
         return rows[0] if rows else None
 
     # content
+    @cached_content
     async def list_published_courses(self):
         return await self._get("courses", status="eq.published", select="id,slug,title,description", order="created_at")
 
     async def get_published_course(self, course_id):
         return await self._one("courses", id=f"eq.{course_id}", status="eq.published", select="id,slug,title,description")
 
+    @cached_content
     async def list_published_lectures(self, course_id):
         return await self._get(
             "lectures", course_id=f"eq.{course_id}", status="eq.published",
             select="id,module_id,lecture_number,title,summary,duration_seconds,prerequisites", order="lecture_number")
 
+    @cached_content
     async def get_published_lecture(self, lecture_id):
         return await self._one("lectures", id=f"eq.{lecture_id}", status="eq.published", select="*")
 
+    @cached_content
     async def list_segments(self, lecture_id):
         return await self._get("lecture_segments", lecture_id=f"eq.{lecture_id}", select="*", order="segment_order")
 
@@ -128,6 +158,7 @@ class PostgrestRepository:
     async def get_question_full(self, question_id):
         return await self._one("mcq_questions", id=f"eq.{question_id}", select="*")
 
+    @cached_content
     async def get_published_exercise(self, exercise_id):
         return await self._one("lecture_exercises", id=f"eq.{exercise_id}", status="eq.published", select="*")
 
@@ -323,6 +354,7 @@ class PostgrestRepository:
         return await self._get("lab_submissions", learner_id=f"eq.{learner_id}", select="*", order="created_at")
 
     # v1.0 additions
+    @cached_content
     async def list_published_modules(self, course_id):
         return await self._get("modules", course_id=f"eq.{course_id}", status="eq.published",
                                select="id,module_number,title,description,sort_order", order="sort_order")
