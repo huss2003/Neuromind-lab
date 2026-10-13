@@ -48,6 +48,15 @@ with os.fdopen(int(sys.argv[1]), "w") as report:
 '''
 
 
+def _die_with_parent() -> None:
+    """Child-side: be killed by the kernel if the trusted parent dies, so a crashed/killed parent can never leave learner code running."""
+    try:
+        import ctypes
+        ctypes.CDLL(None).prctl(1, 9, 0, 0, 0)  # PR_SET_PDEATHSIG = SIGKILL
+    except Exception:  # noqa: BLE001 - non-Linux; the container time limit still applies
+        pass
+
+
 def _harden_parent() -> None:
     """Best effort: stop the child from reading this process's memory via /proc or ptrace."""
     try:
@@ -92,7 +101,7 @@ def run_child(code: str, names: list[str], max_out: int) -> tuple[bytes, bool, b
     r_fd, w_fd = os.pipe()
     child = subprocess.Popen(  # noqa: S603 - fixed argv, learner code travels over stdin only
         [sys.executable, "-I", "-c", CHILD_SOURCE, str(w_fd)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL, pass_fds=(w_fd,), env={}, close_fds=True)
+        stderr=subprocess.DEVNULL, pass_fds=(w_fd,), env={}, close_fds=True, preexec_fn=_die_with_parent)  # noqa: PLW1509
     os.close(w_fd)
     assert child.stdin is not None and child.stdout is not None
     try:

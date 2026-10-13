@@ -11,6 +11,7 @@ import os
 import random
 import signal
 import socket
+import subprocess
 from typing import Any
 
 import httpx
@@ -84,7 +85,19 @@ class Worker:
                 pass
 
 
+def sweep_stray_containers() -> None:
+    """On start, remove sandbox containers left by an earlier crash. Each carries a hard in-container deadline too; this is the second line."""
+    try:
+        ids = subprocess.run(["docker", "ps", "-aq", "--filter", "name=nm-grade-"], capture_output=True, text=True, timeout=20).stdout.split()
+        if ids:
+            subprocess.run(["docker", "rm", "-f", *ids], capture_output=True, timeout=60)
+            print(f"removed {len(ids)} stray sandbox container(s)", flush=True)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 async def main() -> None:
+    sweep_stray_containers()
     base = os.environ["API_BASE_URL"].rstrip("/") + "/api/v1/internal/grader"
     token = os.environ["GRADER_WORKER_TOKEN"]
     wid = os.getenv("WORKER_ID") or f"{socket.gethostname()}-{os.getpid()}"

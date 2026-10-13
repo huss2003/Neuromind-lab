@@ -118,3 +118,33 @@ def test_student_cannot_read_stdin_payload():
 def test_exception_in_student_code_is_reported_with_line_number():
     run, _ = grade("x = 1\nraise ValueError('boom')\n")
     assert run.error and run.error["type"] == "ValueError" and run.error["line"] == 2
+
+
+def test_learner_process_dies_when_the_trusted_parent_is_killed():
+    """The child must not survive its parent (PR_SET_PDEATHSIG), or a killed worker would leave a CPU-burning program behind."""
+    import json
+    import os
+    import signal
+    import subprocess
+    import sys
+    import time
+    from pathlib import Path
+    harness = Path(__file__).resolve().parents[1] / "sandbox" / "harness.py"
+    p = subprocess.Popen([sys.executable, "-I", str(harness)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, env={})
+    p.stdin.write(json.dumps({"code": "import os\nopen('/tmp/nm_child_pid', 'w').write(str(os.getpid()))\nwhile True:\n    pass\n", "capture_vars": [], "nonce": "n", "max_output": 100}).encode())
+    p.stdin.close()
+    for _ in range(50):
+        if os.path.exists("/tmp/nm_child_pid") and os.path.getsize("/tmp/nm_child_pid") > 0:
+            break
+        time.sleep(0.1)
+    child = int(open("/tmp/nm_child_pid").read())
+    os.kill(p.pid, signal.SIGKILL)
+    p.wait()
+    time.sleep(1)
+    try:
+        state = open(f"/proc/{child}/stat").read().rsplit(")", 1)[1].split()[0]
+        alive = state != "Z"  # a zombie is already dead; it only awaits reaping by init
+    except FileNotFoundError:
+        alive = False
+    os.remove("/tmp/nm_child_pid")
+    assert not alive

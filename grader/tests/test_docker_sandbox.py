@@ -78,3 +78,20 @@ def test_fork_bomb_is_contained_by_the_pid_limit():
 def test_output_flood_is_bounded():
     r = run("for _ in range(100000):\n    print('A' * 1000)\n", timeout=15)
     assert len(r.stdout) <= 20_000
+
+
+def test_container_cannot_outlive_its_deadline_even_if_the_worker_is_killed():
+    """Start a container the way the worker does, kill the client (as a SIGKILLed worker would), and prove the program still dies."""
+    import time
+    from grader_service.runner import docker_command
+    name = "nm-grade-deadline-test"
+    cmd = docker_command(name, 128, 1.0, limit_seconds=3)
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc.stdin.write(b'{"code": "while True:\\n    pass\\n", "capture_vars": [], "nonce": "n", "max_output": 100}')
+    proc.stdin.close()
+    time.sleep(1)
+    proc.kill()  # the "worker" dies; the container keeps running unless it has its own deadline
+    time.sleep(6)
+    left = subprocess.run(["docker", "ps", "-aq", "--filter", f"name={name}"], capture_output=True, text=True).stdout.strip()
+    subprocess.run(["docker", "rm", "-f", name], capture_output=True)
+    assert left == ""

@@ -8,6 +8,7 @@ export async function signIn(page: Page, who: 'learner1' | 'learner2' | 'learner
   await page.getByLabel('Email').fill(`${who}@neuromind.test`);
   await page.getByLabel('Password').fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).not.toHaveURL(/sign-in/); // the sign-in page has its own h1, so wait for the redirect
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 }
 
@@ -19,8 +20,13 @@ export async function openLecture(page: Page) {
 /** Orientation screen -> Start lecture. A learner who already started resumes without it. */
 export async function startLecture(page: Page) {
   const start = page.getByRole('button', { name: 'Start lecture' });
-  await expect(start.or(page.getByRole('button', { name: 'Continue', exact: true })).first()).toBeVisible();
-  if (await start.isVisible()) await start.click();
+  await start.click({ timeout: 10_000 }).catch(() => undefined); // not shown when the learner resumes mid-lecture
+}
+
+/** Calls the API from inside the page (same network path as the app), returning only the HTTP status. */
+export async function apiStatus(page: Page, path: string): Promise<number> {
+  const token = await accessToken(page);
+  return page.evaluate(async ([url, t]) => (await fetch(url, { headers: { Authorization: `Bearer ${t}` } })).status, [`${API}${path}`, token]);
 }
 
 /** A written section ends with a Continue button. */
@@ -33,8 +39,9 @@ export async function answer(page: Page, optionText: string | RegExp) {
 }
 
 export async function setCode(page: Page, code: string) {
-  await page.getByRole('button', { name: 'Use simple text editor' }).click(); // deterministic input (Monaco is canvas-like)
-  await page.locator('textarea.simple-editor').fill(code);
+  const area = page.locator('textarea.simple-editor');
+  if (!(await area.isVisible())) await page.getByRole('button', { name: 'Use simple text editor' }).click(); // deterministic input (Monaco is canvas-like)
+  await area.fill(code);
 }
 
 export const GOOD = "student_name = 'Aarav'\nprint(student_name)\n";

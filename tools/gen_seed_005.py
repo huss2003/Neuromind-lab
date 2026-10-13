@@ -103,7 +103,7 @@ This prints `25`. Python reads `price + 5` using the old value (20), then stores
 You will practise all of this in the lab next."""
 
 stmts = []
-stmts.append(f"""update public.courses set title = 'NeuroMind AI Foundations',
+stmts.append("""update public.courses set title = 'NeuroMind AI Foundations',
   description = 'A practical path from your first Python program to building and understanding AI systems. You learn by writing code that is graded fairly, with help the moment you need it.'
   where id = '00000000-0000-4000-8000-000000000001';""")
 stmts.append("""update public.modules set title = 'Python for AI',
@@ -114,9 +114,9 @@ stmts.append(f"""update public.lectures set
   learning_objectives = {j(["Check that Python is installed and working", "Run code cells and text cells in a notebook", "Store a value in a variable with =", "Show a result with print()"])},
   duration_seconds = 2100, content_version = 2
   where id = '{L}';""")
-seg = lambda sid, typ, title, settings: (
-    f"update public.lecture_segments set segment_type = '{typ}', title = {q(title)}, media_provider = null, media_url = null, "
-    f"media_asset_key = null, duration_seconds = null, settings = {j(settings)} where id = '{sid}';")
+def seg(sid, typ, title, settings):
+    return (f"update public.lecture_segments set segment_type = '{typ}', title = {q(title)}, media_provider = null, media_url = null, "
+            f"media_asset_key = null, duration_seconds = null, settings = {j(settings)} where id = '{sid}';")
 stmts.append(seg("00000000-0000-4000-8000-000000000108", "intro", "What you will do today", {"body": INTRO}))
 stmts.append(seg("00000000-0000-4000-8000-000000000101", "reading", "Set up Python", {"body": SETUP}))
 stmts.append(seg("00000000-0000-4000-8000-000000000103", "reading", "Notebooks and cells", {"body": NOTEBOOKS}))

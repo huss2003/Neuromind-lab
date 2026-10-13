@@ -18,7 +18,7 @@ HARNESS = Path(__file__).resolve().parents[1] / "sandbox" / "harness.py"
 IMAGE = os.getenv("GRADER_IMAGE", "neuromind-grader-sandbox")
 
 
-def docker_command(name: str, memory_mb: int, cpus: float, image: str = IMAGE) -> list[str]:
+def docker_command(name: str, memory_mb: int, cpus: float, image: str = IMAGE, limit_seconds: int = 10) -> list[str]:
     """Strict, secret-free `docker run` invocation. No mounts, no network, no inherited environment."""
     return [
         "docker", "run", "--rm", "-i", "--name", name,
@@ -29,7 +29,8 @@ def docker_command(name: str, memory_mb: int, cpus: float, image: str = IMAGE) -
         "--cap-drop=ALL", "--security-opt", "no-new-privileges",
         "--user", "65534:65534",
         "-e", "PYTHONDONTWRITEBYTECODE=1",
-        image, "python", "-I", "/app/harness.py",
+        # Hard in-container deadline, independent of the worker: even if the worker is killed, the program cannot outlive it.
+        image, "timeout", "-s", "KILL", str(int(limit_seconds)), "python", "-I", "/app/harness.py",
     ]
 
 
@@ -86,7 +87,7 @@ class DockerRunner:
         payload = {"code": code, "capture_vars": capture_vars, "nonce": nonce, "max_output": self.max_output}
         try:
             # Wall-clock limit includes container start-up; kill + --rm cleans the container.
-            result = await _drive(docker_command(name, self.memory_mb, self.cpus), payload, timeout + 3,
+            result = await _drive(docker_command(name, self.memory_mb, self.cpus, limit_seconds=int(timeout) + 3), payload, timeout + 3,
                                   ["docker", "kill", name])
         except (FileNotFoundError, PermissionError, OSError):
             return RunResult("infra_error", detail="docker unavailable")
