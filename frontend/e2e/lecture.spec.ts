@@ -47,8 +47,8 @@ test('B: a failed attempt gives guidance, a retry passes, and both attempts are 
   await toLab(page);
   await setCode(page, BAD);
   await page.getByRole('button', { name: 'Submit for grading' }).click();
-  await expect(page.getByText('Needs work').first()).toBeVisible({ timeout: 90_000 });
-  await expect(page.getByText('How to fix it')).toBeVisible();
+  await expect(page.getByText('Grading your submission').or(page.getByText('Your submission is queued')).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('How to fix it')).toBeVisible({ timeout: 90_000 }); // the worker polls every few seconds when idle
   await setCode(page, GOOD);
   await page.getByRole('button', { name: 'Submit for grading' }).click();
   await expect(page.getByText('Passed').first()).toBeVisible({ timeout: 90_000 });

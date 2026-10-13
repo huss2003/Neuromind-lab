@@ -126,3 +126,8 @@ Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture
 - Owner decision: Supabase key and dev passwords are NOT being rotated (risk stays open).
 - Created data: synthetic learner3 now has attempts/progress in the dev database.
 - Resource inventory and cleanup: see AWS_COST_AND_RESOURCE_PLAN.md and the readiness report.
+
+## Session 2026-10-13 (j) — Real content, UI v2, live E2E
+- Placeholders removed (seed 005 applied via REST because large SQL calls timed out in the Supabase tool). UI v2 deployed. Frontend project fixed (root directory). Live browser E2E A/B/C and smoke passed.
+- Fixed leaked sandbox processes (container deadline, die-with-parent, start-up sweep). Worker host updated and re-tested: 25 passed.
+- Decision unchanged: NO-GO for real learners; see the update section at the end of PRODUCTION_READINESS_REPORT.md.

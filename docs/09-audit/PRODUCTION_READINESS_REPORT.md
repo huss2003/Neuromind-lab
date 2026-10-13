@@ -60,3 +60,37 @@ Staging drills (synthetic learner `learner3`, real Supabase, real Vercel API, re
 Timings are single samples, **not a load test**. The first attempt's 13 s shows the cost of the 10 s idle poll interval.
 
 **Still blocking:** Gate 0 (owner chose **not** to rotate the Supabase key or dev passwords; the old default password is in public history and live accounts still accept it, as these drills show); full browser end-to-end journey against the real stack not run; content is placeholder; no axe/screen-reader audit; no load test; hosted learner-facing UI journey not smoke-tested after the switch to queue mode; worker is a single instance with no alerting (an outage means submissions wait, then dead-letter after 3 claims).
+
+---
+## Update 2026-10-13 (final pass): real content, UI v2, live browser journey
+**Decision: still NO-GO for real learners.** The product itself now works end to end on the live stack, but the credential gate is open by the owner's choice and several launch checks were never done (below).
+
+**Placeholder removal.** Lecture 9 now has authored text (`database/seed/005_lecture9_content.sql`, applied to the dev database through `scripts/apply_lecture9_content.py`): a real introduction, three lessons (set up Python, notebooks and cells, variables and print), three reviewed multiple-choice questions with explanations, a lab with real instructions. The three placeholder videos were **replaced by written lessons** because no recordings exist; no placeholder text remains in the database (checked). Lecture content version is 2; earlier attempts keep version 1. Older seed files still contain the historical placeholder text and are superseded by seed 005. **Only Lecture 9 exists; the other 103 lectures are not authored.**
+
+**UI v2.** New visual system ("Cortex": ink rail, mist workspace, one blue for actions, amber only for "you are here", pathway progress, Bricolage Grotesque / Instrument Sans / JetBrains Mono self-hosted, tinted code editor theme), split sign-in, dashboard hero, desktop lab workbench (task beside editor), lesson text renderer, error boundary, security headers. Live at https://neuromind-lab.vercel.app. Screenshots were reviewed at 360 and 1440 px.
+
+**Tests run in this pass (actual results)**
+| Suite | Result |
+|---|---|
+| backend pytest + ruff | 109 passed, lint clean (MOCKED repository) |
+| grader pytest | 32 passed, 11 skipped locally (Docker tests need Docker) |
+| frontend eslint, tsc, vitest | clean, 37 passed |
+| `pnpm test:ui` (Chromium, MOCKED network) incl. **axe WCAG 2.1 A/AA scans** of 17 screens at 1440 and 390 px | 38 of 38 passed in the last full run; one keyboard test was updated afterwards for the new skip link and passed alone |
+| Docker sandbox + adversarial suite **on the AWS worker host** | 25 passed (10 container-isolation probes, 15 forgery/robustness) |
+| **Live browser E2E** (real Chromium → live site → live API → Supabase → AWS worker → Docker) | A: full lecture journey ending in "Lecture complete", still complete after reload: passed. B: failure with guidance, retry passes, both attempts kept, best score 100: passed. C: learner blocked from teacher page and API (403) and from another learner's submission (404): passed. Smoke tests: passed. |
+
+**Defects found by this testing and fixed**
+1. The frontend Vercel project had no root directory, so the live site returned 404 even though deployments said READY. Fixed by deploying with the `frontend` root; verified in a browser.
+2. **Leaked CPU-burning sandbox processes.** After my worker-kill drill, an infinite-loop container and a harness child kept running for 2 hours and saturated both CPUs, making grading slow. Fixes: hard `timeout` inside the container, the learner process dies with its parent (PDEATHSIG), the worker removes stray sandbox containers at start-up. Tests added (including a real "kill the worker, the program still dies" container test) and run on the host.
+3. Axe found low contrast on the success badge and an unfocusable scrolling stepper; both fixed and re-scanned.
+4. The sign-in page had no skip link; added.
+5. The e2e sign-in helper treated the sign-in page's own heading as success; fixed.
+
+**Still open (why the answer is NO-GO)**
+* Gate 0: the owner chose not to rotate the Supabase key or dev passwords; the old default password is in public Git history and still works on the dev accounts (the live tests logged in with it). The hidden test definition remains in the database and in public history of the old seed.
+* Grading takes about 8 to 15 seconds, mostly the worker's idle polling interval (10 s). Acceptable for a pilot; measured with a handful of single attempts only. **No load test, no capacity figure.**
+* One worker, no alerting: if it stops, submissions wait and then fail safe as "system issue".
+* Accessibility: automated scans only; no screen-reader or keyboard-by-hand audit.
+* Monaco editor and the Python practice runtime (CDN) were not exercised in the live run (tests used the plain-text editor); Run practice in a real browser is unverified.
+* Real lecture videos, the other 103 lectures, teacher content tools and the admin screens do not exist.
+* Retention, privacy policy and terms are not written.

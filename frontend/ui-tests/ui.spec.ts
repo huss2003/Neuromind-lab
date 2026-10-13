@@ -228,6 +228,8 @@ test('keyboard: skip link, sign-in form and answering a checkpoint without a mou
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto('/sign-in');
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused(); // the sign-in page offers a skip link too
+  await page.keyboard.press('Tab');
   await expect(page.getByLabel('Email')).toBeFocused();
   await page.keyboard.type('a@b.test'); await page.keyboard.press('Tab'); await page.keyboard.type('wrong');
   await page.keyboard.press('Enter');
