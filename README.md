@@ -54,3 +54,9 @@ cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 cd frontend && pnpm exec playwright test smoke                        # boots the app in a real browser (no backend needed)
 cd frontend && pnpm e2e                                               # full journeys A-E: needs the whole stack + users + Docker
 ```
+
+## Deploying the frontend to Vercel (not yet done)
+1. Vercel -> Add New Project -> import this repo, set **Root Directory = `frontend`** (config in `frontend/vercel.json`).
+2. Environment variables (public values only): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL` (URL of the hosted API).
+3. The API (`backend/`) is a separate FastAPI service (docs plan Render Free); set its `CORS_ALLOWED_ORIGINS` to the Vercel URL and keep `SUPABASE_SERVICE_ROLE_KEY` only there. In Supabase Auth settings add the Vercel URL to allowed redirect URLs.
+4. The Docker grader stays local/private: a hosted preview will show "grader unavailable" for official grading (never a learner failure).
