@@ -111,3 +111,11 @@ Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture
 - Supabase (project `neuronetwrks`): applied migration `flow_v1_b` (0005) and the statements of seeds 003 and 004. Checked afterwards: 3 enrolments, Lecture 9 sections are intro, video, checkpoint, video, checkpoint, video, exercise, exit check; 3 tests carry objectives.
 - Vercel: frontend `dpl_3nvm4toE…` and API `dpl_2UfvMwsr…` both READY at commit 1c97cec. The first API attempt failed with FASTAPI_ENTRYPOINT_NOT_FOUND until the root directory was set to `backend`.
 - NOT verified: no request was made to either deployment (the fetch tool was denied and Bash cannot reach Vercel), so sign-in and the new screens on the live site are untested.
+
+## Session 2026-10-13 (h) — Production-readiness pass (see docs/09-audit/PRODUCTION_READINESS_REPORT.md)
+- Decision: **NO-GO** (Docker sandbox, real E2E, key rotation, content, load, a11y not done).
+- Code: required-env dev password; secret scan + CI workflow; split-process grader harness + adversarial tests; DB-backed grading queue (migration 0006 **applied to the dev Supabase project and verified in a rolled-back transaction**), worker API (`/api/v1/internal/grader/*`), pull worker `grader/worker.py`, polling back-off.
+- Tests: backend 109 passed; grader 31 passed, 1 skipped; frontend lint/tsc/vitest clean. UI suite not re-run after the polling edit.
+- AWS (measured): Free plan, $100 credit, expires 2027-04-13, SCP denies EC2/ECS/SQS/Lambda/etc. Nothing provisioned. See AWS_COST_AND_RESOURCE_PLAN.md.
+- Capacity claims (100/200 learners) remain **unmeasured**; do not quote either.
+- New docs: ADR_HOSTED_GRADING, AWS_COST_AND_RESOURCE_PLAN, GRADER_THREAT_MODEL, E2E_LEARNER_JOURNEY, PRODUCTION_RELEASE_CHECKLIST, PRODUCTION_READINESS_REPORT.
