@@ -51,3 +51,28 @@ Tasks: T06 (seed + RLS verification), T07 (course/lecture APIs).
 - Tests: backend pytest 10 passed, ruff clean. Not run against live PostgREST (service-role key not available in this environment): PostgrestRepository is unverified.
 - Doc conflict/gap: the pack has no curriculum document, so Lecture 9 learning objectives are placeholders; title comes from API_SPEC. Docs live under docs/ (the prompt's paths omit this prefix); PROGRESS.md is docs/06-operations/PROGRESS.md.
 - Next: T08 lecture session API (create/load/PATCH with state_version), then T09 player.
+
+## Session 2026-10-13 (c) — vertical slice implemented
+Tasks: T08 session API, T10-T13 checkpoint rules/MCQ scoring/results, T14-T15 Monaco + Pyodide worker, T16 grader service, T17-T18 submissions/feedback/retry, T19-T20 practical transition + completion, T23 teacher results (basic), T24 Lecture 9 seed (earlier), E2E specs written.
+### Environment limits in this cloud container (why some items are UNVERIFIED)
+- Egress policy blocks `ddiwlgbllhwcdykqjfne.supabase.co`, so the API could not be run against the live Supabase project from here. `PostgrestRepository` has never executed against real PostgREST.
+- No Docker daemon here, so the Docker sandbox runner, `docker build`, and the real-Docker test were never executed.
+- No localhost access for the user from this container: the app must be run on the user's machine (README).
+### Tests actually run (all in this container)
+- backend: `ruff check` clean; `pytest` 36 passed (in-memory repository + fake grader; covers 401/403/404, checkpoint bypass, seek-ahead, score tampering, answer-key/hidden-test non-disclosure, idempotency 200/409, stale state 409, attempt limits, infra error not a learner failure, cross-user access, teacher scoping, completion rules).
+- grader: `pytest` 12 passed, 1 skipped (real Docker). Harness+evaluation verified via a NON-isolated subprocess test runner (pass, fail, runtime error, syntax error, infinite loop timeout, output truncation). Docker flags are asserted by string (`--network none`, `--read-only`, `--cap-drop=ALL`, `--pids-limit`, memory/cpu, non-root, no mounts/env) but NOT executed.
+- frontend: eslint clean, `tsc` clean, vitest 23 passed (timeline state machine 13, MCQ 4, video fallbacks 2, routing/guards 3, sign-in 1), `vite build` ok, Playwright smoke 3 passed in real Chromium (sign-in redirect, skip link/focus, 404, teacher guard, no overflow at 360px).
+- Real server smoke: uvicorn started; `/health` ok, `/courses` without token -> 401 structured error, CORS allows only the configured origin.
+- NOT run: E2E journeys A-E (`frontend/e2e/lecture.spec.ts`; typechecked only), live Supabase auth/RLS-through-API, Docker grading, Pyodide in a browser (loads from jsDelivr; blocked here), Monaco loading, real video playback, 100-user/grading load tests.
+### Decisions / deviations
+- Python 3.13 and pnpm 10.28 used instead of pinned 3.12 / 9.15.4; frontend pins follow the doc except `@monaco-editor/react 4.7.0` (4.6.0 lacks React 19 peer support), eslint plugins pinned to versions compatible with ESLint 9.19.
+- Grader design: only variable NAMES and student code enter the container; test definitions (incl. hidden) stay on the host and are evaluated against captured stdout/variables. Known limitation: hostile code could try to forge the harness result line (nonce-protected but same process); the container protects the host, not grade integrity. Needs the security review (T27).
+- Additive API endpoints documented in API_SPEC.md (need approval).
+### Outstanding / open
+1. Run the stack locally and fix whatever the first real run reveals (most likely areas: PostgREST filter syntax, Supabase `/auth/v1/user` check, Monaco/Pyodide CDN loading).
+2. Teacher scope (course assignment) and teacher authoring screens (T21-T22) not built.
+3. Audit-log writes for denied actions not implemented; no rate limiting yet; student_progress recompute only on completion.
+4. Replace placeholder content/videos; supply real Lecture 9 objectives.
+5. T26 (E2E fail/retry/resume), T27 security review, T28 preview deployment, T29 demo pack, T32 load tests.
+### Next
+Run `scripts/dev.sh` locally per README, then `pnpm e2e`; report failures back for fixing.

@@ -75,3 +75,12 @@ Do not reveal hidden inputs, expected output or container internals.
 
 ## Idempotency and versioning
 MCQ and code submissions accept idempotency keys. Same key/same payload returns original result; same key/different payload returns 409. Prefix API with `/v1`; update OpenAPI and contract tests with changes.
+
+## Additive endpoints and conventions (implementation notes, 2026-10-13 — need owner approval)
+- `GET /me/progress` (Auth): learner's own lecture session statuses for the dashboard.
+- `GET /exercises/{id}/submissions` (Auth): learner's own attempt history for an exercise.
+- `GET /teacher/learners` (Teacher/admin): learner list so the teacher results screen can choose a learner.
+- Session responses additionally include `checkpoint_results` (so explanations survive refresh) and `max_reachable_order`.
+- Segment `settings.on_end = {"type":"open_exercise","exercise_id":"<uuid>"}` links a practical video to its exercise explicitly; the manifest exposes it as `next_action`.
+- Checkpoint completion: no `pass_threshold` => any submitted attempt completes it (formative MCQ); with a threshold (exit check = 100) a sufficient score is required and retries are allowed. Exercise completion = a `passed` submission. Infrastructure errors never count toward `max_attempts`.
+- Unknown, malformed or not-owned resource ids return 404 (never 403) to avoid id probing. Teacher/admin access is currently NOT course-scoped because the schema has no teacher-course assignment table (open decision).

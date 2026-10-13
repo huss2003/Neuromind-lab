@@ -21,3 +21,36 @@ Learner can sign in; play segments; answer two MCQs and see server-calculated re
 
 ## Change control
 For any scope/schema/API/security/cost decision: update the relevant spec, tests, ADR if needed, and PROGRESS.md before or with implementation. Do not silently infer major requirements.
+
+---
+# Running locally (verified steps are marked; see PROGRESS.md for what has NOT been verified)
+
+## Prerequisites
+Node 22, pnpm (10.x tested), Python 3.12+ (3.13 tested), Docker (only for official grading), a Supabase DEV project.
+
+## One-time setup
+```bash
+cp .env.example .env            # then fill SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
+                                # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, GRADER_SHARED_SECRET
+python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.txt
+(cd frontend && pnpm install --frozen-lockfile)
+# Database: apply database/migrations/*.sql in order, then database/seed/001_lecture9_sample.sql (SQL editor or Supabase CLI)
+CONFIRM_DEV_PROJECT=yes backend/.venv/bin/python scripts/create_dev_users.py   # learner1/2/3 + teacher @neuromind.test
+docker build -t neuromind-grader-sandbox grader/                               # official-grading sandbox image
+```
+Never commit `.env`. The service-role key is server-only (API); the browser only gets the anon/publishable key.
+
+## Run
+```bash
+scripts/dev.sh      # API :8000, grader 127.0.0.1:8010 (needs Docker), frontend http://127.0.0.1:5173
+```
+Sign in as `learner1@neuromind.test` (password printed by the user script) and open Lecture 9. Teacher: `teacher@neuromind.test` -> Results.
+
+## Checks
+```bash
+cd backend && .venv/bin/ruff check . && .venv/bin/pytest -q          # API + business rules (in-memory repo)
+cd grader  && ../backend/.venv/bin/pytest -q                          # grader logic (Docker test auto-skips without Docker)
+cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+cd frontend && pnpm exec playwright test smoke                        # boots the app in a real browser (no backend needed)
+cd frontend && pnpm e2e                                               # full journeys A-E: needs the whole stack + users + Docker
+```
