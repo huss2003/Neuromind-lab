@@ -13,7 +13,7 @@ function stepState(state: TimelineState, i: number): 'done' | 'current' | 'upcom
 /** Horizontal stage stepper: where you are in the lesson at a glance. */
 export function Stepper({ state }: { state: TimelineState }) {
   return (
-    <ol className="stepper" aria-label="Lesson stages">
+    <ol className="stepper" aria-label="Lesson stages" tabIndex={0}>
       {state.segments.map((s, i) => {
         const st = stepState(state, i);
         return (

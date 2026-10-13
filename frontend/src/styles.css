@@ -7,7 +7,7 @@
   --mist: #eef1f8; --surface: #fff; --surface-2: #f6f8fd; --text: #0e1530; --muted: #56608a; --line: #dde2f0; --line-strong: #b9c1dc;
   --axon: #2f54ff; --axon-hover: #2342d6; --axon-press: #1b36b3; --axon-soft: #e6ebff; --axon-ink: #1d3bd0;
   --pulse: #ffb020; --pulse-hover: #ffc04d; --pulse-soft: #fff1d1; --pulse-ink: #6a4300;
-  --mint: #0b8a68; --mint-soft: #dcf5ec; --coral: #c7283a; --coral-soft: #fde6e9; --amber-ink: #7a4b00;
+  --mint: #0b8a68; --mint-ink: #05604a; --mint-soft: #dcf5ec; --coral: #c7283a; --coral-soft: #fde6e9; --amber-ink: #7a4b00;
   --focus: #2f54ff; --code-bg: #0b1020;
   --font: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Instrument Sans Variable', system-ui, sans-serif;
@@ -91,7 +91,7 @@ input:hover, textarea:hover { border-color: #8f9bc4; }
 input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; border-color: var(--axon); box-shadow: 0 0 0 4px rgba(47, 84, 255, .18); }
 .field-hint { color: var(--muted); font-size: .9rem; } .field-error { color: var(--coral); font-size: .92rem; margin-top: var(--s2); font-weight: 600; }
 .badge { display: inline-flex; align-items: center; gap: var(--s1); padding: 3px 11px; border-radius: 999px; font-size: .84rem; font-weight: 600; border: 1px solid currentColor; background: var(--surface); white-space: nowrap; }
-.badge-neutral { color: var(--muted); } .badge-info { color: var(--axon-ink); background: var(--axon-soft); } .badge-success { color: var(--mint); background: var(--mint-soft); } .badge-warning { color: var(--amber-ink); background: var(--pulse-soft); } .badge-danger { color: var(--coral); background: var(--coral-soft); }
+.badge-neutral { color: var(--muted); } .badge-info { color: var(--axon-ink); background: var(--axon-soft); } .badge-success { color: var(--mint-ink); background: var(--mint-soft); } .badge-warning { color: var(--amber-ink); background: var(--pulse-soft); } .badge-danger { color: var(--coral); background: var(--coral-soft); }
 
 /* ───────── progress ───────── */
 .pbar { margin-bottom: var(--s3); } .pbar-head { display: flex; justify-content: space-between; font-size: .88rem; color: var(--muted); margin-bottom: 6px; }
