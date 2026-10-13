@@ -8,6 +8,7 @@ Latencies include this machine's network path and TLS; they are an upper bound f
   DEV_USER_PASSWORD=... API_BASE=https://... USERS=40 STAGES=10,25,40 HOLD=60 BURST=12 backend/.venv/bin/python scripts/load_test.py"""
 import asyncio
 import os
+import re
 import random
 import statistics
 import sys
@@ -33,6 +34,8 @@ OBJ = {"read": 800, "write": 1000, "submit_ack": 1000}
 lat: dict[str, list[float]] = defaultdict(list)
 errs: dict[str, int] = defaultdict(int)
 calls: dict[str, int] = defaultdict(int)
+srv: dict[str, list[float]] = defaultdict(list)  # server-side total from the Server-Timing header (excludes the network path)
+err_codes: dict[int, int] = defaultdict(int)
 
 
 async def timed(kind: str, c: httpx.AsyncClient, method: str, url: str, **kw) -> httpx.Response | None:
@@ -43,12 +46,18 @@ async def timed(kind: str, c: httpx.AsyncClient, method: str, url: str, **kw) ->
         calls[kind] += 1
         if r.status_code >= 500 or r.status_code in (401, 403):
             errs[kind] += 1
+            err_codes[r.status_code] += 1
         else:
             lat[kind].append(ms)
+            m = re.search(r"total;dur=([\d.]+)", r.headers.get("server-timing", ""))
+            if m:
+                srv[kind].append(float(m.group(1)))
         return r
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
         calls[kind] += 1
         errs[kind] += 1
+        err_codes[-1] += 1
+        print(f"  transport error on {kind}: {type(exc).__name__}")
         return None
 
 
@@ -100,12 +109,12 @@ def pct(xs: list[float], p: float) -> float:
 
 def report(title: str) -> dict[str, float]:
     print(f"\n== {title}")
-    print(f"{'endpoint':20s} {'n':>6s} {'err':>5s} {'p50':>7s} {'p95':>7s} {'p99':>7s}  (ms)")
+    print(f"{'endpoint':20s} {'n':>6s} {'err':>5s} {'p50':>7s} {'p95':>7s} {'p99':>7s}  (ms)  | server-side p50 / p95")
     p95s: dict[str, float] = {}
     for k in sorted(set(lat) | set(errs)):
         xs = lat.get(k, [])
         p95s[k] = pct(xs, 95)
-        print(f"{k:20s} {calls[k]:6d} {errs[k]:5d} {pct(xs, 50):7.0f} {pct(xs, 95):7.0f} {pct(xs, 99):7.0f}")
+        print(f"{k:20s} {calls[k]:6d} {errs[k]:5d} {pct(xs, 50):7.0f} {pct(xs, 95):7.0f} {pct(xs, 99):7.0f}  | {pct(srv.get(k, []), 50):5.0f} / {pct(srv.get(k, []), 95):5.0f}")
     return p95s
 
 
@@ -113,11 +122,15 @@ async def stage(vus: list[VU], n: int) -> dict[str, float]:
     lat.clear()
     errs.clear()
     calls.clear()
+    srv.clear()
+    err_codes.clear()
     async with httpx.AsyncClient(timeout=30, limits=httpx.Limits(max_connections=200)) as c:
         t0 = time.time()
         await asyncio.gather(*[v.loop(c, t0 + HOLD) for v in vus[:n]])
     total, bad = sum(calls.values()), sum(errs.values())
     print(f"\nstage {n} users: {total} requests in {HOLD:.0f}s ({total / HOLD:.1f} req/s), errors {bad} ({100 * bad / max(total, 1):.2f}%)")
+    if err_codes:
+        print(f"  error status codes (-1 = transport): {dict(err_codes)}")
     return report(f"{n} concurrent learners")
 
 
@@ -155,13 +168,18 @@ async def burst(vus: list[VU], n: int) -> tuple[list[float], list[float], int]:
 async def main() -> int:
     vus = [VU(i) for i in range(1, USERS + 1)]
     sem = asyncio.Semaphore(4)
-    async with httpx.AsyncClient(timeout=30) as c:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=60)) as c:
         async def prep(v: VU) -> bool:
-            async with sem:
-                ok = await v.login(c)
-            if ok:
-                await v.setup(c)
-            return ok
+            for attempt in range(3):  # the load generator reaches the internet through a proxy; a failed handshake is not an API result
+                try:
+                    async with sem:
+                        ok = await v.login(c)
+                        if ok:
+                            await v.setup(c)
+                    return ok
+                except httpx.TransportError:
+                    await asyncio.sleep(2 * (attempt + 1))
+            return False
         ok = await asyncio.gather(*[prep(v) for v in vus])
     vus = [v for v, k in zip(vus, ok, strict=True) if k]
     print(f"{len(vus)} of {USERS} learners signed in")

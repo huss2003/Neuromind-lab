@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 export const PASSWORD = process.env.DEV_USER_PASSWORD ?? '';
 if (!PASSWORD) throw new Error('Set DEV_USER_PASSWORD to the password used when the synthetic test users were created.');
 
-export async function signIn(page: Page, who: 'learner1' | 'learner2' | 'learner3' | 'teacher') {
+export async function signIn(page: Page, who: string) {
   await page.goto('/sign-in');
   await page.getByLabel('Email').fill(`${who}@neuromind.test`);
   await page.getByLabel('Password').fill(PASSWORD);
@@ -56,3 +56,29 @@ export async function accessToken(page: Page): Promise<string> {
   });
 }
 export const API = process.env.E2E_API_URL ?? 'http://localhost:8000';
+
+export const CHECK_1 = 'python --version';
+export const CHECK_2 = 'Each cell can be run on its own, and all cells share the same variables while the kernel is running';
+
+/** Walks the lecture from wherever the learner is (fresh or resumed) to the lab, answering each knowledge check correctly. */
+export async function toLab(page: Page) {
+  await openLecture(page);
+  await startLecture(page);
+  const lab = page.getByRole('heading', { name: /Print your name/ });
+  for (let step = 0; step < 20; step++) {
+    if (await lab.isVisible()) return;
+    const submit = page.getByRole('button', { name: 'Submit answer' });
+    if (await submit.isVisible()) {
+      const text = await page.locator('main').innerText();
+      await answer(page, text.includes('notebook cells') ? CHECK_2 : CHECK_1);
+    } else if (await page.getByRole('button', { name: 'Continue lesson' }).isVisible()) {
+      await page.getByRole('button', { name: 'Continue lesson' }).click();
+    } else if (await page.getByRole('button', { name: 'Continue', exact: true }).isVisible()) {
+      await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    } else {
+      await page.waitForTimeout(500);
+    }
+  }
+  await expect(lab).toBeVisible();
+}
+
