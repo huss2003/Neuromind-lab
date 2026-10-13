@@ -21,7 +21,7 @@ export function TeacherSubmission() {
       <h1>{s.exercise ?? 'Exercise'} — attempt {s.number}</h1>
       <div className="card">
         <p>
-          {s.status === 'passed' ? <Badge kind="success">Passed</Badge> : s.infrastructure_failure ? <Badge kind="danger">Grader problem (not the learner’s fault)</Badge> : <Badge kind="warning">{s.status === 'timeout' ? 'Timed out' : 'Needs retry'}</Badge>}
+          {s.status === 'passed' ? <Badge kind="success">Passed</Badge> : s.infrastructure_failure ? <Badge kind="danger">Grader problem (not the learner’s fault)</Badge> : <Badge kind="warning">{s.status === 'timeout' ? 'Time limit' : s.status === 'runtime_error' ? 'Runtime error' : 'Needs work'}</Badge>}
         </p>
         <p><strong>Official score:</strong> {s.score != null ? `${s.score}% of ${s.max_score}` : '—'} (pass mark {s.pass_threshold ?? '—'}%)
           {s.hints_used > 0 && <><br /><span className="muted">Raw {s.raw_score}% − {s.hint_penalty} points for {s.hints_used} hint(s)</span></>}</p>

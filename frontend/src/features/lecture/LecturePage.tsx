@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Badge } from '../../components/Badge';
+import { Badge, type BadgeKind } from '../../components/Badge';
 import { McqCheckpoint } from '../../components/McqCheckpoint';
 import { ProgressBar } from '../../components/Progress';
 import { ErrorMessage, Loading } from '../../components/States';
@@ -9,11 +9,16 @@ import { ApiError, errorMessage } from '../../services/api';
 import { completeLecture, getManifest, getSession, saveSession, submitAnswer } from '../../services/lectureApi';
 import type { Manifest, Progress } from '../../services/types';
 import { Outline, Stepper } from './Outline';
-import { canLeaveExercise, continueFromExercise, initialState, timelineReducer, type TimelineEvent, type TimelineState } from './timeline';
+import { canLeaveExercise, continueFromExercise, initialState, isMediaSegment, isTextSegment, timelineReducer, type TimelineEvent, type TimelineState } from './timeline';
 
 const ExerciseLab = lazy(() => import('../lab/ExerciseLab').then((m) => ({ default: m.ExerciseLab })));
 
 type Save = 'idle' | 'saving' | 'saved' | 'error';
+
+const STATE_BADGE: Record<string, [BadgeKind, string]> = {
+  NOT_STARTED: ['neutral', 'Not started'], IN_PROGRESS: ['info', 'In progress'], GRADING_PENDING: ['info', 'Grading in progress'],
+  REMEDIATION_REQUIRED: ['warning', 'Needs work — see guidance'], COMPLETED: ['success', 'Completed'],
+};
 
 function reducer(s: TimelineState, e: TimelineEvent | { type: 'LEAVE_EXERCISE' }): TimelineState {
   return e.type === 'LEAVE_EXERCISE' ? continueFromExercise(s) : timelineReducer(s, e);
@@ -27,6 +32,9 @@ export function LecturePage() {
   const [save, setSave] = useState<Save>('idle');
   const [startAt, setStartAt] = useState(0);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [lectureState, setLectureState] = useState<string>('IN_PROGRESS');
+  const [oriented, setOriented] = useState(false);
+  const [blocked, setBlocked] = useState<string | null>(null);
   const version = useRef(1);
   const answerKey = useRef<{ id: string; key: string } | null>(null);
   const lastPersisted = useRef<string | null>(null);
@@ -40,12 +48,15 @@ export function LecturePage() {
       lastPersisted.current = s.current_segment_id;
       setStartAt(s.playback_position_seconds);
       setProgress(s.progress);
+      setLectureState(s.lecture_state ?? 'IN_PROGRESS');
+      setOriented(s.lecture_state !== 'NOT_STARTED');
       dispatch({
         type: 'LOADED', segments: m.segments, currentSegmentId: s.current_segment_id, results: s.checkpoint_results,
         completedExercises: s.completed_exercise_ids, completed: s.status === 'completed',
       });
     } catch (e) {
-      setLoadError(e instanceof ApiError && e.status === 404 ? 'This lecture was not found or is not published.' : errorMessage(e));
+      if (e instanceof ApiError && e.code === 'LECTURE_LOCKED') setBlocked(e.message);
+      else setLoadError(e instanceof ApiError && e.status === 404 ? 'This lecture was not found, is not published, or is not part of a course you are enrolled in.' : errorMessage(e));
     }
   }, [lectureId]);
   useEffect(() => { void load(); }, [load]);
@@ -53,7 +64,7 @@ export function LecturePage() {
   const segment = state.segments[state.index];
 
   const refreshProgress = useCallback(() => {
-    getSession(lectureId).then((s) => setProgress(s.progress)).catch(() => undefined); // display only; failure is harmless
+    getSession(lectureId).then((s) => { setProgress(s.progress); setLectureState(s.lecture_state ?? 'IN_PROGRESS'); }).catch(() => undefined); // display only; failure is harmless
   }, [lectureId]);
 
   const persist = useCallback(async (segmentId: string, position: number) => {
@@ -107,14 +118,23 @@ export function LecturePage() {
     }
   }
 
+  if (blocked) return (
+    <main className="page narrow">
+      <h1>This lecture is locked</h1>
+      <div role="alert" className="notice notice-warning"><p>{blocked}</p></div>
+      <Link className="btn btn-primary" to="/">Back to dashboard</Link>
+    </main>
+  );
   if (loadError) return <main className="page"><ErrorMessage message={loadError} onRetry={() => void load()} /><p><Link to="/">Back to dashboard</Link></p></main>;
   if (!manifest || state.phase === 'loading') return <main className="page"><Loading label="Loading lecture…" /></main>;
 
   const inPlay = state.phase !== 'recoverable_error' && state.phase !== 'finishing' && state.phase !== 'completed';
+  if (!oriented && state.phase !== 'completed') return <Orientation manifest={manifest} onStart={() => setOriented(true)} />;
   return (
     <main className="page lecture">
       <nav className="crumbs" aria-label="Breadcrumb"><Link to="/">Dashboard</Link> <span aria-hidden="true">›</span> <span aria-current="page">Lecture {manifest.lecture_number}</span></nav>
       <h1>Lecture {manifest.lecture_number}: {manifest.title}</h1>
+      <p>{STATE_BADGE[lectureState] && <Badge kind={STATE_BADGE[lectureState][0]}>{STATE_BADGE[lectureState][1]}</Badge>}</p>
       <Stepper state={state} />
       <div className="lecture-grid">
         <div>
@@ -133,7 +153,16 @@ export function LecturePage() {
             </div>
           )}
 
-          {segment && segment.type === 'video' && inPlay && (
+          {segment && isTextSegment(segment) && inPlay && (
+            <section className="card" aria-labelledby="text-title">
+              <p className="muted">{segment.type === 'intro' ? 'Introduction' : segment.type === 'reflection' ? 'Reflection' : 'Reading'}</p>
+              <h2 id="text-title">{segment.title}</h2>
+              <p className="reading">{segment.body}</p>
+              <button className="btn btn-primary" onClick={() => dispatch({ type: 'SECTION_DONE', segmentId: segment.id })}>Continue</button>
+            </section>
+          )}
+
+          {segment && isMediaSegment(segment) && inPlay && (
             <VideoSegment
               segment={segment} startAt={startAt}
               onPlay={() => dispatch({ type: 'PLAY' })} onPause={() => dispatch({ type: 'PAUSE' })}
@@ -157,7 +186,7 @@ export function LecturePage() {
           {segment && segment.type === 'exercise' && segment.exercise_id && inPlay && (
             <Suspense fallback={<Loading label="Loading the coding lab…" />}>
             <ExerciseLab
-              key={segment.exercise_id} exerciseId={segment.exercise_id}
+              key={segment.exercise_id} exerciseId={segment.exercise_id} sections={state.segments}
               alreadyPassed={canLeaveExercise(state)}
               onGradingStart={() => dispatch({ type: 'GRADING_STARTED' })}
               onGradingEnd={(sub) => {
@@ -228,5 +257,28 @@ function CompletionSummary({ manifest, progress }: { manifest: Manifest; progres
         <Link className="btn btn-secondary" to="/progress">See all my progress</Link>
       </div>
     </section>
+  );
+}
+
+
+function Orientation({ manifest, onStart }: { manifest: Manifest; onStart: () => void }) {
+  return (
+    <main className="page narrow">
+      <nav className="crumbs" aria-label="Breadcrumb"><Link to="/">Dashboard</Link> <span aria-hidden="true">›</span> <span aria-current="page">Lecture {manifest.lecture_number}</span></nav>
+      <h1>Lecture {manifest.lecture_number}: {manifest.title}</h1>
+      <section className="card" aria-labelledby="orient-title">
+        <h2 id="orient-title">Before you start</h2>
+        {manifest.summary && <p>{manifest.summary}</p>}
+        <dl className="facts">
+          {manifest.estimated_minutes != null && (<><dt>Estimated time</dt><dd>About {manifest.estimated_minutes} minutes</dd></>)}
+          <dt>Prerequisites</dt>
+          <dd>{manifest.prerequisites.length === 0 ? 'None — you can start right away.' : manifest.prerequisites.map((p) => p.title).join(', ')}</dd>
+        </dl>
+        {manifest.learning_objectives.length > 0 && (<><h3>What you will learn</h3><ul>{manifest.learning_objectives.map((o) => <li key={o}>{o}</li>)}</ul></>)}
+        {manifest.completion_criteria.length > 0 && (<><h3>How this lecture is completed</h3><ul>{manifest.completion_criteria.map((c) => <li key={c}>{c}</li>)}</ul></>)}
+        {manifest.attempt_policy && <p className="muted">{manifest.attempt_policy}</p>}
+        <div className="actions"><button className="btn btn-primary" onClick={onStart}>Start lecture</button><Link className="btn btn-secondary" to="/">Not now</Link></div>
+      </section>
+    </main>
   );
 }

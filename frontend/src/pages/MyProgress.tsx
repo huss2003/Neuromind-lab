@@ -18,6 +18,10 @@ export function MyProgress() {
   return (
     <main className="page">
       <h1>My progress</h1>
+      <details className="faq">
+        <summary>How is progress calculated?</summary>
+        <p>A lecture counts as complete only when the server has recorded every required section, the checkpoints, the exit check and a passing lab score. Watching a video alone does not complete a lecture, and nothing here is estimated from time spent.</p>
+      </details>
       {lectures.length === 0 ? <EmptyState title="Nothing to show yet">Start a lecture and your progress will appear here.</EmptyState> : (
         <div className="table-wrap">
           <table>

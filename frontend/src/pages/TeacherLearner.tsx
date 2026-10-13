@@ -7,8 +7,9 @@ import { ApiError, errorMessage } from '../services/api';
 import { getLearnerResults } from '../services/lectureApi';
 
 const SUB_BADGE: Record<string, [BadgeKind, string]> = {
-  passed: ['success', 'Passed'], failed: ['warning', 'Needs retry'], timeout: ['warning', 'Timed out'],
-  error: ['danger', 'Grader problem'], queued: ['info', 'Queued'], running: ['info', 'Running'],
+  passed: ['success', 'Passed'], failed: ['warning', 'Needs work'], runtime_error: ['warning', 'Runtime error'], timeout: ['warning', 'Time limit'],
+  error: ['danger', 'Grader problem'], expired: ['danger', 'Grader problem (expired)'], cancelled: ['neutral', 'Cancelled'],
+  queued: ['info', 'Queued'], running: ['info', 'Running'],
 };
 const when = (iso: string) => new Date(iso).toLocaleString();
 

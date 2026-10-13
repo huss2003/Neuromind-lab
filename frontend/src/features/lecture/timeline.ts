@@ -7,6 +7,7 @@ import type { CheckpointResult, Segment } from '../../services/types';
 
 export type Phase =
   | 'loading'
+  | 'reading' // intro / reading / reflection section (no media)
   | 'ready' // video segment loaded, not yet playing
   | 'playing'
   | 'paused'
@@ -37,6 +38,7 @@ export type TimelineEvent =
   | { type: 'PLAY' }
   | { type: 'PAUSE' }
   | { type: 'VIDEO_ENDED'; segmentId: string }
+  | { type: 'SECTION_DONE'; segmentId: string }
   | { type: 'MEDIA_ERROR'; segmentId: string }
   | { type: 'SUBMIT_ANSWER' }
   | { type: 'ANSWER_RESULT'; checkpointId: string; result: CheckpointResult }
@@ -56,11 +58,16 @@ export const initialState: TimelineState = {
 };
 
 const cur = (s: TimelineState): Segment | undefined => s.segments[s.index];
+const TEXT_TYPES: Segment['type'][] = ['intro', 'reading', 'example', 'reflection'];
+/** A section plays media if it is a video, or any text-type section that was given a media URL. */
+export const isMediaSegment = (seg: Segment | undefined): boolean => !!seg && (seg.type === 'video' || (TEXT_TYPES.includes(seg.type) && !!seg.media?.url));
+export const isTextSegment = (seg: Segment | undefined): boolean => !!seg && TEXT_TYPES.includes(seg.type) && !isMediaSegment(seg);
 
 /** Which phase a learner lands in when entering a segment (also used when resuming). */
 export function phaseForSegment(seg: Segment | undefined, s: Pick<TimelineState, 'results' | 'completedExercises'>): Phase {
   if (!seg) return 'recoverable_error';
-  if (seg.type === 'video') return 'ready';
+  if (isMediaSegment(seg)) return 'ready';
+  if (isTextSegment(seg)) return 'reading';
   if (seg.type === 'exercise') return 'exercise';
   const r = seg.checkpoint ? s.results[seg.checkpoint.id] : undefined;
   return r ? 'showing_result' : 'awaiting_checkpoint';
@@ -100,7 +107,7 @@ export function timelineReducer(s: TimelineState, e: TimelineEvent): TimelineSta
       return s.phase === 'playing' ? { ...s, phase: 'paused' } : s;
     case 'VIDEO_ENDED': {
       // Ignore stale/duplicate events: wrong segment, wrong phase, or already handled.
-      if (!seg || seg.type !== 'video' || seg.id !== e.segmentId || s.handledEndFor === seg.id) return s;
+      if (!seg || !isMediaSegment(seg) || seg.id !== e.segmentId || s.handledEndFor === seg.id) return s;
       if (!['ready', 'playing', 'paused'].includes(s.phase)) return s;
       const handled = { ...s, handledEndFor: seg.id };
       if (seg.next_action.type === 'open_exercise') {
@@ -109,6 +116,10 @@ export function timelineReducer(s: TimelineState, e: TimelineEvent): TimelineSta
         return { ...enter(handled, target), handledEndFor: seg.id };
       }
       return advance(handled);
+    }
+    case 'SECTION_DONE': {
+      if (!seg || !isTextSegment(seg) || seg.id !== e.segmentId || s.phase !== 'reading' || s.handledEndFor === seg.id) return s;
+      return advance({ ...s, handledEndFor: seg.id });
     }
     case 'MEDIA_ERROR':
       if (!seg || seg.id !== e.segmentId || s.phase === 'recoverable_error') return s;

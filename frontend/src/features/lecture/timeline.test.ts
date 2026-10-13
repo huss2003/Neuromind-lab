@@ -81,6 +81,25 @@ describe('timeline', () => {
     expect(s.phase).toBe('exercise');
   });
 
+  it('text sections (intro/reading) wait for an explicit Continue and advance exactly once', () => {
+    const intro: Segment = { ...base, id: 'i1', order: 0, type: 'intro', title: 'Intro', body: 'Welcome' };
+    const withIntro = [intro, ...segs];
+    const loaded = run([{ type: 'LOADED', segments: withIntro, currentSegmentId: 'i1', results: {}, completedExercises: [], completed: false }]);
+    expect(loaded.phase).toBe('reading');
+    expect(r(loaded, { type: 'VIDEO_ENDED', segmentId: 'i1' })).toBe(loaded); // a text section is not a video
+    expect(r(loaded, { type: 'SECTION_DONE', segmentId: 'zzz' })).toBe(loaded);
+    const next = r(loaded, { type: 'SECTION_DONE', segmentId: 'i1' });
+    expect(next.segments[next.index].id).toBe('v1');
+    expect(r(next, { type: 'SECTION_DONE', segmentId: 'i1' })).toBe(next);
+  });
+
+  it('a worked-example section with media behaves like a video', () => {
+    const ex: Segment = { ...base, id: 'ex', order: 0, type: 'example', title: 'Worked example', media: { provider: null, url: 'x' } };
+    const s = run([{ type: 'LOADED', segments: [ex, ...segs], currentSegmentId: 'ex', results: {}, completedExercises: [], completed: false }]);
+    expect(s.phase).toBe('ready');
+    expect(r(s, { type: 'VIDEO_ENDED', segmentId: 'ex' }).index).toBe(1);
+  });
+
   it('missing exercise link is a content error, not a completion', () => {
     const broken = segs.filter((x) => x.id !== 'x1');
     const s = run([{ type: 'LOADED', segments: broken, currentSegmentId: 'v2', results: {}, completedExercises: [], completed: false }, { type: 'VIDEO_ENDED', segmentId: 'v2' }]);

@@ -19,6 +19,18 @@ const overflow = (page: Page) => page.evaluate(() => document.documentElement.sc
 async function noOverflow(page: Page, where: string) { expect(await overflow(page), `horizontal overflow on ${where}`).toBeLessThanOrEqual(1); }
 async function shot(page: Page, name: string) { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true }); }
 const finishVideo = (page: Page) => page.getByRole('button', { name: /finished this video/ }).click();
+/** Orientation screen -> Start, then the intro section -> Continue. */
+async function startLecture(page: Page) {
+  // A learner who has already started resumes where they left off, without the orientation screen.
+  const orientation = page.getByRole('heading', { name: 'Before you start' });
+  const resumed = page.getByRole('button', { name: /finished this video|Submit answer|Submit for grading/ });
+  await expect(orientation.or(resumed).first()).toBeVisible();
+  if (await orientation.isVisible()) {
+    await page.getByRole('button', { name: 'Start lecture' }).click();
+    await expect(page.getByText('PLACEHOLDER introduction.')).toBeVisible();
+    await page.getByRole('button', { name: 'Continue' }).click();
+  }
+}
 async function answer(page: Page, option: string) {
   await page.getByLabel(option, { exact: true }).check();
   await page.getByRole('button', { name: 'Submit answer' }).click();
@@ -26,6 +38,7 @@ async function answer(page: Page, option: string) {
 }
 async function toLab(page: Page) {
   await page.goto(`/lectures/${IDS.lecture}`);
+  await startLecture(page);
   await finishVideo(page);
   await answer(page, 'Option B'); await page.getByRole('button', { name: 'Continue lesson' }).click();
   await finishVideo(page);
@@ -49,16 +62,22 @@ test.describe('responsive layout (360/390/768/1366/1440): no horizontal overflow
         ['dashboard', '/', async () => { await expect(page.getByRole('heading', { level: 1 })).toContainText('Lecture 9'); }],
         ['course', `/courses/${IDS.course}`, async () => { await expect(page.getByText('Module 2: Python for AI (sample)')).toBeVisible(); }],
         ['progress', '/progress', async () => { await expect(page.getByRole('heading', { name: 'My progress' })).toBeVisible(); }],
-        ['lecture-video', `/lectures/${IDS.lecture}`, async () => { await expect(page.getByRole('heading', { name: 'Introduction and first concept' })).toBeVisible(); }],
+        ['orientation', `/lectures/${IDS.lecture}`, async () => { await expect(page.getByRole('heading', { name: 'Before you start' })).toBeVisible(); }],
       ];
       for (const [name, path, ready] of screens) {
         await page.goto(path); await ready(); await noOverflow(page, `${name} @${vp.name}`); await shot(page, `${vp.name}-${name}`);
       }
+      await page.goto(`/lectures/${IDS.lecture}`);
+      await page.getByRole('button', { name: 'Start lecture' }).click();
+      await noOverflow(page, `intro section @${vp.name}`); await shot(page, `${vp.name}-intro`);
+      await page.getByRole('button', { name: 'Continue' }).click();
+      await expect(page.getByRole('heading', { name: 'Introduction and first concept' })).toBeVisible();
+      await noOverflow(page, `video @${vp.name}`); await shot(page, `${vp.name}-video`);
       await toLab(page);
       await noOverflow(page, `lab @${vp.name}`); await shot(page, `${vp.name}-lab-code`);
       await typeCode(page, HALF);
       await page.getByRole('button', { name: 'Submit for grading' }).click();
-      await expect(page.getByText('Needs retry').first()).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText('Needs work').first()).toBeVisible({ timeout: 15_000 });
       await noOverflow(page, `lab result @${vp.name}`); await shot(page, `${vp.name}-lab-result`);
     });
 
@@ -82,6 +101,11 @@ test('A: learner completes the whole lecture through the UI', async ({ page }) =
   await page.goto('/');
   await page.getByRole('link', { name: 'Start lecture' }).first().click();
   await expect(page.getByRole('heading', { name: /Lecture 9/ })).toBeVisible();
+  await expect(page.getByText('About 60 minutes')).toBeVisible();
+  await expect(page.getByText('None — you can start right away.')).toBeVisible();
+  await expect(page.getByText('Pass the practical lab with at least 80%.')).toBeVisible();
+  await expect(page.getByText(/practise as often as you like/)).toBeVisible();
+  await startLecture(page);
   await finishVideo(page);
   await expect(page.getByText('the video is paused')).toBeVisible();
   await answer(page, 'Option C'); // wrong on purpose
@@ -111,7 +135,7 @@ test('B: fail, use a hint, retry — both attempts shown, best score preserved',
   await toLab(page);
   await typeCode(page, HALF);
   await page.getByRole('button', { name: 'Submit for grading' }).click();
-  await expect(page.getByText('Needs retry').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Needs work').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Print the variable with print(student_name).')).toBeVisible(); // remediation for the failed hidden check
   await expect(page.getByText('Hidden check 1')).toBeVisible();
   await expect(page.getByText('Best score 50%')).toBeVisible();
@@ -121,7 +145,7 @@ test('B: fail, use a hint, retry — both attempts shown, best score preserved',
   await page.getByRole('button', { name: 'Submit for grading' }).click();
   await expect(page.getByText(/Score: 90%/)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/1 hint/).first()).toBeVisible();
-  await page.getByText(/Attempt history/).click();
+  await page.getByText(/Attempt history \(/).click();
   await expect(page.getByRole('cell', { name: '1', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: '2', exact: true })).toBeVisible();
   await expect(page.getByText('Best score 90%')).toBeVisible();
@@ -131,6 +155,7 @@ test('C: refresh restores position, saved result and draft; seeking past a check
   await page.setViewportSize({ width: 1440, height: 900 });
   const state = await setup(page);
   await page.goto(`/lectures/${IDS.lecture}`);
+  await startLecture(page);
   await finishVideo(page);
   await answer(page, 'Option B');
   await page.reload();
@@ -183,16 +208,17 @@ test('E: grader outage shows an infrastructure message, never a failure or a pas
   await typeCode(page, GOOD);
   await page.getByRole('button', { name: 'Submit for grading' }).click();
   await expect(page.getByText(/problem with the grading system, not your code/)).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('Grader unavailable').first()).toBeVisible();
+  await expect(page.getByText('System error — not your fault').first()).toBeVisible();
   await expect(page.getByText('Passed', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Continue to exit check' })).toHaveCount(0);
-  await expect(page.getByText('Needs retry')).toHaveCount(0);
+  await expect(page.getByText('Needs work', { exact: true })).toHaveCount(0);
 });
 
 test('failed media shows a recoverable error and never advances', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await setup(page, { videoFails: true });
   await page.goto(`/lectures/${IDS.lecture}`);
+  await startLecture(page);
   await expect(page.getByRole('heading', { name: 'The video had a problem' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
   await expect(page.getByLabel('Option A')).toHaveCount(0);
@@ -211,6 +237,7 @@ test('keyboard: skip link, sign-in form and answering a checkpoint without a mou
   await page.goto(`/lectures/${IDS.lecture}`);
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+  await startLecture(page);
   await finishVideo(page);
   await page.getByLabel('Option A').focus();
   await page.keyboard.press('ArrowDown');
@@ -226,7 +253,7 @@ test('status is never conveyed by colour alone', async ({ page }) => {
   await toLab(page);
   await typeCode(page, HALF);
   await page.getByRole('button', { name: 'Submit for grading' }).click();
-  await expect(page.getByText('Needs retry').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Needs work').first()).toBeVisible({ timeout: 15_000 });
   for (const item of await page.locator('ul.criteria li').all()) {
     expect((await item.innerText()).trim()).toMatch(/Passed:|Not passed:/);
   }
@@ -283,7 +310,7 @@ test('teacher: summary, search, pagination, evidence and feedback', async ({ pag
   await page.getByRole('link', { name: 'View progress and evidence' }).click();
   await expect(page.getByRole('heading', { name: 'Asha Rao' })).toBeVisible();
   await expect(page.getByText('Grader problem').first()).toBeVisible(); // infra failure distinguished from a failed attempt
-  await expect(page.getByText('Needs retry').first()).toBeVisible();
+  await expect(page.getByText('Needs work').first()).toBeVisible();
   await page.getByLabel('Message').fill('Nice work on the first attempt.');
   await page.getByRole('button', { name: 'Save feedback' }).click();
   await expect(page.getByText('Feedback saved and shared.')).toBeVisible();
@@ -292,4 +319,156 @@ test('teacher: summary, search, pagination, evidence and feedback', async ({ pag
   await expect(page.getByText('Grader version')).toBeVisible();
   await expect(page.getByText("Official scores can't be edited")).toBeVisible();
   await expect(page.getByRole('button', { name: /score/i })).toHaveCount(0);
+});
+
+// ---------------- Flow spec (Complete Flow & Working v1.0) ----------------
+test('flow: dashboard shows continue-learning, recent attempts and a remediation queue derived from the last failed attempt', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await setup(page);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /Start: Lecture 9/ })).toBeVisible();
+  await expect(page.getByText("You haven't submitted any code yet")).toBeVisible();
+  await toLab(page);
+  await typeCode(page, HALF);
+  await page.getByRole('button', { name: 'Submit for grading' }).click();
+  await expect(page.getByText('Needs work').first()).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('link', { name: 'Dashboard' }).first().click();
+  await expect(page.getByRole('heading', { name: /Continue: Lecture 9/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Next steps to improve' })).toBeVisible();
+  await expect(page.getByText('Focus on: Print output with print()')).toBeVisible();
+  await expect(page.getByRole('table').getByText('Needs work')).toBeVisible();
+  await shot(page, 'dashboard-after-failure');
+});
+
+test('flow: a learner who is not enrolled sees a clear empty state, not an error', async ({ page }) => {
+  await setup(page, { unenrolled: true });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'You are not enrolled in a course yet' })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('flow: the course map shows server-decided states; a locked lecture cannot be opened', async ({ page }) => {
+  await setup(page, { lockedLecture: true });
+  await page.goto(`/courses/${IDS.course}`);
+  await expect(page.getByText('Locked', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Locked' })).toBeDisabled();
+  await expect(page.getByText('Complete the earlier lecture first to unlock this one.').first()).toBeVisible();
+  await page.goto(`/lectures/${IDS.lecture}`);
+  await expect(page.getByRole('heading', { name: 'This lecture is locked' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Before you start' })).toHaveCount(0);
+});
+
+test('flow: remediation maps a failed check to its objective and lets the learner replay the section without losing code', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await setup(page);
+  await toLab(page);
+  await typeCode(page, 'student_name = 5\n');
+  await page.getByRole('button', { name: 'Submit for grading' }).click();
+  await expect(page.getByText('Needs work').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Store text in a variable:')).toBeVisible();
+  await page.getByRole('button', { name: /Review “Practical demonstration”/ }).click();
+  const dlg = page.getByRole('dialog', { name: /Review: Practical demonstration/ });
+  await expect(dlg).toBeVisible();
+  await expect(dlg.getByText("Replaying a section doesn't change your progress")).toBeVisible();
+  await dlg.getByRole('button', { name: 'Back to the exercise' }).click();
+  await expect(dlg).toBeHidden();
+  await expect(page.locator('textarea.simple-editor')).toHaveValue('student_name = 5\n');
+});
+
+test('flow: exercise panel shows objective, task, constraints, success criteria, examples and the hint policy', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await setup(page);
+  await toLab(page);
+  await expect(page.getByRole('heading', { name: 'Objective' })).toBeVisible();
+  await expect(page.getByText('Create a text variable and print it.')).toBeVisible();
+  await expect(page.getByText('Use a variable named student_name and print() once.')).toBeVisible();
+  await expect(page.getByText('What you print matches student_name')).toBeVisible();
+  await expect(page.getByText(/visible examples are a guide; the official tests are private/)).toBeVisible();
+  await expect(page.getByText('Expected output:')).toBeVisible();
+  await expect(page.getByText(/never lowers a score you already earned/)).toBeVisible();
+  await expect(page.getByText(/Practice.*runs in your browser and never counts/)).toBeVisible();
+  await page.getByRole('button', { name: 'Load into editor' }).click();
+  await page.getByRole('button', { name: 'Use simple text editor' }).click();
+  await expect(page.locator('textarea.simple-editor')).toHaveValue('student_name = "Aarav"\nprint(student_name)');
+});
+
+for (const [status, label, text] of [
+  ['runtime_error', 'Runtime error', /stopped with an error/],
+  ['timeout', 'Time limit', /loop that never ends/],
+  ['expired', 'Expired — not your fault', /not because of your code/],
+] as const) {
+  test(`flow: status vocabulary — ${status}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await setup(page, { forceStatus: status });
+    await toLab(page);
+    await typeCode(page, GOOD);
+    await page.getByRole('button', { name: 'Submit for grading' }).click();
+    await expect(page.getByRole('status').filter({ hasText: label }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(text)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue to exit check' })).toHaveCount(0);
+    if (status === 'expired') await expect(page.getByText(/Score:/)).toHaveCount(0);
+  });
+}
+
+test('flow: if the server cannot be reached the draft is kept on the device and restored later', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await setup(page, { draftFails: true });
+  await toLab(page);
+  await typeCode(page, 'student_name = "Offline"\n');
+  await expect(page.getByText(/kept on this device/)).toBeVisible({ timeout: 8000 });
+  await page.evaluate(() => { window.onbeforeunload = null; });
+  page.once('dialog', (d) => void d.accept()); // the unsaved-work warning
+  await page.reload();
+  await page.getByRole('button', { name: 'Use simple text editor' }).click();
+  await expect(page.getByText(/restored work that was saved on this device/)).toBeVisible();
+  await expect(page.locator('textarea.simple-editor')).toHaveValue('student_name = "Offline"\n');
+});
+
+test('flow: teacher filters for learners who need support and sees analytics and content status', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await setup(page, { role: 'teacher', name: 'Mr Teacher', email: 'teacher@neuromind.test' }, 'teacher@neuromind.test');
+  await page.goto('/teacher');
+  await expect(page.getByText('Needs support', { exact: true }).first()).toBeVisible();
+  await page.getByRole('checkbox', { name: 'Needs support' }).check();
+  await expect(page.getByRole('link', { name: 'View progress and evidence' })).toHaveCount(1);
+  await expect(page.getByText('Showing 1–1 of 1')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Exercise analytics' })).toBeVisible();
+  await expect(page.getByText('completion 50%')).toBeVisible();
+  await expect(page.getByText('Hidden check 1 — 4 times')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Content status' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'v1' })).toBeVisible();
+  await expect(page.getByText("Editing, review and publishing of content isn't enabled")).toBeVisible();
+  await shot(page, 'teacher-analytics');
+});
+
+test('UX spec S02: account recovery gives the same confirmation and offers a way back', async ({ page }) => {
+  const state = newState({});
+  await installMocks(page, state);
+  await page.goto('/sign-in');
+  await page.getByRole('link', { name: 'Forgot your password?' }).click();
+  await page.getByLabel('Email').fill('nobody@example.test');
+  await page.getByRole('button', { name: 'Send reset instructions' }).click();
+  await expect(page.getByRole('status')).toContainText('If an account exists for that email');
+  await page.getByRole('link', { name: 'Return to sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+});
+
+test('UX spec S03/S18/S15: welcome, help with FAQ and attempt history', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await page.goto('/welcome');
+  await expect(page.getByRole('heading', { name: 'How the lab works' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Start learning' })).toBeVisible();
+  await noOverflow(page, 'welcome');
+  await page.goto('/help');
+  await page.getByText('What does “System error — not your fault” mean?').click();
+  await expect(page.getByText('was not marked incorrect and your best score is unchanged')).toBeVisible();
+  await expect(page.getByText('Never share passwords, keys or other secrets')).toBeVisible();
+  await noOverflow(page, 'help');
+  await page.goto(`/exercises/${IDS.ex}/attempts`);
+  await expect(page.getByRole('heading', { name: /Attempts: / })).toBeVisible();
+  await expect(page.getByText('No official attempts yet')).toBeVisible();
+  await page.goto('/progress');
+  await page.getByText('How is progress calculated?').click();
+  await expect(page.getByText(/Watching a video alone does not complete/)).toBeVisible();
 });

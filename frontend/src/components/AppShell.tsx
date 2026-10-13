@@ -28,6 +28,7 @@ export function AppShell() {
             <NavLink to="/progress"><Icon name="chart" /> My progress</NavLink>
             {teacher && <NavLink to="/teacher"><Icon name="book" /> Teacher</NavLink>}
             <NavLink to="/profile"><Icon name="user" /> Profile</NavLink>
+            <NavLink to="/help"><Icon name="book" /> Help</NavLink>
           </nav>
         )}
         <div id="main" className="content" tabIndex={-1}>

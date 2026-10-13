@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { supabase } from '../services/supabase';
 
@@ -46,6 +46,7 @@ export function SignIn() {
           <div className="actions">
             <button type="submit" className="btn btn-primary" disabled={busy} style={{ width: '100%' }}>{busy ? 'Signing in…' : 'Sign in'}</button>
           </div>
+          <p><Link to="/recover">Forgot your password?</Link></p>
         </form>
       </main>
     </div>

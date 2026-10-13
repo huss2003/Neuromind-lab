@@ -9,6 +9,13 @@ export function Loading({ label = 'Loading…' }: { label?: string }) {
   );
 }
 
+/** Placeholder lines shown while data loads, so the page never flashes an empty state. */
+export function Skeleton({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div role="status" aria-live="polite" aria-label={label} className="skeleton"><span /><span /><span /></div>
+  );
+}
+
 export function ErrorMessage({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div role="alert" className="notice notice-danger">

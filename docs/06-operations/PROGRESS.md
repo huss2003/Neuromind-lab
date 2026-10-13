@@ -98,3 +98,11 @@ Live Supabase + PostgREST repository, real sign-in of the SQL-created users, hos
 AI Tutor/RAG/agents, authoring/lab-lifecycle UI, multi-file IDE/terminal, appeals, proctoring, password reset, retention/privacy policy, load certification of 200 learners.
 ### Open decisions
 Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture 9 content/objectives, free-tier limits.
+
+## Session 2026-10-13 (f) — Flow spec v1.0 + UX screens spec v1.0
+- Backend (committed earlier): enrolment gating, lecture prerequisites/states, remediation mapping, richer exercise fields, status vocabulary. pytest 97 passed, ruff clean.
+- Frontend: orientation screen, intro section, course map states, flow-spec exercise panel and statuses; plus, from the UX spec, new screens S02 `/recover`, S03 `/welcome`, S15 `/exercises/:id/attempts`, S18 `/help` (guidance only), progress-calculation explanation, skeleton component.
+- Gap analysis against the UX spec: `docs/09-audit/UX_SPEC_CONFORMANCE.md` (what is built, partial, missing, and the five decisions needed).
+- Tests run: eslint + tsc clean, vitest 34 passed, `pnpm test:ui` (Chromium, NETWORK MOCKED) 35 passed (34 in the full run + the one selector fix re-run singly).
+- NOT yet applied to Supabase: migration 0005, seeds 003 and 004 (enrolments are now required, so learners see no course until they are applied). Vercel still serves the older commit until redeployed.
+- Not built / unverified: see the conformance doc (authoring, cohorts, queue/outbox/leases, admin screens, load and latency measurement, `/api/v1` prefix).

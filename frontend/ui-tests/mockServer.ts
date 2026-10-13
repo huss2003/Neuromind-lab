@@ -12,7 +12,7 @@ const opts = [{ id: 'a', text: 'Option A' }, { id: 'b', text: 'Option B' }, { id
 const CORRECT: Record<string, string> = { [IDS.q1]: 'b', [IDS.q2]: 'a', [IDS.q3]: 'a' };
 const EXPL = { right: 'Right because it is.', wrong: 'Not this one — see the lesson.' };
 
-export interface MockOpts { role?: 'learner' | 'teacher' | 'admin'; email?: string; name?: string; graderDown?: boolean; apiDown401?: boolean; videoFails?: boolean }
+export interface MockOpts { role?: 'learner' | 'teacher' | 'admin'; email?: string; name?: string; graderDown?: boolean; apiDown401?: boolean; videoFails?: boolean; unenrolled?: boolean; lockedLecture?: boolean; forceStatus?: 'runtime_error' | 'timeout' | 'expired'; draftFails?: boolean }
 export interface MockState {
   version: number; current: string; position: number; status: 'in_progress' | 'completed'; started: boolean;
   attempts: { cp: string; correct: boolean; at: number }[]; completedCps: Set<string>; submissions: any[]; drafts: Record<string, string>;
@@ -20,10 +20,11 @@ export interface MockState {
 }
 
 export function newState(opts: MockOpts = {}): MockState {
-  return { version: 1, current: SEG(1), position: 0, status: 'in_progress', started: false, attempts: [], completedCps: new Set(), submissions: [], drafts: {}, hintsShown: 0, feedback: [], calls: [], auditPatches: 0, opts };
+  return { version: 1, current: SEG(0), position: 0, status: 'in_progress', started: false, attempts: [], completedCps: new Set(), submissions: [], drafts: {}, hintsShown: 0, feedback: [], calls: [], auditPatches: 0, opts };
 }
 
 const segments = [
+  { id: SEG(0), order: 0, type: 'intro', title: 'Introduction: what you will do today', required: true, body: 'PLACEHOLDER introduction. You will set up Python and write your first program.', next_action: { type: 'next_segment' } },
   { id: SEG(1), order: 1, type: 'video', title: 'Introduction and first concept', required: true, media: { provider: 'external', url: 'http://media.mock.test/1.mp4', captions_url: null, transcript: 'Transcript of the first video.' }, next_action: { type: 'next_segment' } },
   { id: SEG(2), order: 2, type: 'checkpoint', title: 'Knowledge check 1', required: true, checkpoint: { id: IDS.cp1, type: 'mcq', required: true, question: { id: IDS.q1, prompt: 'Which statement prints text in Python?', options: opts } }, next_action: { type: 'next_segment' } },
   { id: SEG(3), order: 3, type: 'video', title: 'Second concept', required: true, media: { provider: 'external', url: 'http://media.mock.test/2.mp4' }, next_action: { type: 'next_segment' } },
@@ -36,13 +37,30 @@ const segments = [
 const passedEx = (s: MockState) => s.submissions.some((x) => x.status === 'passed');
 const gates = (s: MockState) => [[2, s.completedCps.has(IDS.cp1)], [4, s.completedCps.has(IDS.cp2)], [6, passedEx(s)], [7, s.completedCps.has(IDS.cp3)]] as const;
 const reach = (s: MockState) => (gates(s).find(([, done]) => !done)?.[0] ?? 7);
+const dashboardView = (s: MockState) => {
+  if (s.opts.unenrolled) return { enrolled: false, course: null, continue: null, recent_attempts: [], remediation_queue: [] };
+  const failed = s.submissions.filter((x) => ['failed', 'runtime_error'].includes(x.status));
+  const last = s.submissions[s.submissions.length - 1];
+  return {
+    enrolled: true,
+    course: { id: IDS.course, title: 'NeuroMind AI Course (sample)', description: 'Placeholder course shell for the Lecture 9 prototype.', completed_lectures: s.status === 'completed' ? 1 : 0, total_lectures: 1 },
+    continue: { lecture_id: IDS.lecture, lecture_number: 9, title: 'Python setup, notebooks and the first program', state: s.started ? 'in_progress' : 'available' },
+    recent_attempts: s.submissions.slice(-5).reverse().map((x) => ({ submission_id: x.id, exercise: 'Print a variable (placeholder)', lecture_id: IDS.lecture, number: x.number, status: x.status, score: x.score, best_score: bestScore(s), created_at: new Date(x.at).toISOString() })),
+    remediation_queue: failed.length && !passedEx(s) && last ? [{ exercise_id: IDS.ex, exercise: 'Print a variable (placeholder)', lecture_id: IDS.lecture, lecture: 'Lecture 9: Python setup, notebooks and the first program', last_status: last.status, objectives: last.criteria.filter((c: any) => !c.passed && c.objective).map((c: any) => c.objective), steps: last.criteria.filter((c: any) => !c.passed && c.remediation).map((c: any) => ({ criterion: c.label, text: c.remediation, objective: c.objective, review_title: c.review_title })) }] : [],
+  };
+};
 const bestScore = (s: MockState) => { const v = s.submissions.filter((x) => ['passed', 'failed'].includes(x.status) && x.score != null).map((x) => x.score); return v.length ? Math.max(...v) : null; };
 
 function sessionView(s: MockState) {
   const cur = Number(s.current.split('-')[1]);
   const results: Record<string, unknown> = {};
   for (const a of s.attempts) results[a.cp] = { attempt_id: `a-${a.at}`, is_correct: a.correct, score: a.correct ? 1 : 0, explanation: a.correct ? EXPL.right : EXPL.wrong, checkpoint_completed: s.completedCps.has(a.cp) };
+  const lastSub = s.submissions[s.submissions.length - 1];
+  const lectureState = s.status === 'completed' ? 'COMPLETED' : s.submissions.some((x) => x.status === 'queued' || x.status === 'running') ? 'GRADING_PENDING'
+    : lastSub && ['failed', 'runtime_error'].includes(lastSub.status) && !passedEx(s) ? 'REMEDIATION_REQUIRED'
+    : s.attempts.length === 0 && s.submissions.length === 0 && s.current === SEG(0) && !s.position ? 'NOT_STARTED' : 'IN_PROGRESS';
   return {
+    lecture_state: lectureState,
     lecture_id: IDS.lecture, current_segment_id: s.current, playback_position_seconds: s.position, status: s.status,
     completed_checkpoint_ids: [...s.completedCps], completed_exercise_ids: passedEx(s) ? [IDS.ex] : [], checkpoint_results: results,
     max_reachable_order: reach(s), state_version: s.version,
@@ -52,7 +70,10 @@ function sessionView(s: MockState) {
 
 const HINTS = ['Create a variable called student_name.', 'Use print(student_name).', 'Print the variable, not a new string.'];
 function exerciseView(s: MockState) {
-  return { id: IDS.ex, title: 'Print a variable (placeholder)', instructions: 'Create a variable called student_name and print it.', language: 'python', starter_code: 'student_name = ""\nprint(student_name)\n', practice_mode: 'both', pass_threshold: 80, max_attempts: null, hints_total: 3, hint_penalty_percent: 10, hints_revealed: HINTS.slice(0, s.hintsShown), best_score: bestScore(s), attempts_used: s.submissions.length, draft: s.drafts[IDS.ex] ?? null, unlocked: reach(s) >= 6 };
+  return { id: IDS.ex, title: 'Print a variable (placeholder)', instructions: 'Create a variable called student_name and print it.', language: 'python', starter_code: 'student_name = ""\nprint(student_name)\n', practice_mode: 'both', pass_threshold: 80, max_attempts: null, hints_total: 3, hint_penalty_percent: 10, hints_revealed: HINTS.slice(0, s.hintsShown), best_score: bestScore(s), attempts_used: s.submissions.length, draft: s.drafts[IDS.ex] ?? null, draft_stale: false, content_version: 1,
+    objective: 'Create a text variable and print it.', constraints: 'Use a variable named student_name and print() once.', success_criteria: ['Your program prints a line of text', 'What you print matches student_name'],
+    visible_examples: [{ description: 'Example', code: 'student_name = "Aarav"\nprint(student_name)', expected_output: 'Aarav' }], runtime: 'Python 3 — practice runs in your browser; official grading runs on the server',
+    hints_policy: 'Hints are optional. Each one lowers that attempt\'s score by 10 points; it never lowers a score you already earned.', unlocked: reach(s) >= 6 };
 }
 
 function gradeOf(code: string, hints: number) {
@@ -60,14 +81,14 @@ function gradeOf(code: string, hints: number) {
   const prints = /print\(\s*student_name\s*\)/.test(code);
   const raw = (hasVar ? 50 : 0) + (prints ? 50 : 0);
   const score = Math.max(0, raw - hints * 10);
-  return { raw, score, criteria: [{ label: 'student_name holds text', hidden: false, passed: hasVar, remediation: hasVar ? null : 'Create student_name = "Aarav".' }, { label: 'Hidden check 1', hidden: true, passed: prints, remediation: prints ? null : 'Print the variable with print(student_name).' }] };
+  return { raw, score, criteria: [{ label: 'student_name holds text', hidden: false, passed: hasVar, remediation: hasVar ? null : 'Create student_name = "Aarav".', objective: hasVar ? null : 'Store text in a variable', review_segment_id: hasVar ? null : SEG(3), review_title: hasVar ? null : 'Second concept' }, { label: 'Hidden check 1', hidden: true, passed: prints, remediation: prints ? null : 'Print the variable with print(student_name).', objective: prints ? null : 'Print output with print()', review_segment_id: prints ? null : SEG(5), review_title: prints ? null : 'Practical demonstration' }] };
 }
 
 const submissionView = (x: any) => ({
   submission_id: x.id, submission_number: x.number, status: x.status, score: x.score, raw_score: x.raw, max_score: 100, pass_threshold: 80, hints_used: x.hints, hint_penalty: x.hints * 10,
-  passed_tests: x.criteria.filter((c: any) => c.passed).length, total_tests: 2, execution_ms: 12, feedback: x.status === 'error' ? [{ kind: 'infrastructure', message: 'The grading service is unavailable. Your code was not judged. Please try again.' }] : [{ kind: x.status === 'passed' ? 'success' : 'failure', message: x.status === 'passed' ? 'All required tests passed.' : 'Some checks are not passed yet.' }],
-  criteria: x.status === 'error' ? [] : x.criteria, remediation: x.status === 'error' ? [] : x.criteria.filter((c: any) => !c.passed && c.remediation).map((c: any) => ({ criterion: c.label, text: c.remediation })),
-  infrastructure_error: x.status === 'error', created_at: new Date(x.at).toISOString(),
+  passed_tests: x.criteria.filter((c: any) => c.passed).length, total_tests: 2, execution_ms: 12, feedback: ['error', 'expired'].includes(x.status) ? [{ kind: 'infrastructure', message: 'The grading service is unavailable. Your code was not judged. Please try again.' }] : [{ kind: x.status === 'passed' ? 'success' : 'failure', message: x.status === 'passed' ? 'All required tests passed.' : 'Some checks are not passed yet.' }],
+  criteria: ['error', 'expired'].includes(x.status) ? [] : x.criteria, remediation: ['error', 'expired'].includes(x.status) ? [] : x.criteria.filter((c: any) => !c.passed && c.remediation).map((c: any) => ({ criterion: c.label, text: c.remediation, objective: c.objective, review_segment_id: c.review_segment_id, review_title: c.review_title })),
+  infrastructure_error: ['error', 'expired', 'cancelled'].includes(x.status), created_at: new Date(x.at).toISOString(),
 });
 
 const learners = Array.from({ length: 13 }, (_, i) => ({ id: i === 0 ? IDS.learner : `lrn-${i + 1}`, display_name: i === 0 ? 'Asha Rao' : `Learner ${String(i + 1).padStart(2, '0')}` }));
@@ -99,6 +120,7 @@ export async function installMocks(page: Page, state: MockState) {
       }
       return ok(r, { error: 'invalid_grant' }, 400); // refresh fails
     }
+    if (url.pathname.endsWith('/auth/v1/recover')) { state.calls.push('POST /auth/v1/recover'); return r.fulfill({ status: 200, headers: J, body: '{}' }); }
     if (url.pathname.endsWith('/auth/v1/logout')) return r.fulfill({ status: 204, headers: J });
     return ok(r, {});
   });
@@ -115,14 +137,16 @@ export async function installMocks(page: Page, state: MockState) {
     const body = () => (req.postDataJSON?.() ?? {}) as any;
 
     if (path === '/me') return ok(r, { id: IDS.learner, role, email: state.opts.email ?? 'learner1@neuromind.test', display_name: state.opts.name ?? 'Asha Rao' });
-    if (path === '/courses') return ok(r, { courses: [{ id: IDS.course, slug: 'c', title: 'NeuroMind AI Course (sample)', description: 'Placeholder course shell for the Lecture 9 prototype.' }] });
+    if (path === '/me/dashboard') return ok(r, dashboardView(state));
+    if (path === '/courses') return ok(r, { courses: state.opts.unenrolled ? [] : [{ id: IDS.course, slug: 'c', title: 'NeuroMind AI Course (sample)', description: 'Placeholder course shell for the Lecture 9 prototype.' }] });
     if (path === `/courses/${IDS.course}`) {
-      const lec = { id: IDS.lecture, module_id: IDS.module, lecture_number: 9, title: 'Python setup, notebooks and the first program', summary: 'PLACEHOLDER summary.', duration_seconds: 3600 };
+      const lec = { state: state.opts.lockedLecture ? 'locked' : state.status === 'completed' ? 'completed' : state.submissions.length && !passedEx(state) ? 'needs_attention' : state.started ? 'in_progress' : 'available', id: IDS.lecture, module_id: IDS.module, lecture_number: 9, title: 'Python setup, notebooks and the first program', summary: 'PLACEHOLDER summary.', duration_seconds: 3600 };
       return ok(r, { id: IDS.course, slug: 'c', title: 'NeuroMind AI Course (sample)', description: 'Placeholder course shell for the Lecture 9 prototype.', lectures: [lec], modules: [{ id: IDS.module, module_number: 2, title: 'Python for AI (sample)', description: '', lectures: [lec] }] });
     }
     if (path === '/me/progress') return ok(r, { sessions: state.started ? [{ lecture_id: IDS.lecture, status: state.status, current_segment_id: state.current, completed_at: state.status === 'completed' ? new Date().toISOString() : null }] : [] });
     if (path === '/me/feedback') return ok(r, { feedback: state.feedback.filter((f) => f.published).map((f) => ({ ...f, created_at: new Date().toISOString() })) });
-    if (path === `/lectures/${IDS.lecture}`) return ok(r, { id: IDS.lecture, lecture_number: 9, title: 'Python setup, notebooks and the first program', summary: '', learning_objectives: ['Set up Python', 'Run a notebook cell', 'Write a first program'], duration_seconds: 3600, content_version: 1, segments });
+    if (path.startsWith(`/lectures/${IDS.lecture}`) && state.opts.lockedLecture) return err(r, 400, 'LECTURE_LOCKED', 'Complete the earlier lecture first to unlock this one.');
+    if (path === `/lectures/${IDS.lecture}`) return ok(r, { estimated_minutes: 60, prerequisites: [], completion_criteria: ['Answer 3 knowledge checks (including the exit check).', 'Pass the practical lab with at least 80%.', 'Completion is confirmed by the server, not by finishing the videos.'], attempt_policy: 'You can practise as often as you like. Practice runs in your browser and never counts. Each official submission is saved, and your best valid score is kept.', id: IDS.lecture, lecture_number: 9, title: 'Python setup, notebooks and the first program', summary: '', learning_objectives: ['Set up Python', 'Run a notebook cell', 'Write a first program'], duration_seconds: 3600, content_version: 1, segments });
     if (path === `/lectures/${IDS.lecture}/session`) {
       if (m === 'GET') { state.started = true; return ok(r, sessionView(state)); }
       const b = body();
@@ -148,13 +172,15 @@ export async function installMocks(page: Page, state: MockState) {
     }
     if (path === `/exercises/${IDS.ex}`) { if (reach(state) < 6) return err(r, 400, 'CHECKPOINT_REQUIRED', 'Complete earlier required checkpoints first'); return ok(r, exerciseView(state)); }
     if (path === `/exercises/${IDS.ex}/hints`) { const b = body(); if (b.hint_index !== state.hintsShown) return err(r, 409, 'HINT_ORDER', 'Reveal hints in order'); state.hintsShown++; return ok(r, { hint_index: b.hint_index, text: HINTS[b.hint_index], hints_revealed: state.hintsShown, hints_total: 3, penalty_percent: state.hintsShown * 10 }); }
-    if (path === `/exercises/${IDS.ex}/draft`) { state.drafts[IDS.ex] = body().source_code; return r.fulfill({ status: 204, headers: J }); }
+    if (path === `/exercises/${IDS.ex}/draft`) { if (state.opts.draftFails) return err(r, 503, 'DEPENDENCY_UNAVAILABLE', 'Request could not be processed'); state.drafts[IDS.ex] = body().source_code; return r.fulfill({ status: 204, headers: J }); }
     if (path === `/exercises/${IDS.ex}/submissions`) {
       if (m === 'GET') return ok(r, { submissions: state.submissions.map(submissionView), best_score: bestScore(state) });
       if (state.submissions.filter((x) => Date.now() - x.at < 60_000).length >= 6) return err(r, 429, 'RATE_LIMITED', "You're submitting very quickly. Wait a few seconds, then try again.");
       const code = body().source_code as string; const g = gradeOf(code, state.hintsShown);
-      const status = state.opts.graderDown ? 'error' : g.score >= 80 ? 'passed' : 'failed';
-      state.submissions.push({ id: `s-${state.submissions.length + 1}`, number: state.submissions.length + 1, status, score: state.opts.graderDown ? null : g.score, raw: g.raw, hints: state.hintsShown, criteria: g.criteria, at: Date.now() });
+      const crashed = /1\/0/.test(code);
+      const status = state.opts.graderDown ? 'error' : state.opts.forceStatus ?? (crashed ? 'runtime_error' : g.score >= 80 ? 'passed' : 'failed');
+      const unscored = state.opts.graderDown || state.opts.forceStatus === 'expired';
+      state.submissions.push({ id: `s-${state.submissions.length + 1}`, number: state.submissions.length + 1, status, score: unscored ? null : crashed ? 0 : g.score, raw: g.raw, hints: state.hintsShown, criteria: g.criteria, at: Date.now() });
       state.hintsShown = 0;
       return ok(r, { submission_id: `s-${state.submissions.length}`, status: 'queued', status_url: '' }, 202);
     }
@@ -167,8 +193,12 @@ export async function installMocks(page: Page, state: MockState) {
     if (path === '/teacher/learners') {
       const q = (url.searchParams.get('q') ?? '').toLowerCase(); const limit = Number(url.searchParams.get('limit') ?? 25); const offset = Number(url.searchParams.get('offset') ?? 0);
       const rows = learners.filter((l) => l.display_name.toLowerCase().includes(q));
-      return ok(r, { learners: rows.slice(offset, offset + limit), total: rows.length, limit, offset });
+      const ns = url.searchParams.get('needs_support') === 'true';
+      const enriched = rows.map((l, i) => ({ ...l, lectures_completed: i === 0 ? 0 : i % 3 === 0 ? 1 : 0, lectures_in_progress: i === 0 ? 1 : 0, needs_support: i === 0, grader_problems: i === 0 ? 1 : 0, last_active: new Date().toISOString() })).filter((l) => !ns || l.needs_support);
+      return ok(r, { learners: enriched.slice(offset, offset + limit), total: enriched.length, limit, offset });
     }
+    if (path === '/teacher/analytics/exercises') return ok(r, { exercises: [{ exercise_id: IDS.ex, exercise: 'Print a variable (placeholder)', attempts: 7, learners: 4, completion_rate: 50, average_score: 62.5, system_errors: 1, score_distribution: { below_50: 2, '50_to_79': 3, '80_and_above': 2 }, common_failures: [{ criterion: 'Hidden check 1', count: 4 }, { criterion: 'student_name holds text', count: 2 }] }] });
+    if (path === '/teacher/content-status') return ok(r, { lectures: [{ id: IDS.lecture, lecture_number: 9, title: 'Python setup, notebooks and the first program', status: 'published', version: 1 }] });
     if (path === `/teacher/learners/${IDS.learner}/results`) {
       return ok(r, {
         learner: learners[0], sessions: [{ lecture_id: IDS.lecture, lecture: 'Lecture 9: Python setup, notebooks and the first program', status: 'in_progress', completed_at: null, last_seen_at: new Date().toISOString() }],

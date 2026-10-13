@@ -1,17 +1,21 @@
+import { Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Badge, type BadgeKind } from '../../components/Badge';
+import { Badge } from '../../components/Badge';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Icon } from '../../components/Icon';
+import { ReviewDialog } from '../../components/ReviewDialog';
 import { ErrorMessage, Loading } from '../../components/States';
+import { STATUS_HELP, STATUS_LABEL } from '../../components/SubmissionStatus';
 import { ApiError, errorMessage } from '../../services/api';
 import { getExercise, getSubmission, listSubmissions, revealHint, saveDraft, submitCode } from '../../services/lectureApi';
-import { FINAL_STATUSES, type Exercise, type Submission } from '../../services/types';
+import { FINAL_STATUSES, PLATFORM_FAULT, type Exercise, type Segment, type Submission } from '../../services/types';
 import { usePyodide, type PracticeResult } from './usePyodide';
 
 interface Props {
   exerciseId: string;
   alreadyPassed: boolean;
+  sections: Segment[]; // lecture sections, for "review this part" remediation
   onGradingStart: () => void;
   onGradingEnd: (s: Submission) => void;
   onContinue: () => void;
@@ -19,14 +23,19 @@ interface Props {
 
 type Tab = 'task' | 'code' | 'output' | 'result';
 type SaveState = 'saved' | 'saving' | 'unsaved' | 'error';
-
-export const STATUS_LABEL: Record<Submission['status'], [BadgeKind, string]> = {
-  queued: ['info', 'Queued'], running: ['info', 'Running'], passed: ['success', 'Passed'],
-  failed: ['warning', 'Needs retry'], timeout: ['warning', 'Timed out — needs retry'], error: ['danger', 'Grader unavailable'],
-};
+export { STATUS_LABEL };
 const AUTOSAVE_MS = 1500;
 
-export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradingEnd, onContinue }: Props) {
+/** Offline-safe local copy of the draft (§21): used only when it holds work the server never received. */
+const localKey = (exerciseId: string, version: number | null | undefined) => `nm-draft:${exerciseId}:${version ?? 0}`;
+function readLocal(key: string): { code: string; unsynced: boolean } | null {
+  try { const v = JSON.parse(localStorage.getItem(key) ?? 'null'); return v && typeof v.code === 'string' ? v : null; } catch { return null; }
+}
+function writeLocal(key: string, code: string, unsynced: boolean) {
+  try { localStorage.setItem(key, JSON.stringify({ code, unsynced })); } catch { /* storage unavailable: server draft still applies */ }
+}
+
+export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStart, onGradingEnd, onContinue }: Props) {
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [code, setCode] = useState('');
@@ -35,6 +44,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
   const [simpleEditor, setSimpleEditor] = useState(false);
   const [tab, setTab] = useState<Tab>('code');
   const [practice, setPractice] = useState<PracticeResult | null>(null);
+  const [exampleRuns, setExampleRuns] = useState<Record<number, PracticeResult>>({});
   const [history, setHistory] = useState<Submission[]>([]);
   const [bestScore, setBestScore] = useState<number | null>(null);
   const [live, setLive] = useState<Submission | null>(null);
@@ -43,6 +53,8 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
   const [hintBusy, setHintBusy] = useState(false);
   const [hintError, setHintError] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [review, setReview] = useState<Segment | null>(null);
+  const [restoredLocal, setRestoredLocal] = useState(false);
   const keyRef = useRef<string | null>(null);
   const codeRef = useRef('');
   const runtime = usePyodide();
@@ -56,9 +68,11 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
       setHistory(subs.submissions);
       setBestScore(subs.best_score);
       if (initial) {
-        const start = ex.draft ?? ex.starter_code;
-        setCode(start);
-        setSavedCode(start);
+        const server = ex.draft ?? ex.starter_code;
+        const local = readLocal(localKey(ex.id, ex.content_version));
+        if (local && local.unsynced && local.code !== server) { // work the server never received
+          setCode(local.code); setSavedCode(server); setRestoredLocal(true);
+        } else { setCode(server); setSavedCode(server); }
       }
     } catch (e) {
       setLoadError(errorMessage(e));
@@ -66,26 +80,36 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
   }, [exerciseId]);
   useEffect(() => { void load(true); }, [load]);
 
+  const version = exercise?.content_version;
   const persistDraft = useCallback(async (value: string) => {
     setSaveState('saving');
     try {
       await saveDraft(exerciseId, value);
       setSavedCode(value);
+      if (codeRef.current === value) writeLocal(localKey(exerciseId, version), value, false);
       setSaveState(codeRef.current === value ? 'saved' : 'unsaved');
     } catch {
-      setSaveState('error');
+      setSaveState('error'); // local copy (unsynced) remains
     }
-  }, [exerciseId]);
+  }, [exerciseId, version]);
 
-  // Debounced autosave of work in progress (server-side, so it survives refresh and device changes).
+  // Keep a device copy on every change; autosave to the server after a pause.
   useEffect(() => {
     if (!exercise || !exercise.unlocked || code === savedCode) return;
+    writeLocal(localKey(exercise.id, exercise.content_version), code, true);
     setSaveState((s) => (s === 'saving' ? s : 'unsaved'));
     const t = setTimeout(() => { void persistDraft(code); }, AUTOSAVE_MS);
     return () => clearTimeout(t);
   }, [code, savedCode, exercise, persistDraft]);
 
-  // Warn before leaving with unsaved work (§7.1).
+  useEffect(() => {
+    const goOnline = () => { if (codeRef.current !== '') void persistDraft(codeRef.current); };
+    const goOffline = () => setSaveState('error');
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); };
+  }, [persistDraft]);
+
   const dirty = !!exercise && (code !== savedCode || saveState === 'error');
   useEffect(() => {
     if (!dirty) return;
@@ -96,12 +120,17 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
 
   const latest = live ?? history[history.length - 1];
   const passed = alreadyPassed || history.some((h) => h.status === 'passed');
-  const exhausted = exercise?.max_attempts != null && history.filter((h) => ['passed', 'failed', 'timeout'].includes(h.status)).length >= exercise.max_attempts && !passed;
+  const exhausted = exercise?.max_attempts != null && history.filter((h) => ['passed', 'failed', 'timeout', 'runtime_error'].includes(h.status)).length >= exercise.max_attempts && !passed;
 
   async function runPractice() {
     setPractice(null);
     setTab('output');
     setPractice(await runtime.run(code));
+  }
+
+  async function runExample(i: number, exampleCode: string) {
+    const r = await runtime.run(exampleCode);
+    setExampleRuns((prev) => ({ ...prev, [i]: r }));
   }
 
   async function submit() {
@@ -110,7 +139,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
     keyRef.current ??= crypto.randomUUID(); // reused if this exact click is retried after a network error
     let outcome: Submission | null = null;
     try {
-      const { submission_id } = await submitCode(exercise.id, code, keyRef.current);
+      const { submission_id } = await submitCode(exercise.id, code, keyRef.current, exercise.content_version);
       keyRef.current = null;
       let sub = await getSubmission(submission_id);
       setLive(sub);
@@ -121,7 +150,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
       }
       if (!FINAL_STATUSES.includes(sub.status)) throw new ApiError(0, 'TIMEOUT', 'Grading is taking longer than expected. Your submission is saved — check back in a moment.');
       outcome = sub;
-      if (sub.status !== 'error') void persistDraft(code);
+      if (!PLATFORM_FAULT.includes(sub.status)) void persistDraft(code);
       await load(false); // refresh history, best score and (reset) hints for the next attempt
       setLive(null);
     } catch (e) {
@@ -158,7 +187,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
 
   const nextHint = exercise.hints_revealed.length;
   const tabs: [Tab, string][] = [['task', 'Task'], ['code', 'Code'], ['output', 'Output'], ['result', 'Result']];
-  const saveText = { saved: 'All changes saved', saving: 'Saving…', unsaved: 'Unsaved changes', error: 'Could not save — check your connection' }[saveState];
+  const saveText = { saved: 'All changes saved', saving: 'Saving…', unsaved: 'Unsaved changes', error: 'Not saved to your account yet — a copy is kept on this device and will sync when you are back online' }[saveState];
 
   return (
     <section aria-labelledby="lab-title" className="card lab">
@@ -168,9 +197,12 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
           <h2 id="lab-title" style={{ marginBottom: 4 }}>{exercise.title}</h2>
         </div>
         <div>
+          <Link to={`/exercises/${exercise.id}/attempts`} className="muted" style={{ display: 'block', marginBottom: 4 }}>Attempt history</Link>
           {bestScore != null ? <Badge kind={bestScore >= exercise.pass_threshold ? 'success' : 'info'}>{`Best score ${bestScore}% · pass mark ${exercise.pass_threshold}%`}</Badge> : <Badge kind="neutral">{`Pass mark ${exercise.pass_threshold}%`}</Badge>}
         </div>
       </div>
+      {exercise.draft_stale && <div role="status" className="notice notice-info">This exercise was updated, so your older saved draft was not loaded. You are starting from the new starter code.</div>}
+      {restoredLocal && <div role="status" className="notice notice-info">We restored work that was saved on this device but hadn't reached your account yet.</div>}
 
       <div className="lab-tabs" role="tablist" aria-label="Lab sections">
         {tabs.map(([id, label]) => (
@@ -181,17 +213,47 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
       <div className="lab-grid">
         <div>
           <div className="lab-pane" id="pane-task" role="tabpanel" aria-labelledby="tab-task" hidden={tab !== 'task'}>
-            <h3>Instructions</h3>
+            <h3>Objective</h3>
+            <p>{exercise.objective || 'Complete the task below.'}</p>
+            <h3>Task</h3>
             <p className="instructions">{exercise.instructions}</p>
+            {exercise.constraints && <><h3>Constraints</h3><p>{exercise.constraints}</p></>}
+            {exercise.success_criteria.length > 0 && (
+              <><h3>You will pass when</h3><ul>{exercise.success_criteria.map((c) => <li key={c}>{c}</li>)}</ul></>
+            )}
+            <p className="muted">Runtime: {exercise.runtime || exercise.language}. Starter code is already in the editor.</p>
+            {exercise.visible_examples.length > 0 && (
+              <section aria-label="Visible examples">
+                <h3>Examples you can run</h3>
+                {exercise.visible_examples.map((ex, i) => (
+                  <div key={i} className="example">
+                    <p className="muted" style={{ margin: '0 0 4px' }}>{ex.description ?? `Example ${i + 1}`} — visible examples are a guide; the official tests are private.</p>
+                    <pre className="code">{ex.code}</pre>
+                    {ex.expected_output !== undefined && <p>Expected output: <code>{ex.expected_output}</code></p>}
+                    <div className="actions">
+                      <button className="btn btn-tertiary" onClick={() => { setCode(ex.code); setTab('code'); }}>Load into editor</button>
+                      <button className="btn btn-tertiary" disabled={runtime.status !== 'ready'} onClick={() => void runExample(i, ex.code)}>Run this example</button>
+                    </div>
+                    {exampleRuns[i] && (
+                      <p role="status">
+                        Output: <code>{exampleRuns[i].stdout.trim() || '(none)'}</code>
+                        {ex.expected_output !== undefined && (exampleRuns[i].stdout.trim() === ex.expected_output.trim() ? ' — matches the expected output ✓' : ' — different from the expected output ✕')}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </section>
+            )}
             {exercise.hints_total > 0 && (
               <div>
+                <h3>Hints</h3>
                 {exercise.hints_revealed.map((h, i) => <p key={i} className="hint"><Icon name="bulb" size={16} /> <strong>Hint {i + 1}:</strong> {h}</p>)}
                 {nextHint < exercise.hints_total && (
                   <button className="btn btn-tertiary" onClick={() => void showHint()} disabled={hintBusy}>
                     <Icon name="bulb" size={16} /> Show hint {nextHint + 1} of {exercise.hints_total}
                   </button>
                 )}
-                <p className="muted">Each hint lowers <em>this attempt's</em> score by {exercise.hint_penalty_percent} points. It never lowers a score you have already earned.</p>
+                <p className="muted">{exercise.hints_policy}</p>
                 {hintError && <p role="alert" className="field-error">{hintError}</p>}
               </div>
             )}
@@ -227,7 +289,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
                 <Icon name="flag" size={16} /> {grading ? 'Grading…' : 'Submit for grading'}
               </button>
             </div>
-            <p className="muted">Practice runs happen in your browser and don't count. Submitting sends your code to the official grader.</p>
+            <p className="muted"><strong>Practice</strong> runs in your browser and never counts. <strong>Submit for grading</strong> sends a snapshot of your code to the official grader, which keeps a record.</p>
             {runtime.status === 'loading' && <Loading label="Loading Python in your browser… (first run takes a few seconds)" />}
             {runtime.status === 'error' && (
               <div>
@@ -249,6 +311,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
                   <>
                     <p className="muted" style={{ margin: '8px 0 4px' }}>Errors{practice.errorLine ? ` — line ${practice.errorLine}` : ''}</p>
                     <pre className="output stderr">{[practice.stderr, practice.error].filter(Boolean).join('\n')}</pre>
+                    <p className="muted">Your code is still here. Fix the problem and run it again.</p>
                   </>
                 )}
                 {practice.truncated && <p className="muted">Output was cut off at the limit.</p>}
@@ -259,9 +322,14 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
           <div className="lab-pane" id="pane-result" role="tabpanel" aria-labelledby="tab-result" hidden={tab !== 'result'}>
             <h3>Official result</h3>
             {grading && !live && <Loading label="Sending your code to the grader…" />}
-            {grading && live && <Loading label={live.status === 'queued' ? 'Waiting in the grading queue…' : 'Grading your submission…'} />}
+            {grading && live && (
+              <div>
+                <Loading label={live.status === 'queued' ? 'Your submission is queued.' : 'Grading your submission…'} />
+                <p className="muted">Attempt {live.submission_number} · reference {live.submission_id.slice(0, 8)}. Keep this page open — the result appears here as soon as it is ready.</p>
+              </div>
+            )}
             {!grading && !latest && <p>Not submitted yet. When you're ready, choose “Submit for grading”.</p>}
-            {!grading && latest && <ResultPanel sub={latest} passMark={exercise.pass_threshold} />}
+            {!grading && latest && <ResultPanel sub={latest} passMark={exercise.pass_threshold} sections={sections} onReview={setReview} onShowHint={nextHint < exercise.hints_total ? () => { setTab('task'); void showHint(); } : undefined} />}
             {submitError && <ErrorMessage message={submitError} />}
             {exhausted && <p role="alert">You have used all {exercise.max_attempts} attempts. Ask your teacher for help.</p>}
             {passed && !grading && <button className="btn btn-primary" onClick={onContinue}>Continue to exit check</button>}
@@ -291,18 +359,22 @@ export function ExerciseLab({ exerciseId, alreadyPassed, onGradingStart, onGradi
       <ConfirmDialog open={resetOpen} title="Reset to starter code?" confirmLabel="Reset code" destructive onConfirm={confirmReset} onCancel={() => setResetOpen(false)}>
         <p>This replaces what you've written with the starter code. Your past submissions are kept.</p>
       </ConfirmDialog>
+      <ReviewDialog segment={review} onClose={() => setReview(null)} />
     </section>
   );
 }
 
-export function ResultPanel({ sub, passMark }: { sub: Submission; passMark: number }) {
+export function ResultPanel({ sub, passMark, sections = [], onReview, onShowHint }: {
+  sub: Submission; passMark: number; sections?: Segment[]; onReview?: (s: Segment) => void; onShowHint?: () => void;
+}) {
   const [kind, label] = STATUS_LABEL[sub.status];
+  const fault = PLATFORM_FAULT.includes(sub.status);
+  const help = STATUS_HELP[sub.status];
   return (
     <div role="status">
       <Badge kind={kind}>{label}</Badge>
-      {sub.infrastructure_error ? (
-        <p><strong>This was a problem with the grading system, not your code.</strong> This attempt was not judged. Please try again.</p>
-      ) : (
+      {help && <p style={{ marginTop: 8 }}>{help}</p>}
+      {fault ? null : (
         <>
           <p style={{ marginTop: 8 }}>
             <strong>Score: {sub.score ?? 0}%</strong> (pass mark {passMark}%) — {sub.passed_tests}/{sub.total_tests} checks passed
@@ -318,8 +390,18 @@ export function ResultPanel({ sub, passMark }: { sub: Submission; passMark: numb
           {sub.remediation && sub.remediation.length > 0 && (
             <div className="notice notice-info">
               <strong>How to fix it</strong>
-              <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{sub.remediation.map((r, i) => <li key={i}>{r.text}</li>)}</ul>
-              <p>Update your code and submit again — you can retry as often as you need.</p>
+              <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                {sub.remediation.map((r, i) => {
+                  const section = r.review_segment_id ? sections.find((x) => x.id === r.review_segment_id) : undefined;
+                  return (
+                    <li key={i}>
+                      {r.objective && <span className="muted">{r.objective}: </span>}{r.text}
+                      {section && onReview && <> <button className="btn btn-tertiary" onClick={() => onReview(section)}>Review “{section.title}”</button></>}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p>Your code is kept — change it and submit again. You can retry as often as you need.{onShowHint && <> Or <button className="btn btn-tertiary" onClick={onShowHint}>show a hint</button>.</>}</p>
             </div>
           )}
           <ul>{sub.feedback.map((f, i) => <li key={i}>{f.message}</li>)}</ul>

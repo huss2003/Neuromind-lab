@@ -6,7 +6,9 @@ import {
 } from './types';
 
 const courseSchema = z.object({ id: z.string(), slug: z.string(), title: z.string(), description: z.string() });
-const lectureRow = z.object({ id: z.string(), module_id: z.string().nullable().optional(), lecture_number: z.number(), title: z.string(), summary: z.string(), duration_seconds: z.number().nullable() });
+const lectureState = z.enum(['locked', 'available', 'in_progress', 'completed', 'needs_attention']);
+export type LectureState = z.infer<typeof lectureState>;
+const lectureRow = z.object({ state: lectureState.default('available'), id: z.string(), module_id: z.string().nullable().optional(), lecture_number: z.number(), title: z.string(), summary: z.string(), duration_seconds: z.number().nullable() });
 const moduleRow = z.object({ id: z.string(), module_number: z.number(), title: z.string(), description: z.string(), lectures: z.array(lectureRow) });
 const courseDetail = courseSchema.extend({ lectures: z.array(lectureRow), modules: z.array(moduleRow) });
 const progressSchema = z.object({ sessions: z.array(z.object({ lecture_id: z.string(), status: z.string(), current_segment_id: z.string().nullable(), completed_at: z.string().nullable() })) });
@@ -36,9 +38,9 @@ export const submitAnswer = async (checkpointId: string, questionId: string, opt
 
 export const getExercise = async (id: string): Promise<Exercise> => exerciseSchema.parse(await apiFetch(`/exercises/${id}`));
 
-export const submitCode = async (exerciseId: string, code: string, key: string): Promise<{ submission_id: string }> =>
+export const submitCode = async (exerciseId: string, code: string, key: string, contentVersion?: number | null): Promise<{ submission_id: string }> =>
   z.object({ submission_id: z.string() }).parse(await apiFetch(`/exercises/${exerciseId}/submissions`, {
-    method: 'POST', headers: { 'Idempotency-Key': key }, ...json({ source_code: code }),
+    method: 'POST', headers: { 'Idempotency-Key': key }, ...json({ source_code: code, language: 'python', content_version: contentVersion ?? null }),
   }));
 
 export const getSubmission = async (id: string): Promise<Submission> => submissionSchema.parse(await apiFetch(`/submissions/${id}`));
@@ -48,6 +50,19 @@ export const listSubmissions = async (exerciseId: string): Promise<{ submissions
 export const revealHint = async (exerciseId: string, index: number) =>
   z.object({ hint_index: z.number(), text: z.string(), hints_revealed: z.number(), hints_total: z.number(), penalty_percent: z.number() })
     .parse(await apiFetch(`/exercises/${exerciseId}/hints`, { method: 'POST', ...json({ hint_index: index }) }));
+
+const dashboardSchema = z.object({
+  enrolled: z.boolean(),
+  course: z.object({ id: z.string(), title: z.string(), description: z.string(), completed_lectures: z.number(), total_lectures: z.number() }).nullable(),
+  continue: z.object({ lecture_id: z.string(), lecture_number: z.number(), title: z.string(), state: z.string() }).nullable(),
+  recent_attempts: z.array(z.object({ submission_id: z.string(), exercise: z.string().nullable().optional(), lecture_id: z.string().nullable().optional(), number: z.number(), status: z.string(), score: z.number().nullable(), best_score: z.number().nullable(), created_at: z.string() })),
+  remediation_queue: z.array(z.object({
+    exercise_id: z.string(), exercise: z.string().nullable().optional(), lecture_id: z.string().nullable().optional(), lecture: z.string().nullable().optional(), last_status: z.string(),
+    objectives: z.array(z.string()), steps: z.array(z.object({ criterion: z.string(), text: z.string().nullable().optional(), objective: z.string().nullable().optional(), review_title: z.string().nullable().optional() })),
+  })),
+});
+export type Dashboard = z.infer<typeof dashboardSchema>;
+export const getDashboard = async (): Promise<Dashboard> => dashboardSchema.parse(await apiFetch('/me/dashboard'));
 
 export const saveDraft = async (exerciseId: string, code: string): Promise<void> => {
   await apiFetch(`/exercises/${exerciseId}/draft`, { method: 'PUT', ...json({ source_code: code }) });
@@ -62,9 +77,15 @@ export type TeacherLearner = z.infer<typeof teacherLearner>;
 export const getTeacherSummary = async () =>
   z.object({ assigned_learners: z.number(), lectures_completed: z.number(), lectures_in_progress: z.number(), submissions_passed: z.number(), submissions_needing_retry: z.number(), infrastructure_failures: z.number() })
     .parse(await apiFetch('/teacher/summary'));
-export const listLearners = async (q: string, limit: number, offset: number) =>
-  z.object({ learners: z.array(teacherLearner), total: z.number(), limit: z.number(), offset: z.number() })
-    .parse(await apiFetch(`/teacher/learners?limit=${limit}&offset=${offset}${q ? `&q=${encodeURIComponent(q)}` : ''}`));
+const learnerRow = z.object({ id: z.string(), display_name: z.string(), lectures_completed: z.number().default(0), lectures_in_progress: z.number().default(0), needs_support: z.boolean().default(false), grader_problems: z.number().default(0), last_active: z.string().nullable().optional() });
+export const listLearners = async (q: string, limit: number, offset: number, filters: { needsSupport?: boolean; progress?: string } = {}) =>
+  z.object({ learners: z.array(learnerRow), total: z.number(), limit: z.number(), offset: z.number() })
+    .parse(await apiFetch(`/teacher/learners?limit=${limit}&offset=${offset}${q ? `&q=${encodeURIComponent(q)}` : ''}${filters.needsSupport ? '&needs_support=true' : ''}${filters.progress && filters.progress !== 'any' ? `&progress=${filters.progress}` : ''}`));
+export const getExerciseAnalytics = async () =>
+  z.object({ exercises: z.array(z.object({ exercise_id: z.string(), exercise: z.string().nullable().optional(), attempts: z.number(), learners: z.number(), completion_rate: z.number(), average_score: z.number().nullable(), system_errors: z.number(), score_distribution: z.object({ below_50: z.number(), '50_to_79': z.number(), '80_and_above': z.number() }), common_failures: z.array(z.object({ criterion: z.string(), count: z.number() })) })) })
+    .parse(await apiFetch('/teacher/analytics/exercises')).exercises;
+export const getContentStatus = async () =>
+  z.object({ lectures: z.array(z.object({ id: z.string(), lecture_number: z.number(), title: z.string(), status: z.string(), version: z.number() })) }).parse(await apiFetch('/teacher/content-status')).lectures;
 
 const resultsSchema = z.object({
   learner: teacherLearner,

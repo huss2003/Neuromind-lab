@@ -2,8 +2,8 @@ import { Icon } from '../../components/Icon';
 import type { Segment } from '../../services/types';
 import type { TimelineState } from './timeline';
 
-const ICON: Record<Segment['type'], string> = { video: 'video', checkpoint: 'quiz', exercise: 'code', exit_check: 'flag' };
-const KIND: Record<Segment['type'], string> = { video: 'Video', checkpoint: 'Knowledge check', exercise: 'Practical lab', exit_check: 'Exit check' };
+const ICON: Record<Segment['type'], string> = { intro: 'book', video: 'video', reading: 'book', example: 'video', checkpoint: 'quiz', exercise: 'code', reflection: 'book', exit_check: 'flag' };
+const KIND: Record<Segment['type'], string> = { intro: 'Introduction', video: 'Video', reading: 'Reading', example: 'Worked example', checkpoint: 'Knowledge check', exercise: 'Practical lab', reflection: 'Reflection', exit_check: 'Exit check' };
 
 function stepState(state: TimelineState, i: number): 'done' | 'current' | 'upcoming' {
   if (state.phase === 'completed' || i < state.index) return 'done';
