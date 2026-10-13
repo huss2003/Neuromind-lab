@@ -16,10 +16,15 @@ export async function openLecture(page: Page) {
   await expect(page.getByRole('heading', { name: /Lecture 9/ })).toBeVisible();
 }
 
-/** The placeholder videos are 5 seconds; skip waiting by using the explicit manual-continue control. */
-export async function finishVideo(page: Page) {
-  await page.getByRole('button', { name: /finished this video/ }).click();
+/** Orientation screen -> Start lecture. A learner who already started resumes without it. */
+export async function startLecture(page: Page) {
+  const start = page.getByRole('button', { name: 'Start lecture' });
+  await expect(start.or(page.getByRole('button', { name: 'Continue', exact: true })).first()).toBeVisible();
+  if (await start.isVisible()) await start.click();
 }
+
+/** A written section ends with a Continue button. */
+export const continueReading = (page: Page) => page.getByRole('button', { name: 'Continue', exact: true }).click();
 
 export async function answer(page: Page, optionText: string | RegExp) {
   await page.getByLabel(optionText).check();
