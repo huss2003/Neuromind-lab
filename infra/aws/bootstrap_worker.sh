@@ -20,9 +20,14 @@ python3.12 -m venv "$APP/venv"
 
 install -d -m 700 /etc/neuromind
 if [ ! -f /etc/neuromind/worker.env ]; then
-  read -r -p "API base URL (e.g. https://neuromind-lab-api.vercel.app): " API_BASE_URL
-  read -r -s -p "Worker token (input hidden): " GRADER_WORKER_TOKEN; echo
   umask 077
+  if [ -n "${TOKEN_SSM_PARAM:-}" ]; then   # non-interactive: token lives in SSM Parameter Store (SecureString), never in user-data
+    : "${API_BASE_URL:?set API_BASE_URL}"
+    GRADER_WORKER_TOKEN="$(aws ssm get-parameter --name "$TOKEN_SSM_PARAM" --with-decryption --region "${AWS_REGION:-ap-southeast-2}" --query Parameter.Value --output text)"
+  else
+    read -r -p "API base URL (e.g. https://neuromind-lab-api.vercel.app): " API_BASE_URL
+    read -r -s -p "Worker token (input hidden): " GRADER_WORKER_TOKEN; echo
+  fi
   cat > /etc/neuromind/worker.env <<EOF
 API_BASE_URL=$API_BASE_URL
 GRADER_WORKER_TOKEN=$GRADER_WORKER_TOKEN
