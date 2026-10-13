@@ -1,7 +1,7 @@
 """In-memory Repository + helpers for API tests (no network)."""
 import copy
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import HTTPException
@@ -158,6 +158,36 @@ class InMemoryRepository:
         if s:
             s.update(fields)
         return copy.deepcopy(s)
+
+    # --- durable queue (mirrors database/migrations/0006_grading_queue.sql) ---
+    async def claim_next_submission(self, worker_id, lease_seconds, max_claims):
+        t = datetime.now(UTC)
+        for s in self.submissions:  # dead-letter exhausted jobs
+            lease_over = s.get("lease_expires_at") is not None and s["lease_expires_at"] < t
+            if s.get("claim_count", 0) >= max_claims and (s["status"] == "queued" or (s["status"] == "running" and lease_over)):
+                s.update(status="error", claimed_by=None, lease_expires_at=None, safe_feedback=[
+                    {"kind": "infrastructure", "message": "We could not finish grading because of a system issue. This was not marked incorrect. Please submit again."}])
+        for s in sorted(self.submissions, key=lambda x: x["created_at"]):
+            lease_over = s.get("lease_expires_at") is not None and s["lease_expires_at"] < t
+            if s.get("claim_count", 0) < max_claims and (s["status"] == "queued" or (s["status"] == "running" and lease_over)):
+                s.update(status="running", claimed_by=worker_id, claim_count=s.get("claim_count", 0) + 1,
+                         lease_expires_at=t + timedelta(seconds=lease_seconds))
+                return copy.deepcopy(s)
+        return None
+
+    async def extend_lease(self, sid, worker_id, lease_seconds):
+        s = next((s for s in self.submissions if s["id"] == sid), None)
+        if s and s.get("claimed_by") == worker_id and s["status"] == "running":
+            s["lease_expires_at"] = datetime.now(UTC) + timedelta(seconds=lease_seconds)
+            return True
+        return False
+
+    async def release_submission(self, sid, worker_id):
+        s = next((s for s in self.submissions if s["id"] == sid), None)
+        if s and s.get("claimed_by") == worker_id and s["status"] == "running":
+            s.update(status="queued", claimed_by=None, lease_expires_at=None)
+            return True
+        return False
 
     async def recompute_progress(self, learner, course):
         done = len([s for s in self.sessions.values() if s["learner_id"] == learner and s["status"] == "completed"])

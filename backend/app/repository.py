@@ -2,6 +2,7 @@
 PostgREST with the server-only service-role key (bypasses RLS, so every query filters
 explicitly); tests use an in-memory implementation (tests/fakes.py)."""
 import os
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
 import httpx
@@ -34,6 +35,9 @@ class Repository(Protocol):
     async def find_submission_by_key(self, learner_id: str, key: str) -> Row | None: ...
     async def insert_submission(self, row: Row) -> Row: ...
     async def update_submission(self, submission_id: str, fields: Row) -> Row | None: ...
+    async def claim_next_submission(self, worker_id: str, lease_seconds: int, max_claims: int) -> Row | None: ...
+    async def extend_lease(self, submission_id: str, worker_id: str, lease_seconds: int) -> bool: ...
+    async def release_submission(self, submission_id: str, worker_id: str) -> bool: ...
     async def recompute_progress(self, learner_id: str, course_id: str) -> Row: ...
     # --- v1.0 additions ---
     async def list_published_modules(self, course_id: str) -> list[Row]: ...
@@ -206,6 +210,29 @@ class PostgrestRepository:
         r.raise_for_status()
         rows = r.json()
         return rows[0] if rows else None
+
+    async def claim_next_submission(self, worker_id, lease_seconds, max_claims):
+        r = await self._req("POST", "rpc/claim_next_submission",
+                            json={"p_worker": worker_id, "p_lease_seconds": lease_seconds, "p_max_claims": max_claims})
+        r.raise_for_status()
+        rows = r.json()
+        return rows[0] if rows else None
+
+    async def extend_lease(self, submission_id, worker_id, lease_seconds):
+        until = (datetime.now(UTC) + timedelta(seconds=lease_seconds)).isoformat()
+        r = await self._req("PATCH", "lab_submissions",
+                            {"id": f"eq.{submission_id}", "claimed_by": f"eq.{worker_id}", "status": "eq.running"},
+                            json={"lease_expires_at": until}, prefer="return=representation")
+        r.raise_for_status()
+        return bool(r.json())
+
+    async def release_submission(self, submission_id, worker_id):
+        r = await self._req("PATCH", "lab_submissions",
+                            {"id": f"eq.{submission_id}", "claimed_by": f"eq.{worker_id}", "status": "eq.running"},
+                            json={"status": "queued", "claimed_by": None, "lease_expires_at": None},
+                            prefer="return=representation")
+        r.raise_for_status()
+        return bool(r.json())
 
     async def recompute_progress(self, learner_id, course_id):
         lectures = await self._get("lectures", course_id=f"eq.{course_id}", status="eq.published", select="id")

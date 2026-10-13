@@ -143,8 +143,8 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
       keyRef.current = null;
       let sub = await getSubmission(submission_id);
       setLive(sub);
-      for (let i = 0; i < 90 && !FINAL_STATUSES.includes(sub.status); i++) {
-        await new Promise((r) => setTimeout(r, 1000));
+      for (let i = 0; i < 80 && !FINAL_STATUSES.includes(sub.status); i++) {
+        await new Promise((r) => setTimeout(r, Math.min(4000, 1000 + i * 150))); // poll every 1 s, backing off to 4 s (about 4 minutes in total)
         sub = await getSubmission(submission_id);
         setLive(sub);
       }

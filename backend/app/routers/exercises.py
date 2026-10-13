@@ -12,14 +12,24 @@ from app.repository import Repository, get_repository
 from app.routers.deps import idempotency_key, path_uuid
 from app.services import audit
 from app.services.context import load_context
-from app.services.grading import apply_hint_penalty, best_valid_score, build_criteria, decide_status
+from app.services.finalize import finalize_submission
+from app.services.grading import best_valid_score
 from app.services.progress import max_reachable_order
 
 router = APIRouter(prefix="/api/v1")
-STALE_AFTER_SECONDS = 120
+STALE_AFTER_SECONDS = 120  # inline mode; queue mode uses QUEUE_STALE_SECONDS (leases and retries need longer)
 COUNTED = ("passed", "failed", "timeout", "runtime_error")  # infrastructure errors never consume an attempt (when a cap exists)
 MAX_SUBMISSIONS_PER_MINUTE = 6  # abuse limit (§6.2): policy stays "unlimited practice attempts"
 MAX_IN_FLIGHT = 2
+
+
+def grading_mode() -> str:
+    """`inline` (default, local dev: API calls the grader) or `queue` (hosted: a private worker pulls jobs)."""
+    return "queue" if os.getenv("GRADER_MODE", "inline").lower() == "queue" else "inline"
+
+
+def _stale_after() -> int:
+    return int(os.getenv("QUEUE_STALE_SECONDS", "900")) if grading_mode() == "queue" else STALE_AFTER_SECONDS
 
 
 def _max_bytes() -> int:
@@ -143,39 +153,15 @@ class SubmissionBody(BaseModel):
 
 
 async def _run_grading(repo: Repository, grader: Grader, sub: dict, ex: dict, lecture: dict, request_id: str | None) -> None:
-    started = datetime.now(UTC).isoformat()
-    await repo.update_submission(sub["id"], {"status": "running", "started_at": started})
+    """Inline mode (local development): grade in-process-adjacent and finalise. Queue mode uses routers/worker.py."""
+    await repo.update_submission(sub["id"], {"status": "running", "started_at": datetime.now(UTC).isoformat()})
     tests: list[dict] = []
-    section_titles = {x["id"]: x["title"] for x in await repo.list_segments(lecture["id"])}
     try:
         tests = await repo.list_exercise_tests(ex["id"])
         result = await grader.grade(sub["source_code"], tests, float(ex["pass_threshold"]))
     except Exception:  # noqa: BLE001 - never leave a submission stuck, never blame the learner
         result = GradeResult("error", feedback=[{"kind": "infrastructure", "message": "Grading failed to run. Please try again."}])
-
-    hints_used = len(await repo.list_hint_reveals(sub["learner_id"], ex["id"], sub["submission_number"]))
-    raw = result.score
-    adjusted: float | None = None
-    penalty = 0.0
-    if raw is not None and result.status in ("passed", "failed"):
-        adjusted, penalty = apply_hint_penalty(raw, hints_used, float(ex.get("hint_penalty_percent") or 0))
-    else:
-        adjusted = raw
-    status = decide_status(result.status, adjusted, float(ex["pass_threshold"]), result.runtime_error)
-    feedback = list(result.feedback)
-    if penalty > 0:
-        feedback.append({"kind": "info", "message": f"Hints used: {hints_used}. This attempt's score was reduced by {penalty:g} points. Your best earlier score is unchanged."})
-    if status == "failed" and result.status == "passed":
-        feedback.append({"kind": "failure", "message": "Your code passed the checks, but hint use brought this attempt below the pass mark. Try again without hints to earn the pass."})
-    await repo.update_submission(sub["id"], {
-        "status": status, "score": adjusted, "raw_score": raw, "hints_used": hints_used, "hint_penalty": penalty,
-        "passed_tests": result.passed_tests, "total_tests": result.total_tests, "execution_ms": result.execution_ms,
-        "safe_feedback": feedback, "criteria_results": build_criteria(tests, result.criteria, section_titles),
-        "grader_version": result.grader_version, "test_suite_version": ex.get("test_suite_version"),
-        "content_version": lecture.get("content_version"), "pass_threshold": ex["pass_threshold"], "max_score": 100,
-        "correlation_id": request_id, "finished_at": datetime.now(UTC).isoformat()})
-    await audit.record(repo, None, sub["learner_id"], "submission.finished", "submission", sub["id"],
-                       {"status": status, "score": adjusted, "submission_id": sub["id"]})
+    await finalize_submission(repo, sub, ex, lecture, result, tests, request_id)
 
 
 @router.post("/exercises/{exercise_id}/submissions", status_code=202)
@@ -219,7 +205,8 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
         "correlation_id": getattr(request.state, "request_id", None)})
     await audit.record(repo, request, user.id, "submission.created", "submission", sub["id"],
                        {"submission_id": sub["id"], "exercise_id": exercise_id})
-    background.add_task(_run_grading, repo, grader, sub, ex, ctx.lecture, getattr(request.state, "request_id", None))
+    if grading_mode() == "inline":  # queue mode: a private worker claims the job from the database
+        background.add_task(_run_grading, repo, grader, sub, ex, ctx.lecture, getattr(request.state, "request_id", None))
     return {"submission_id": sub["id"], "status": "queued", "status_url": f"/api/v1/submissions/{sub['id']}"}
 
 
@@ -230,7 +217,7 @@ async def get_submission(submission_id: str, user: CurrentUser = Depends(current
         raise ApiError(404, "NOT_FOUND")  # not-found, not 403, so ids can't be probed
     if sub["status"] in ("queued", "running"):
         created = datetime.fromisoformat(str(sub["created_at"]).replace("Z", "+00:00"))
-        if (datetime.now(UTC) - created).total_seconds() > STALE_AFTER_SECONDS:
+        if (datetime.now(UTC) - created).total_seconds() > _stale_after():
             sub = await repo.update_submission(sub["id"], {"status": "expired", "safe_feedback": [
                 {"kind": "infrastructure", "message": "Grading took too long and was stopped. Your code was not judged and your score is unchanged. Please submit again."}]}) or sub
     return _view(sub)
