@@ -15,6 +15,6 @@ test('Run practice executes learner code in Pyodide and shows its output; Monaco
   await expect(page.getByText('Aarav').first()).toBeVisible({ timeout: 120_000 }); // first run downloads the runtime
   await page.locator('textarea.simple-editor').fill('while True:\n    pass\n');
   await page.getByRole('button', { name: 'Run practice' }).click();
-  await expect(page.getByText(/time limit|too long|timed out/i).first()).toBeVisible({ timeout: 60_000 }); // worker is terminated, page stays usable
+  await expect(page.getByText(/more than 5 seconds and was stopped/i).first()).toBeVisible({ timeout: 60_000 }); // worker is terminated, page stays usable
   await expect(page.getByRole('button', { name: 'Run practice' })).toBeEnabled({ timeout: 30_000 });
 });

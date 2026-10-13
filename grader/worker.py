@@ -19,7 +19,8 @@ import httpx
 from grader_service.evaluate import GRADER_VERSION, evaluate, required_vars
 from grader_service.runner import DockerRunner
 
-FAST_POLL, SLOW_POLL, BUSY_WINDOW = 1.0, 10.0, 60.0  # seconds; adaptive polling keeps idle API traffic low
+FAST_POLL, BUSY_WINDOW = 1.0, 60.0  # seconds; adaptive polling keeps idle API traffic low
+SLOW_POLL = float(os.getenv("WORKER_IDLE_POLL", "5"))  # idle poll: 5 s is about 520k API calls a month, inside the Vercel free allowance
 
 
 class Worker:
