@@ -38,3 +38,25 @@ Rotate keys; change dev passwords; decide on history rewrite or private repo; ru
 
 ## Capacity statement
 No capacity is claimed. Earlier docs mention ~200 and ~100 learners; neither was measured. With one worker at concurrency 1–2, simultaneous submissions queue.
+
+
+---
+## Update 2026-10-13 (later): real worker on AWS, real Docker, real drills
+Decision is still **NO-GO**, but Gates 2 and 3 now have real evidence.
+
+**Infrastructure created (account 757968055032, ap-southeast-2, all tagged `project=neuromind`):** budget `neuromind-monthly-15usd` ($15, email alerts at 50/80/100% actual and 100% forecast); EC2 `i-018d91b05eae11535` (t4g.micro, 12 GB encrypted gp3, IMDSv2 required, hop limit 1, security group `sg-0b10f72ed14036306` with **no inbound rules**); IAM role/profile `neuromind-worker` (SSM core + read of one parameter); SSM SecureString `/neuromind/worker-token`. Estimated about $12.6/month.
+
+| Gate | Evidence | Result |
+|---|---|---|
+| 2 Docker sandbox | `tests/test_docker_sandbox.py` on the real host: network (incl. 169.254.169.254) denied, no secrets in env, read-only root, no docker socket/host paths, non-root without capabilities, `/tmp` noexec and small, infinite loop times out and container is removed, memory bomb killed, fork bomb contained, output bounded | **9 passed** (first run 8 passed + 1 failed because the probe wrongly expected `/home` to be absent; test corrected, not the sandbox; re-run 9/9) |
+| 2 Result forgery | `tests/test_adversarial.py` on the same host | **13 passed** (these use a local subprocess on that host, not a container) |
+| 3 Hosted grading | `scripts/staging_drills.py` against the live API (`GRADER_MODE=queue`) and the real worker | see below |
+
+Staging drills (synthetic learner `learner3`, real Supabase, real Vercel API, real Docker worker):
+* auth: no token / wrong token / learner JWT on the worker interface → all rejected (3/3 pass)
+* journey: wrong code → real `failed` with criteria (13.4 s end to end on the first, cold-poll attempt); correct code → `passed` 100 (0.8 s); same Idempotency-Key → same attempt; a later worse attempt keeps best 100; a duplicate/late worker result → `accepted:false`, status unchanged (5/5 pass)
+* worker killed with SIGKILL mid-job: job re-claimed after the 60 s lease and finished (`timeout`) in 75 s (1/1 pass)
+* worker stopped, three claims abandoned: job dead-lettered as `error` (system issue, no score, `infrastructure_error`) (1/1 pass)
+Timings are single samples, **not a load test**. The first attempt's 13 s shows the cost of the 10 s idle poll interval.
+
+**Still blocking:** Gate 0 (owner chose **not** to rotate the Supabase key or dev passwords; the old default password is in public history and live accounts still accept it, as these drills show); full browser end-to-end journey against the real stack not run; content is placeholder; no axe/screen-reader audit; no load test; hosted learner-facing UI journey not smoke-tested after the switch to queue mode; worker is a single instance with no alerting (an outage means submissions wait, then dead-letter after 3 claims).

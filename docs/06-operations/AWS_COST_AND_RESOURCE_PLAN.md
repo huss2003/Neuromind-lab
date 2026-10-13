@@ -51,3 +51,13 @@ Measured price (AWS Pricing API): `t4g.micro` in Sydney is **$0.0106/hour** (1 G
 That leaves about $2.4 of the $15 ceiling for data transfer and S3; video through CloudFront is not affordable inside this budget until usage is measured. The earlier ap-south-1 numbers in this file are superseded.
 
 Spend control: the new experience offers a **spend limit in AWS Settings** (paid plan; it pauses the project when exceeded) in addition to Budgets. On the Free plan, charges stop when the $100 credit ends (2027-04-13).
+
+## Inventory (created 2026-10-13)
+| Resource | Id | Cleanup |
+|---|---|---|
+| Budget | `neuromind-monthly-15usd` | `aws budgets delete-budget` |
+| EC2 instance | `i-018d91b05eae11535` (t4g.micro) | `aws ec2 terminate-instances` (volume deletes with it) |
+| Security group | `sg-0b10f72ed14036306` | delete after the instance is gone |
+| IAM role + instance profile | `neuromind-worker` | detach policies, remove role from profile, delete both |
+| SSM parameter | `/neuromind/worker-token` | `aws ssm delete-parameter` |
+Stopping the instance (not terminating) stops compute charges but the disk and the public IP still bill (~$4.9/month).

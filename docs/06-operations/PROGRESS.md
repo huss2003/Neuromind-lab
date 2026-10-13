@@ -119,3 +119,10 @@ Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture
 - AWS (measured): Free plan, $100 credit, expires 2027-04-13, SCP denies EC2/ECS/SQS/Lambda/etc. Nothing provisioned. See AWS_COST_AND_RESOURCE_PLAN.md.
 - Capacity claims (100/200 learners) remain **unmeasured**; do not quote either.
 - New docs: ADR_HOSTED_GRADING, AWS_COST_AND_RESOURCE_PLAN, GRADER_THREAT_MODEL, E2E_LEARNER_JOURNEY, PRODUCTION_RELEASE_CHECKLIST, PRODUCTION_READINESS_REPORT.
+
+## Session 2026-10-13 (i) — AWS worker deployed and drilled
+- Owner approved AWS; budget $15/month created; EC2 worker (Sydney) running `grader/worker.py` via systemd; Vercel API now `GRADER_MODE=queue` (deployment `dpl_7gXhcdnb…`, commit b34d710).
+- Real Docker sandbox tests 9/9 and adversarial 13/13 passed on the worker host; staging drills (auth, journey, restart, dead-letter) all passed. Details and caveats: PRODUCTION_READINESS_REPORT.md (update section).
+- Owner decision: Supabase key and dev passwords are NOT being rotated (risk stays open).
+- Created data: synthetic learner3 now has attempts/progress in the dev database.
+- Resource inventory and cleanup: see AWS_COST_AND_RESOURCE_PLAN.md and the readiness report.
