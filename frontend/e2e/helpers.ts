@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
-export const PASSWORD = process.env.DEV_USER_PASSWORD ?? 'NeuroMind-dev-2026!';
+export const PASSWORD = process.env.DEV_USER_PASSWORD ?? '';
+if (!PASSWORD) throw new Error('Set DEV_USER_PASSWORD to the password used when the synthetic test users were created.');
 
 export async function signIn(page: Page, who: 'learner1' | 'learner2' | 'learner3' | 'teacher') {
   await page.goto('/sign-in');

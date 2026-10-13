@@ -38,10 +38,11 @@ insert into public.lecture_exercises (id, lecture_id, title, instructions, start
  on conflict (id) do nothing;
 
 -- Hidden tests: the learner API never reads this table.
+-- Hidden test definitions are NOT stored in Git. Load them privately with scripts/load_private_tests.py.
 insert into public.exercise_tests (id, exercise_id, test_order, test_type, definition, points, is_hidden) values
  ('00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-0000000000e1',1,'stdout','{"description":"Prints a non-empty line","match":"non_empty"}',1,false),
  ('00000000-0000-4000-8000-0000000000f2','00000000-0000-4000-8000-0000000000e1',2,'stdout','{"description":"Defines student_name as a string","check":"variable_is_str","name":"student_name"}',1,false),
- ('00000000-0000-4000-8000-0000000000f3','00000000-0000-4000-8000-0000000000e1',3,'stdout','{"description":"Printed text equals student_name","check":"stdout_equals_variable","name":"student_name"}',1,true)
+ ('00000000-0000-4000-8000-0000000000f3','00000000-0000-4000-8000-0000000000e1',3,'stdout','{"description":"Private test","private":true}',1,true)
  on conflict (id) do nothing;
 
 -- Segments. Practical video links to its exercise explicitly via settings.on_end.
