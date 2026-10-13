@@ -6,12 +6,15 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from app.routers.content import router as content_router
 from app.auth import CurrentUser, current_user, require_roles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 CODES = {400: "INVALID_STATE", 401: "UNAUTHENTICATED", 403: "FORBIDDEN", 404: "NOT_FOUND", 409: "CONFLICT"}
 
 app = FastAPI(title="NeuroMind API", version="0.1.0")
+
+app.include_router(content_router)
 
 origins = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])

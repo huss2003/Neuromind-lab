@@ -1,0 +1,48 @@
+import re
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.auth import CurrentUser, current_user
+from app.repository import ContentRepository, get_repository
+from app.services.manifest import LectureManifest, ManifestError, build_segment
+
+router = APIRouter(prefix="/api/v1")
+UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+
+def _uuid(value: str) -> str:
+    if not UUID_RE.match(value):
+        raise HTTPException(404)  # not-found, not 422: no information about id format
+    return value
+
+
+@router.get("/courses")
+async def list_courses(_: CurrentUser = Depends(current_user), repo: ContentRepository = Depends(get_repository)):
+    return {"courses": await repo.list_published_courses()}
+
+
+@router.get("/courses/{course_id}")
+async def get_course(course_id: str, _: CurrentUser = Depends(current_user), repo: ContentRepository = Depends(get_repository)):
+    course = await repo.get_published_course(_uuid(course_id))
+    if not course:
+        raise HTTPException(404)
+    return {**course, "lectures": await repo.list_published_lectures(course["id"])}
+
+
+@router.get("/lectures/{lecture_id}", response_model=LectureManifest)
+async def get_lecture(lecture_id: str, _: CurrentUser = Depends(current_user), repo: ContentRepository = Depends(get_repository)):
+    lec = await repo.get_published_lecture(_uuid(lecture_id))
+    if not lec:
+        raise HTTPException(404)
+    segments = []
+    try:
+        for seg in await repo.list_segments(lec["id"]):
+            cp = await repo.get_checkpoint_with_question(seg["checkpoint_id"]) if seg.get("checkpoint_id") else None
+            segments.append(build_segment(seg, cp))
+    except ManifestError as e:
+        raise HTTPException(500, detail="content configuration error") from e
+    return LectureManifest(
+        id=lec["id"], lecture_number=lec["lecture_number"], title=lec["title"], summary=lec["summary"],
+        learning_objectives=lec["learning_objectives"], duration_seconds=lec["duration_seconds"],
+        content_version=lec["content_version"], segments=segments,
+    )
