@@ -7,7 +7,10 @@ export const segmentSchema = z.object({
   type: z.enum(['video', 'checkpoint', 'exercise', 'exit_check']),
   title: z.string(),
   required: z.boolean(),
-  media: z.object({ provider: z.string().nullable(), url: z.string().nullable() }).nullable().optional(),
+  media: z
+    .object({ provider: z.string().nullable(), url: z.string().nullable(), captions_url: z.string().nullable().optional(), transcript: z.string().nullable().optional() })
+    .nullable()
+    .optional(),
   checkpoint: z
     .object({
       id: z.string(),
@@ -37,7 +40,15 @@ export const checkpointResultSchema = z.object({
   explanation: z.string(),
   checkpoint_completed: z.boolean(),
 });
+const counter = z.object({ done: z.number(), total: z.number() });
+export const progressSchema = z.object({
+  media: counter,
+  checkpoints: counter,
+  labs: counter,
+  mastery: z.object({ best_exercise_score: z.number().nullable(), pass_mark: z.number().nullable(), lecture_completed: z.boolean() }),
+});
 export const sessionSchema = z.object({
+  progress: progressSchema,
   lecture_id: z.string(),
   current_segment_id: z.string().nullable(),
   playback_position_seconds: z.number(),
@@ -48,11 +59,19 @@ export const sessionSchema = z.object({
   max_reachable_order: z.number(),
   state_version: z.number(),
 });
+export const criterionSchema = z.object({ label: z.string(), hidden: z.boolean(), passed: z.boolean(), remediation: z.string().nullable().optional() });
 export const submissionSchema = z.object({
   submission_id: z.string(),
   submission_number: z.number(),
   status: z.enum(['queued', 'running', 'passed', 'failed', 'timeout', 'error']),
   score: z.number().nullable(),
+  raw_score: z.number().nullable().optional(),
+  max_score: z.number().optional(),
+  pass_threshold: z.number().nullable().optional(),
+  hints_used: z.number().optional(),
+  hint_penalty: z.number().optional(),
+  criteria: z.array(criterionSchema).optional(),
+  remediation: z.array(z.object({ criterion: z.string(), text: z.string() })).optional(),
   passed_tests: z.number(),
   total_tests: z.number(),
   execution_ms: z.number().nullable(),
@@ -69,8 +88,17 @@ export const exerciseSchema = z.object({
   practice_mode: z.string(),
   pass_threshold: z.number(),
   max_attempts: z.number().nullable(),
+  hints_total: z.number(),
+  hint_penalty_percent: z.number(),
+  hints_revealed: z.array(z.string()),
+  best_score: z.number().nullable(),
+  attempts_used: z.number(),
+  draft: z.string().nullable(),
+  unlocked: z.boolean(),
 });
 
+export type Criterion = z.infer<typeof criterionSchema>;
+export type Progress = z.infer<typeof progressSchema>;
 export type Segment = z.infer<typeof segmentSchema>;
 export type Manifest = z.infer<typeof manifestSchema>;
 export type Session = z.infer<typeof sessionSchema>;

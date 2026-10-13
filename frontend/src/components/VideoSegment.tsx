@@ -11,12 +11,14 @@ interface Props {
   onPosition: (seconds: number) => void;
 }
 
-/** HTML5 video: reliable `ended` events. Provides explicit fallbacks when autoplay/media fail. */
+/** HTML5 video: reliable `ended` events. Explicit fallbacks when autoplay or media fail. */
 export function VideoSegment({ segment, startAt, onPlay, onPause, onEnded, onError, onPosition }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const lastSaved = useRef(0);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const url = segment.media?.url;
+  const captions = segment.media?.captions_url;
+  const transcript = segment.media?.transcript;
 
   useEffect(() => {
     const v = ref.current;
@@ -47,15 +49,16 @@ export function VideoSegment({ segment, startAt, onPlay, onPause, onEnded, onErr
             if (Math.abs(t - lastSaved.current) >= 10) { lastSaved.current = t; onPosition(t); }
           }}
         >
-          <track kind="captions" />
+          {captions && <track kind="captions" src={captions} srcLang="en" label="English" default />}
         </video>
       </div>
       {autoplayBlocked && (
-        <p>
-          Your browser blocked automatic playback.{' '}
-          <button className="btn btn-secondary" onClick={() => ref.current?.play().catch(() => onError())}>Play video</button>
-        </p>
+        <div className="notice notice-info" role="status">
+          Your browser blocked automatic playback. <button className="btn btn-secondary" onClick={() => ref.current?.play().catch(() => onError())}>Play video</button>
+        </div>
       )}
+      {!captions && <p className="muted">Captions are not available for this video{transcript ? ' — a transcript is provided below.' : '.'}</p>}
+      {transcript && <details><summary>Transcript</summary><p>{transcript}</p></details>}
       <p className="muted">
         Video not advancing?{' '}
         <button className="btn btn-tertiary" onClick={onEnded}>I've finished this video — continue</button>

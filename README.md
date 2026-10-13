@@ -44,7 +44,7 @@ Never commit `.env`. The service-role key is server-only (API); the browser only
 ```bash
 scripts/dev.sh      # API :8000, grader 127.0.0.1:8010 (needs Docker), frontend http://127.0.0.1:5173
 ```
-Sign in as `learner1@neuromind.test` (password printed by the user script) and open Lecture 9. Teacher: `teacher@neuromind.test` -> Results.
+Sign in as `learner1@neuromind.test` (password printed by the user script; **change or delete these dev accounts before real use**) and open Lecture 9. Teacher: `teacher@neuromind.test` -> Results.
 
 ## Checks
 ```bash
@@ -60,3 +60,16 @@ cd frontend && pnpm e2e                                               # full jou
 2. Environment variables (public values only): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL` (URL of the hosted API).
 3. The API (`backend/`) is a separate FastAPI service (docs plan Render Free); set its `CORS_ALLOWED_ORIGINS` to the Vercel URL and keep `SUPABASE_SERVICE_ROLE_KEY` only there. In Supabase Auth settings add the Vercel URL to allowed redirect URLs.
 4. The Docker grader stays local/private: a hosted preview will show "grader unavailable" for official grading (never a learner failure).
+
+
+## Test suites (what each one proves)
+| Command | Proves | Does not prove |
+|---|---|---|
+| `cd backend && pytest` | API rules against an in-memory repository: gating, scoring, hints/best score, evidence, scope, audit, rate limits | live Supabase queries |
+| `cd grader && pytest` | harness + evaluation (non-isolated subprocess), docker flags (string-level) | real sandbox isolation (needs Docker; auto-skipped) |
+| `cd frontend && pnpm test` | state machine and components | real browser layout |
+| `cd frontend && pnpm test:ui` | the built UI in Chromium with the **network mocked**: layout at 360/390/768/1366/1440, keyboard, journeys, failure states | real backend, Monaco/Pyodide (CDN), Docker |
+| `cd frontend && pnpm e2e` | full stack journeys A-E (needs everything running + seeded users) | load/capacity |
+
+## Database
+Apply `database/migrations/*.sql` in order (0001 schema, 0002 trigger grant, 0003 requirements v1.0), then `database/seed/001_*.sql`, `002_*.sql`. Run `database/tests/rls_two_learners.sql` against a DEV project to re-check isolation.

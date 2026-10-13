@@ -81,3 +81,20 @@ Run `scripts/dev.sh` locally per README, then `pnpm e2e`; report failures back f
 - Deployed to Vercel (projects `neuromind-lab`, `neuromind-lab-api`) from branch commit b533f79 via the Vercel connector; both READY. Not browser-verified (network blocked here).
 - Dev users created in Supabase via SQL (learner1-3, teacher). Public repo + default dev password: see audit F-01.
 - Audit against Requirements v1.0: `docs/09-audit/AUDIT_2026-10-13.md`. No application code changed. Next: rotate credentials, run local E2E, owner decisions F-09/F-10/F-12.
+
+## Session 2026-10-13 (e) — Requirements v1.0 implementation + UI/UX rebuild
+Built (MVP scope §2.1 plus audit gaps; see docs/09-audit/DECISIONS_v1.md):
+- DB migration 0003 applied to dev Supabase + seed 002: evidence/version columns, hints, remediation text, `lab_drafts`, `exercise_hint_reveals`, `teacher_assignments`, `teacher_feedback`, grant hardening (anon has no table access; authenticated is read-only under RLS).
+- API: unlimited attempts + abuse limits (429), best valid score, hints with per-attempt penalty, per-criterion results + remediation, evidence persisted (grader/test-suite/content versions, correlation id, timings), drafts autosave, progress breakdown (media/checkpoints/labs/mastery), course modules, teacher scope via assignments (404 for out of scope), teacher summary/search/pagination/evidence/feedback, audit events (allow-listed metadata), JSON logs, `/ready`, startup config check.
+- Grader: per-criterion results and grader_version.
+- Frontend: full redesign (design tokens, app shell, dashboard, course/module view, my progress, profile, stage stepper, separate progress bars, accessible MCQ, lab with tabs on small screens, hints, reset-with-confirm, autosave + unsaved warning, stdout/stderr panes, result/remediation/attempt history, completion summary, teacher dashboard/learner/submission evidence/feedback, sign-out cache clearing, expired-session redirect, lazy-loaded routes).
+### Tests actually run in this environment
+- backend: ruff clean, pytest 58 passed.  grader: pytest 14 passed, 1 skipped (Docker).
+- frontend: eslint + tsc clean, vitest 29 passed, vite build ok, e2e specs typecheck.
+- `pnpm test:ui` (real Chromium, built app, NETWORK MOCKED): 23 passed — overflow check on 9 screens at 360/390/768/1366/1440, full learner journey, fail/hint/retry, refresh/resume + seek refusal, draft persistence, reset confirm, grader outage, media failure, keyboard, non-colour status, expired session, sign-out isolation, teacher scope UI. These found and fixed two real defects: abs-positioned visually-hidden table text caused page-wide horizontal scroll; one-column grids needed minmax(0,1fr).
+### Still unverified (no network/Docker/CDN here)
+Live Supabase + PostgREST repository, real sign-in of the SQL-created users, hosted API behaviour, Docker sandbox, Pyodide and Monaco CDN loading, real video playback, `pnpm e2e`, load/capacity, accessibility audit with assistive tech.
+### Not built (needs owner approval per requirements §2.2/§10/§21)
+AI Tutor/RAG/agents, authoring/lab-lifecycle UI, multi-file IDE/terminal, appeals, proctoring, password reset, retention/privacy policy, load certification of 200 learners.
+### Open decisions
+Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture 9 content/objectives, free-tier limits.

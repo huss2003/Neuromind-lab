@@ -21,17 +21,21 @@ export function McqCheckpoint({ segment, result, submitting, isExitCheck, onSubm
   if (result) {
     return (
       <section aria-labelledby="mcq-title" className="card">
+        <p className="muted">{isExitCheck ? 'Exit check' : 'Knowledge check'}</p>
         <h2 id="mcq-title">{segment.title}</h2>
         <p className="prompt">{question.prompt}</p>
-        <div role="status" className="result">
+        <div role="status" className={`result ${result.is_correct ? 'result-correct' : 'result-wrong'}`}>
           <Badge kind={result.is_correct ? 'success' : 'warning'}>{result.is_correct ? 'Correct' : 'Not quite'}</Badge>
-          <p>Score: {result.score}</p>
-          <p>{result.explanation}</p>
+          <p style={{ marginTop: 8 }}>Score: {result.score}</p>
+          <p style={{ margin: 0 }}>{result.explanation}</p>
         </div>
         {result.checkpoint_completed ? (
           <button className="btn btn-primary" onClick={onContinue}>{isExitCheck ? 'Finish lecture' : 'Continue lesson'}</button>
         ) : (
-          <button className="btn btn-primary" onClick={() => { setSelected(null); onRetry(); }}>Try again</button>
+          <>
+            <p className="muted">This check needs a correct answer before you can finish. Review the explanation, then try again.</p>
+            <button className="btn btn-primary" onClick={() => { setSelected(null); onRetry(); }}>Try again</button>
+          </>
         )}
       </section>
     );
@@ -41,8 +45,9 @@ export function McqCheckpoint({ segment, result, submitting, isExitCheck, onSubm
     <form
       className="card"
       aria-labelledby="mcq-title"
-      onSubmit={(e) => { e.preventDefault(); if (selected) onSubmit(selected); }}
+      onSubmit={(e) => { e.preventDefault(); if (selected && !submitting) onSubmit(selected); }}
     >
+      <p className="muted">{isExitCheck ? 'Exit check' : 'Knowledge check — the video is paused'}</p>
       <h2 id="mcq-title">{segment.title}</h2>
       <fieldset disabled={submitting}>
         <legend className="prompt">{question.prompt}</legend>

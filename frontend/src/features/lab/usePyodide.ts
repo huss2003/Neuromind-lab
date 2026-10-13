@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type RuntimeStatus = 'idle' | 'loading' | 'ready' | 'running' | 'error';
-export interface PracticeResult { stdout: string; error: string | null; truncated: boolean; timedOut: boolean }
+export interface PracticeResult { stdout: string; stderr: string; error: string | null; errorLine: number | null; truncated: boolean; timedOut: boolean }
 
 const LOAD_TIMEOUT_MS = 60_000;
 export const RUN_TIMEOUT_MS = 5_000;
@@ -49,12 +49,12 @@ export function usePyodide() {
     try {
       const r = await call({ type: 'run', code }, RUN_TIMEOUT_MS);
       setStatus('ready');
-      if (r.type === 'fatal') return { stdout: '', error: 'The Python runtime failed. Please retry.', truncated: false, timedOut: false };
-      return { stdout: String(r.stdout ?? ''), error: (r.error as string | null) ?? null, truncated: Boolean(r.truncated), timedOut: false };
+      if (r.type === 'fatal') return { stdout: '', stderr: '', error: 'The Python runtime failed. Please retry.', errorLine: null, truncated: false, timedOut: false };
+      return { stdout: String(r.stdout ?? ''), stderr: String(r.stderr ?? ''), error: (r.error as string | null) ?? null, errorLine: (r.line as number | null) ?? null, truncated: Boolean(r.truncated), timedOut: false };
     } catch {
       setStatus('idle'); // worker was terminated; reload lazily
       void init();
-      return { stdout: '', error: 'Your code ran for more than 5 seconds and was stopped. Check for a loop that never ends.', truncated: false, timedOut: true };
+      return { stdout: '', stderr: '', error: 'Your code ran for more than 5 seconds and was stopped. Check for a loop that never ends.', errorLine: null, truncated: false, timedOut: true };
     }
   }, [call, init]);
 
