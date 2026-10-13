@@ -254,3 +254,11 @@ def test_unauthenticated_everything(env):
                          ("post", f"/api/v1/checkpoints/{CP1}/attempts"), ("post", f"/api/v1/exercises/{EX}/submissions"),
                          ("post", f"/api/v1/lectures/{LID}/complete"), ("get", f"/api/v1/exercises/{EX}")]:
         assert getattr(c, method)(path).status_code == 401, path
+
+
+def test_my_progress_lists_only_own_sessions(env):
+    c, *_ = env
+    session(c)
+    mine = c.get("/api/v1/me/progress", headers=H()).json()["sessions"]
+    assert [s["status"] for s in mine] == ["in_progress"]
+    assert c.get("/api/v1/me/progress", headers=H("learner2")).json()["sessions"] == []

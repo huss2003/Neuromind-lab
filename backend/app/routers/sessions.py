@@ -99,3 +99,11 @@ async def complete_lecture(lecture_id: str, _: CompleteBody | None = None, user:
             "status": "completed", "completed_at": datetime.now(UTC).isoformat()}) or session
         await repo.recompute_progress(user.id, ctx.lecture["course_id"])
     return session_view(ctx, session) | {"completed_at": session.get("completed_at")}
+
+
+@router.get("/me/progress")
+async def my_progress(user: CurrentUser = Depends(current_user), repo: Repository = Depends(get_repository)):
+    """Lecture status list for the dashboard (additive endpoint, see API_SPEC)."""
+    sessions = await repo.list_learner_sessions(user.id)
+    return {"sessions": [{"lecture_id": s["lecture_id"], "status": s["status"],
+                          "current_segment_id": s["current_segment_id"], "completed_at": s["completed_at"]} for s in sessions]}
