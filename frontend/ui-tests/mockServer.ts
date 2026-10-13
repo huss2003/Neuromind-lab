@@ -24,7 +24,7 @@ export function newState(opts: MockOpts = {}): MockState {
 }
 
 const segments = [
-  { id: SEG(0), order: 0, type: 'intro', title: 'Introduction: what you will do today', required: true, body: 'PLACEHOLDER introduction. You will set up Python and write your first program.', next_action: { type: 'next_segment' } },
+  { id: SEG(0), order: 0, type: 'intro', title: 'Introduction: what you will do today', required: true, body: 'Today you will set up Python and write your first program.', next_action: { type: 'next_segment' } },
   { id: SEG(1), order: 1, type: 'video', title: 'Introduction and first concept', required: true, media: { provider: 'external', url: 'http://media.mock.test/1.mp4', captions_url: null, transcript: 'Transcript of the first video.' }, next_action: { type: 'next_segment' } },
   { id: SEG(2), order: 2, type: 'checkpoint', title: 'Knowledge check 1', required: true, checkpoint: { id: IDS.cp1, type: 'mcq', required: true, question: { id: IDS.q1, prompt: 'Which statement prints text in Python?', options: opts } }, next_action: { type: 'next_segment' } },
   { id: SEG(3), order: 3, type: 'video', title: 'Second concept', required: true, media: { provider: 'external', url: 'http://media.mock.test/2.mp4' }, next_action: { type: 'next_segment' } },
@@ -43,10 +43,10 @@ const dashboardView = (s: MockState) => {
   const last = s.submissions[s.submissions.length - 1];
   return {
     enrolled: true,
-    course: { id: IDS.course, title: 'NeuroMind AI Course (sample)', description: 'Placeholder course shell for the Lecture 9 prototype.', completed_lectures: s.status === 'completed' ? 1 : 0, total_lectures: 1 },
+    course: { id: IDS.course, title: 'NeuroMind AI Foundations', description: 'A practical path from your first Python program to building AI systems.', completed_lectures: s.status === 'completed' ? 1 : 0, total_lectures: 1 },
     continue: { lecture_id: IDS.lecture, lecture_number: 9, title: 'Python setup, notebooks and the first program', state: s.started ? 'in_progress' : 'available' },
-    recent_attempts: s.submissions.slice(-5).reverse().map((x) => ({ submission_id: x.id, exercise: 'Print a variable (placeholder)', lecture_id: IDS.lecture, number: x.number, status: x.status, score: x.score, best_score: bestScore(s), created_at: new Date(x.at).toISOString() })),
-    remediation_queue: failed.length && !passedEx(s) && last ? [{ exercise_id: IDS.ex, exercise: 'Print a variable (placeholder)', lecture_id: IDS.lecture, lecture: 'Lecture 9: Python setup, notebooks and the first program', last_status: last.status, objectives: last.criteria.filter((c: any) => !c.passed && c.objective).map((c: any) => c.objective), steps: last.criteria.filter((c: any) => !c.passed && c.remediation).map((c: any) => ({ criterion: c.label, text: c.remediation, objective: c.objective, review_title: c.review_title })) }] : [],
+    recent_attempts: s.submissions.slice(-5).reverse().map((x) => ({ submission_id: x.id, exercise: 'Print your name', lecture_id: IDS.lecture, number: x.number, status: x.status, score: x.score, best_score: bestScore(s), created_at: new Date(x.at).toISOString() })),
+    remediation_queue: failed.length && !passedEx(s) && last ? [{ exercise_id: IDS.ex, exercise: 'Print your name', lecture_id: IDS.lecture, lecture: 'Lecture 9: Python setup, notebooks and the first program', last_status: last.status, objectives: last.criteria.filter((c: any) => !c.passed && c.objective).map((c: any) => c.objective), steps: last.criteria.filter((c: any) => !c.passed && c.remediation).map((c: any) => ({ criterion: c.label, text: c.remediation, objective: c.objective, review_title: c.review_title })) }] : [],
   };
 };
 const bestScore = (s: MockState) => { const v = s.submissions.filter((x) => ['passed', 'failed'].includes(x.status) && x.score != null).map((x) => x.score); return v.length ? Math.max(...v) : null; };
@@ -70,7 +70,7 @@ function sessionView(s: MockState) {
 
 const HINTS = ['Create a variable called student_name.', 'Use print(student_name).', 'Print the variable, not a new string.'];
 function exerciseView(s: MockState) {
-  return { id: IDS.ex, title: 'Print a variable (placeholder)', instructions: 'Create a variable called student_name and print it.', language: 'python', starter_code: 'student_name = ""\nprint(student_name)\n', practice_mode: 'both', pass_threshold: 80, max_attempts: null, hints_total: 3, hint_penalty_percent: 10, hints_revealed: HINTS.slice(0, s.hintsShown), best_score: bestScore(s), attempts_used: s.submissions.length, draft: s.drafts[IDS.ex] ?? null, draft_stale: false, content_version: 1,
+  return { id: IDS.ex, title: 'Print your name', instructions: 'Create a variable called student_name and print it.', language: 'python', starter_code: 'student_name = ""\nprint(student_name)\n', practice_mode: 'both', pass_threshold: 80, max_attempts: null, hints_total: 3, hint_penalty_percent: 10, hints_revealed: HINTS.slice(0, s.hintsShown), best_score: bestScore(s), attempts_used: s.submissions.length, draft: s.drafts[IDS.ex] ?? null, draft_stale: false, content_version: 1,
     objective: 'Create a text variable and print it.', constraints: 'Use a variable named student_name and print() once.', success_criteria: ['Your program prints a line of text', 'What you print matches student_name'],
     visible_examples: [{ description: 'Example', code: 'student_name = "Aarav"\nprint(student_name)', expected_output: 'Aarav' }], runtime: 'Python 3 — practice runs in your browser; official grading runs on the server',
     hints_policy: 'Hints are optional. Each one lowers that attempt\'s score by 10 points; it never lowers a score you already earned.', unlocked: reach(s) >= 6 };
@@ -138,10 +138,10 @@ export async function installMocks(page: Page, state: MockState) {
 
     if (path === '/me') return ok(r, { id: IDS.learner, role, email: state.opts.email ?? 'learner1@neuromind.test', display_name: state.opts.name ?? 'Asha Rao' });
     if (path === '/me/dashboard') return ok(r, dashboardView(state));
-    if (path === '/courses') return ok(r, { courses: state.opts.unenrolled ? [] : [{ id: IDS.course, slug: 'c', title: 'NeuroMind AI Course (sample)', description: 'Placeholder course shell for the Lecture 9 prototype.' }] });
+    if (path === '/courses') return ok(r, { courses: state.opts.unenrolled ? [] : [{ id: IDS.course, slug: 'c', title: 'NeuroMind AI Foundations', description: 'A practical path from your first Python program to building AI systems.' }] });
     if (path === `/courses/${IDS.course}`) {
-      const lec = { state: state.opts.lockedLecture ? 'locked' : state.status === 'completed' ? 'completed' : state.submissions.length && !passedEx(state) ? 'needs_attention' : state.started ? 'in_progress' : 'available', id: IDS.lecture, module_id: IDS.module, lecture_number: 9, title: 'Python setup, notebooks and the first program', summary: 'PLACEHOLDER summary.', duration_seconds: 3600 };
-      return ok(r, { id: IDS.course, slug: 'c', title: 'NeuroMind AI Course (sample)', description: 'Placeholder course shell for the Lecture 9 prototype.', lectures: [lec], modules: [{ id: IDS.module, module_number: 2, title: 'Python for AI (sample)', description: '', lectures: [lec] }] });
+      const lec = { state: state.opts.lockedLecture ? 'locked' : state.status === 'completed' ? 'completed' : state.submissions.length && !passedEx(state) ? 'needs_attention' : state.started ? 'in_progress' : 'available', id: IDS.lecture, module_id: IDS.module, lecture_number: 9, title: 'Python setup, notebooks and the first program', summary: 'Set up Python, run a notebook cell and write your first program.', duration_seconds: 3600 };
+      return ok(r, { id: IDS.course, slug: 'c', title: 'NeuroMind AI Foundations', description: 'A practical path from your first Python program to building AI systems.', lectures: [lec], modules: [{ id: IDS.module, module_number: 2, title: 'Python for AI', description: '', lectures: [lec] }] });
     }
     if (path === '/me/progress') return ok(r, { sessions: state.started ? [{ lecture_id: IDS.lecture, status: state.status, current_segment_id: state.current, completed_at: state.status === 'completed' ? new Date().toISOString() : null }] : [] });
     if (path === '/me/feedback') return ok(r, { feedback: state.feedback.filter((f) => f.published).map((f) => ({ ...f, created_at: new Date().toISOString() })) });
@@ -197,20 +197,20 @@ export async function installMocks(page: Page, state: MockState) {
       const enriched = rows.map((l, i) => ({ ...l, lectures_completed: i === 0 ? 0 : i % 3 === 0 ? 1 : 0, lectures_in_progress: i === 0 ? 1 : 0, needs_support: i === 0, grader_problems: i === 0 ? 1 : 0, last_active: new Date().toISOString() })).filter((l) => !ns || l.needs_support);
       return ok(r, { learners: enriched.slice(offset, offset + limit), total: enriched.length, limit, offset });
     }
-    if (path === '/teacher/analytics/exercises') return ok(r, { exercises: [{ exercise_id: IDS.ex, exercise: 'Print a variable (placeholder)', attempts: 7, learners: 4, completion_rate: 50, average_score: 62.5, system_errors: 1, score_distribution: { below_50: 2, '50_to_79': 3, '80_and_above': 2 }, common_failures: [{ criterion: 'Hidden check 1', count: 4 }, { criterion: 'student_name holds text', count: 2 }] }] });
+    if (path === '/teacher/analytics/exercises') return ok(r, { exercises: [{ exercise_id: IDS.ex, exercise: 'Print your name', attempts: 7, learners: 4, completion_rate: 50, average_score: 62.5, system_errors: 1, score_distribution: { below_50: 2, '50_to_79': 3, '80_and_above': 2 }, common_failures: [{ criterion: 'Hidden check 1', count: 4 }, { criterion: 'student_name holds text', count: 2 }] }] });
     if (path === '/teacher/content-status') return ok(r, { lectures: [{ id: IDS.lecture, lecture_number: 9, title: 'Python setup, notebooks and the first program', status: 'published', version: 1 }] });
     if (path === `/teacher/learners/${IDS.learner}/results`) {
       return ok(r, {
         learner: learners[0], sessions: [{ lecture_id: IDS.lecture, lecture: 'Lecture 9: Python setup, notebooks and the first program', status: 'in_progress', completed_at: null, last_seen_at: new Date().toISOString() }],
         checkpoint_attempts: [{ checkpoint_id: IDS.cp1, checkpoint: 'Knowledge check 1', is_correct: true, score: 1, submitted_at: new Date().toISOString() }],
-        submissions: [{ submission_id: 's-1', exercise_id: IDS.ex, exercise: 'Print a variable (placeholder)', number: 1, status: 'failed', score: 50, raw_score: 50, hints_used: 0, passed_tests: 1, total_tests: 2, infrastructure_failure: false, created_at: new Date().toISOString() }, { submission_id: 's-2', exercise_id: IDS.ex, exercise: 'Print a variable (placeholder)', number: 2, status: 'error', score: null, raw_score: null, hints_used: 0, passed_tests: 0, total_tests: 0, infrastructure_failure: true, created_at: new Date().toISOString() }],
-        best_scores: [{ exercise_id: IDS.ex, exercise: 'Print a variable (placeholder)', best_score: 50 }],
+        submissions: [{ submission_id: 's-1', exercise_id: IDS.ex, exercise: 'Print your name', number: 1, status: 'failed', score: 50, raw_score: 50, hints_used: 0, passed_tests: 1, total_tests: 2, infrastructure_failure: false, created_at: new Date().toISOString() }, { submission_id: 's-2', exercise_id: IDS.ex, exercise: 'Print your name', number: 2, status: 'error', score: null, raw_score: null, hints_used: 0, passed_tests: 0, total_tests: 0, infrastructure_failure: true, created_at: new Date().toISOString() }],
+        best_scores: [{ exercise_id: IDS.ex, exercise: 'Print your name', best_score: 50 }],
         feedback: state.feedback.map((f) => ({ ...f, created_at: new Date().toISOString(), submission_id: null })),
       });
     }
     if (path === `/teacher/learners/${IDS.learner}/feedback` && m === 'POST') { const b = body(); state.feedback.push({ id: `f-${state.feedback.length}`, body: b.body, published: b.publish }); return ok(r, { id: 'f', published: b.publish }, 201); }
     if (path === '/teacher/submissions/s-1') {
-      return ok(r, { submission_id: 's-1', exercise: 'Print a variable (placeholder)', number: 1, status: 'failed', score: 50, raw_score: 50, max_score: 100, pass_threshold: 80, hints_used: 0, hint_penalty: 0, source_code: 'student_name = "Aarav"\nprint("hello")\n', criteria: [{ label: 'student_name holds text', hidden: false, passed: true }, { label: 'Hidden check 1', hidden: true, passed: false }], feedback_messages: [], execution_ms: 12, created_at: new Date().toISOString(), infrastructure_failure: false, evidence: { grader_version: '1.1.0', test_suite_version: 1, content_version: 1, correlation_id: 'req-abc123', started_at: new Date().toISOString(), finished_at: new Date().toISOString() } });
+      return ok(r, { submission_id: 's-1', exercise: 'Print your name', number: 1, status: 'failed', score: 50, raw_score: 50, max_score: 100, pass_threshold: 80, hints_used: 0, hint_penalty: 0, source_code: 'student_name = "Aarav"\nprint("hello")\n', criteria: [{ label: 'student_name holds text', hidden: false, passed: true }, { label: 'Hidden check 1', hidden: true, passed: false }], feedback_messages: [], execution_ms: 12, created_at: new Date().toISOString(), infrastructure_failure: false, evidence: { grader_version: '1.1.0', test_suite_version: 1, content_version: 1, correlation_id: 'req-abc123', started_at: new Date().toISOString(), finished_at: new Date().toISOString() } });
     }
     return err(r, 404, 'NOT_FOUND', 'Request could not be processed');
   });

@@ -267,10 +267,15 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
             ) : (
               <div className="editor-frame" id="code-editor">
                 <Editor
-                  height="340px" language="python" theme="vs-dark" value={code}
+                  height="340px" language="python" theme="neuromind-ink" value={code}
+                  beforeMount={(monaco) => monaco.editor.defineTheme('neuromind-ink', {
+                    base: 'vs-dark', inherit: true,
+                    rules: [{ token: 'comment', foreground: '7E89B0', fontStyle: 'italic' }, { token: 'keyword', foreground: 'FFB020' }, { token: 'string', foreground: '5EEAD4' }, { token: 'number', foreground: 'A5B4FF' }],
+                    colors: { 'editor.background': '#0B1020', 'editor.lineHighlightBackground': '#141C36', 'editorLineNumber.foreground': '#4A557D', 'editorLineNumber.activeForeground': '#C3CBEA', 'editor.selectionBackground': '#2F54FF55', 'editorCursor.foreground': '#FFB020' },
+                  })}
                   onChange={(v) => setCode(v ?? '')}
                   loading={<Loading label="Loading editor…" />}
-                  options={{ minimap: { enabled: false }, fontSize: 15, tabSize: 4, scrollBeyondLastLine: false, lineNumbers: 'on', ariaLabel: 'Python code editor', accessibilitySupport: 'auto' }}
+                  options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "'JetBrains Mono Variable', ui-monospace, Menlo, Consolas, monospace", padding: { top: 14, bottom: 14 }, renderLineHighlight: 'line', smoothScrolling: true, tabSize: 4, scrollBeyondLastLine: false, lineNumbers: 'on', ariaLabel: 'Python code editor', accessibilitySupport: 'auto' }}
                 />
               </div>
             )}

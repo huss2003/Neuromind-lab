@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { BrandMark, BrandName } from '../components/Brand';
+import { NeuralField } from '../components/NeuralField';
 import { supabase } from '../services/supabase';
 
 /** S02 — always shows the same confirmation so the page never reveals whether an account exists. */
@@ -23,8 +25,17 @@ export function Recover() {
 
   return (
     <div className="auth-wrap">
-      <main className="auth-card">
-        <div className="brand"><span className="brand-mark" aria-hidden="true">N</span><span>NeuroMind <strong>Lab</strong></span></div>
+      <aside className="auth-aside">
+        <NeuralField />
+        <div className="auth-aside-copy">
+          <div className="brand"><BrandMark size={40} /><BrandName /></div>
+          <p className="auth-lede">Locked out? It happens.</p>
+          <p className="auth-sub">Tell us your email and we will send you a way back in. Your progress is waiting.</p>
+        </div>
+      </aside>
+      <main className="auth-main">
+      <div className="auth-card">
+        <div className="brand auth-brand"><BrandMark size={32} /><BrandName /></div>
         <h1>Recover your account</h1>
         {sent ? (
           <>
@@ -48,6 +59,7 @@ export function Recover() {
             <p><Link to="/sign-in">Back to sign in</Link></p>
           </form>
         )}
+      </div>
       </main>
     </div>
   );

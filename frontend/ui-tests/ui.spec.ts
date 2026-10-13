@@ -27,7 +27,7 @@ async function startLecture(page: Page) {
   await expect(orientation.or(resumed).first()).toBeVisible();
   if (await orientation.isVisible()) {
     await page.getByRole('button', { name: 'Start lecture' }).click();
-    await expect(page.getByText('PLACEHOLDER introduction.')).toBeVisible();
+    await expect(page.getByText('Today you will set up Python and write your first program.')).toBeVisible();
     await page.getByRole('button', { name: 'Continue' }).click();
   }
 }
@@ -44,7 +44,7 @@ async function toLab(page: Page) {
   await finishVideo(page);
   await answer(page, 'Option A'); await page.getByRole('button', { name: 'Continue lesson' }).click();
   await finishVideo(page); // practical video -> exercise opens automatically
-  await expect(page.getByRole('heading', { name: /Print a variable/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Print your name/ })).toBeVisible();
 }
 async function typeCode(page: Page, code: string) {
   await page.getByRole('button', { name: 'Use simple text editor' }).click();
@@ -60,7 +60,7 @@ test.describe('responsive layout (360/390/768/1366/1440): no horizontal overflow
       await setup(page);
       const screens: [string, string, () => Promise<void>][] = [
         ['dashboard', '/', async () => { await expect(page.getByRole('heading', { level: 1 })).toContainText('Lecture 9'); }],
-        ['course', `/courses/${IDS.course}`, async () => { await expect(page.getByText('Module 2: Python for AI (sample)')).toBeVisible(); }],
+        ['course', `/courses/${IDS.course}`, async () => { await expect(page.getByText('Module 2: Python for AI')).toBeVisible(); }],
         ['progress', '/progress', async () => { await expect(page.getByRole('heading', { name: 'My progress' })).toBeVisible(); }],
         ['orientation', `/lectures/${IDS.lecture}`, async () => { await expect(page.getByRole('heading', { name: 'Before you start' })).toBeVisible(); }],
       ];
@@ -115,7 +115,7 @@ test('A: learner completes the whole lecture through the UI', async ({ page }) =
   await finishVideo(page);
   await answer(page, 'Option A'); await page.getByRole('button', { name: 'Continue lesson' }).click();
   await finishVideo(page);
-  await expect(page.getByRole('heading', { name: /Print a variable/ })).toBeVisible(); // exercise opened automatically
+  await expect(page.getByRole('heading', { name: /Print your name/ })).toBeVisible(); // exercise opened automatically
   await typeCode(page, GOOD);
   await expect(page.getByText('All changes saved')).toBeVisible({ timeout: 8000 });
   await page.getByRole('button', { name: 'Submit for grading' }).click();

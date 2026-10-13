@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Badge } from '../components/Badge';
+import { NeuralField } from '../components/NeuralField';
 import { ProgressRing } from '../components/Progress';
 import { EmptyState, ErrorMessage, Loading } from '../components/States';
 import { STATUS_LABEL } from '../components/SubmissionStatus';
@@ -37,8 +38,9 @@ export function Home() {
   return (
     <main className="page">
       <section className="hero" aria-labelledby="hero-title">
-        <div>
-          <p style={{ opacity: .85 }}>Welcome back{name ? `, ${name}` : ''}</p>
+        <NeuralField className="hero-art" />
+        <div className="hero-copy">
+          <p className="hero-hello">Welcome back{name ? `, ${name}` : ''}</p>
           <h1 id="hero-title">{next ? `${resuming ? 'Continue' : 'Start'}: Lecture ${next.lecture_number}` : 'You are all caught up'}</h1>
           {next && <p>{next.title}</p>}
         </div>
@@ -47,7 +49,7 @@ export function Home() {
           : <Link className="btn btn-primary" to={`/courses/${d.course.id}`}>Review course</Link>}
       </section>
 
-      <div className="grid grid-2">
+      <div className="grid-dash">
         <section className="card" aria-labelledby="course-title">
           <h2 id="course-title">{d.course.title}</h2>
           <p className="muted">{d.course.description}</p>
@@ -71,7 +73,7 @@ export function Home() {
           )}
         </section>
 
-        <section className="card" aria-labelledby="att-title">
+        <section className="card span-2" aria-labelledby="att-title">
           <h2 id="att-title">Recent attempts</h2>
           {d.recent_attempts.length === 0 ? <p className="muted">You haven't submitted any code yet. Official attempts you make in a lab will be listed here.</p> : (
             <div className="table-wrap">
@@ -94,7 +96,7 @@ export function Home() {
           )}
         </section>
 
-        <section className="card" aria-labelledby="fb-title">
+        <section className="card span-2" aria-labelledby="fb-title">
           <h2 id="fb-title">Notes from your teacher</h2>
           {feedback.isPending && <Loading />}
           {feedback.isError && <p className="muted">Notes couldn't be loaded right now.</p>}

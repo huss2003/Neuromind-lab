@@ -14,7 +14,7 @@ test('A: successful lecture end to end', async ({ page }) => {
   await answer(page, 'A block of code or text you can run on its own');
   await page.getByRole('button', { name: 'Continue lesson' }).click();
   await finishVideo(page); // practical video -> exercise opens automatically
-  await expect(page.getByRole('heading', { name: /Print a variable/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Print your name/ })).toBeVisible();
   await setCode(page, GOOD);
   await page.getByRole('button', { name: 'Submit for grading' }).click();
   await expect(page.getByText('Passed', { exact: false }).first()).toBeVisible({ timeout: 60_000 });

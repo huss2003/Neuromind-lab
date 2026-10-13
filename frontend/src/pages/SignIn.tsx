@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { BrandMark, BrandName } from '../components/Brand';
+import { NeuralField } from '../components/NeuralField';
 import { supabase } from '../services/supabase';
 
 export function SignIn() {
@@ -29,25 +31,35 @@ export function SignIn() {
 
   return (
     <div className="auth-wrap">
-      <main className="auth-card">
-        <div className="brand"><span className="brand-mark" aria-hidden="true">N</span><span>NeuroMind <strong>Lab</strong></span></div>
-        <h1>Sign in</h1>
-        <p className="muted">Practise Python, answer checkpoints and see your progress.</p>
-        {expired && <div role="status" className="notice notice-warning">Your session ended. Please sign in again — your saved progress is safe.</div>}
-        <form onSubmit={onSubmit} noValidate={false} aria-describedby={error ? 'signin-error' : undefined}>
-          <label htmlFor="email">Email</label>
-          <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={error ? true : undefined} />
-          <label htmlFor="password">Password</label>
-          <div className="pw-row">
-            <input id="password" type={show ? 'text' : 'password'} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={error ? true : undefined} />
-            <button type="button" className="btn btn-tertiary pw-toggle" onClick={() => setShow((v) => !v)} aria-pressed={show}>{show ? 'Hide' : 'Show'}</button>
-          </div>
-          {error && <p id="signin-error" role="alert" className="field-error">{error}</p>}
-          <div className="actions">
-            <button type="submit" className="btn btn-primary" disabled={busy} style={{ width: '100%' }}>{busy ? 'Signing in…' : 'Sign in'}</button>
-          </div>
-          <p><Link to="/recover">Forgot your password?</Link></p>
-        </form>
+      <aside className="auth-aside">
+        <NeuralField />
+        <div className="auth-aside-copy">
+          <div className="brand"><BrandMark size={40} /><BrandName /></div>
+          <p className="auth-lede">Learn Python by writing it.</p>
+          <p className="auth-sub">Short lessons, real code, and grading you can trust. Your work is saved as you go, and help is one click away.</p>
+        </div>
+      </aside>
+      <main className="auth-main">
+        <div className="auth-card">
+          <div className="brand auth-brand"><BrandMark size={32} /><BrandName /></div>
+          <h1>Sign in</h1>
+          <p className="muted">Pick up where you left off.</p>
+          {expired && <div role="status" className="notice notice-warning">Your session ended. Please sign in again — your saved progress is safe.</div>}
+          <form onSubmit={onSubmit} noValidate={false} aria-describedby={error ? 'signin-error' : undefined}>
+            <label htmlFor="email">Email</label>
+            <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={error ? true : undefined} />
+            <label htmlFor="password">Password</label>
+            <div className="pw-row">
+              <input id="password" type={show ? 'text' : 'password'} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={error ? true : undefined} />
+              <button type="button" className="btn btn-quiet pw-toggle" onClick={() => setShow((v) => !v)} aria-pressed={show}>{show ? 'Hide' : 'Show'}</button>
+            </div>
+            {error && <p id="signin-error" role="alert" className="field-error">{error}</p>}
+            <div className="actions">
+              <button type="submit" className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+            </div>
+            <p><Link to="/recover">Forgot your password?</Link></p>
+          </form>
+        </div>
       </main>
     </div>
   );

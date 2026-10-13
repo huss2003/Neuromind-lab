@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText';
 import { Suspense, lazy, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Badge, type BadgeKind } from '../../components/Badge';
@@ -155,9 +156,9 @@ export function LecturePage() {
 
           {segment && isTextSegment(segment) && inPlay && (
             <section className="card" aria-labelledby="text-title">
-              <p className="muted">{segment.type === 'intro' ? 'Introduction' : segment.type === 'reflection' ? 'Reflection' : 'Reading'}</p>
+              <p className="kind">{segment.type === 'intro' ? 'Introduction' : segment.type === 'reflection' ? 'Reflection' : segment.type === 'example' ? 'Worked example' : 'Reading'}</p>
               <h2 id="text-title">{segment.title}</h2>
-              <p className="reading">{segment.body}</p>
+              <RichText text={segment.body ?? ''} />
               <button className="btn btn-primary" onClick={() => dispatch({ type: 'SECTION_DONE', segmentId: segment.id })}>Continue</button>
             </section>
           )}
