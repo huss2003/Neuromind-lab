@@ -1,0 +1,19 @@
+# Glossary
+- API: interface between frontend and backend.
+- Attempt: accepted MCQ answer or code submission.
+- Authoritative result: score produced by trusted backend/grader.
+- Checkpoint: required interruption such as an MCQ.
+- Content version: immutable/identifiable version of published content.
+- Exercise: practical task, Python-only in MVP.
+- Grader: trusted service that runs official tests.
+- Hidden test: test definition/expected result not exposed to learner.
+- Idempotency key: retry key preventing duplicate accepted operation.
+- Lecture segment: ordered media or interaction unit.
+- MVP: minimum useful product validating core workflow.
+- Pyodide: Python runtime for WebAssembly/browser.
+- RLS: PostgreSQL Row Level Security.
+- Remediation: targeted help after failure.
+- Resume state: saved segment/position/checkpoint state.
+- Service-role key: privileged Supabase key; server only.
+- Practice run: browser result, not official grade.
+- Worker timeout: maximum execution time for grading job.
