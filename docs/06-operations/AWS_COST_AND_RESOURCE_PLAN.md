@@ -36,3 +36,18 @@ Avoid: NAT Gateway (about $32/month), load balancers (about $16/month+), Fargate
 ## Cleanup and after the credits end
 * Free plan: resources stop being usable when credits or the plan end; export video from S3 first.
 * Inventory (empty today): tag every resource `project=neuromind`. Cleanup = delete the bucket contents and bucket, then the CloudFront distribution (disable first).
+
+## Update 2026-10-13 (after signing in with the AWS CLI): the earlier "denied" result was a region effect
+The account is on the **new AWS experience**: every resource must be created in the project's assigned Region, **ap-southeast-2 (Sydney)**; other Regions are blocked by managed SCPs. Re-tested in `ap-southeast-2` with the CLI profile `neuromind`: EC2, VPC, SQS, Lambda, ECS, ECR, CloudWatch Logs, Secrets Manager, SSM and S3 all respond (no deny, no resources yet). A default VPC exists (`vpc-045d1f0c02d2ff6b8`).
+
+Measured price (AWS Pricing API): `t4g.micro` in Sydney is **$0.0106/hour** (1 GiB, 2 vCPU).
+
+| Item | $/month |
+|---|---|
+| t4g.micro, 730 h | 7.74 |
+| gp3 root volume, 12 GB (about $0.10/GB, estimate) | ~1.2 |
+| Public IPv4 ($0.005/h) | 3.65 |
+| **Total for the grading worker** | **~12.6** |
+That leaves about $2.4 of the $15 ceiling for data transfer and S3; video through CloudFront is not affordable inside this budget until usage is measured. The earlier ap-south-1 numbers in this file are superseded.
+
+Spend control: the new experience offers a **spend limit in AWS Settings** (paid plan; it pauses the project when exceeded) in addition to Budgets. On the Free plan, charges stop when the $100 credit ends (2027-04-13).
