@@ -1,6 +1,6 @@
 """Teacher/admin evidence views (§9). Teachers see only currently assigned learners; admins see all.
 There is intentionally NO endpoint that edits an official score; feedback is a separate record."""
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
@@ -39,13 +39,87 @@ async def summary(user: CurrentUser = Depends(guard), repo: Repository = Depends
             "submissions_passed": passed, "submissions_needing_retry": failed, "infrastructure_failures": infra}
 
 
+SUPPORT_AFTER_FAILURES = 3  # evaluated failures on one exercise without a pass => "needs support"
+
+
+async def _summary(repo: Repository, learner_id: str) -> dict[str, Any]:
+    sessions = await repo.list_learner_sessions(learner_id)
+    subs = await repo.list_learner_submissions(learner_id)
+    by_ex: dict[str, list[dict]] = {}
+    for s in subs:
+        by_ex.setdefault(s["exercise_id"], []).append(s)
+    stuck = [e for e, rows in by_ex.items() if not any(r["status"] == "passed" for r in rows)
+             and sum(r["status"] in ("failed", "runtime_error") for r in rows) >= SUPPORT_AFTER_FAILURES]
+    last = max((str(s["last_seen_at"]) for s in sessions), default=None)
+    return {"lectures_completed": sum(s["status"] == "completed" for s in sessions),
+            "lectures_in_progress": sum(s["status"] == "in_progress" for s in sessions),
+            "needs_support": bool(stuck), "grader_problems": sum(x["status"] in ("error", "expired") for x in subs),
+            "last_active": last}
+
+
 @router.get("/learners")
 async def learners(q: str | None = Query(default=None, max_length=50), limit: int = Query(default=25, ge=1, le=100),
-                   offset: int = Query(default=0, ge=0), user: CurrentUser = Depends(guard),
-                   repo: Repository = Depends(get_repository)):
-    rows, total = await repo.list_learners_page(await _scope(user, repo), q, limit, offset)
-    return {"learners": [{"id": r["id"], "display_name": r["display_name"]} for r in rows],
-            "total": total, "limit": limit, "offset": offset}
+                   offset: int = Query(default=0, ge=0), needs_support: bool = False,
+                   progress: Literal["any", "not_started", "in_progress", "completed"] = "any",
+                   user: CurrentUser = Depends(guard), repo: Repository = Depends(get_repository)):
+    scope = await _scope(user, repo)
+    if needs_support or progress != "any":  # derived filters: computed over the whole scope (bounded), then paged
+        rows, _ = await repo.list_learners_page(scope, q, 100, 0)
+        enriched = [{"id": r["id"], "display_name": r["display_name"], **await _summary(repo, r["id"])} for r in rows]
+        if needs_support:
+            enriched = [e for e in enriched if e["needs_support"]]
+        if progress == "completed":
+            enriched = [e for e in enriched if e["lectures_completed"] > 0]
+        elif progress == "in_progress":
+            enriched = [e for e in enriched if e["lectures_in_progress"] > 0]
+        elif progress == "not_started":
+            enriched = [e for e in enriched if e["lectures_completed"] == 0 and e["lectures_in_progress"] == 0]
+        return {"learners": enriched[offset:offset + limit], "total": len(enriched), "limit": limit, "offset": offset}
+    rows, total = await repo.list_learners_page(scope, q, limit, offset)
+    out = [{"id": r["id"], "display_name": r["display_name"], **await _summary(repo, r["id"])} for r in rows]
+    return {"learners": out, "total": total, "limit": limit, "offset": offset}
+
+
+@router.get("/analytics/exercises")
+async def exercise_analytics(user: CurrentUser = Depends(guard), repo: Repository = Depends(get_repository)):
+    """§13.1: completion rate, score distribution, common failing criteria and grading-system errors per exercise."""
+    rows, _ = await repo.list_learners_page(await _scope(user, repo), None, 100, 0)
+    per: dict[str, dict[str, Any]] = {}
+    for lr in rows:
+        for s in await repo.list_learner_submissions(lr["id"]):
+            d = per.setdefault(s["exercise_id"], {"learners": set(), "passed_learners": set(), "attempts": 0, "scores": [],
+                                                  "system_errors": 0, "fails": {}})
+            d["learners"].add(lr["id"])
+            d["attempts"] += 1
+            if s["status"] == "passed":
+                d["passed_learners"].add(lr["id"])
+            if s["status"] in ("error", "expired"):
+                d["system_errors"] += 1
+            if s["status"] in ("passed", "failed", "runtime_error") and s.get("score") is not None:
+                d["scores"].append(float(s["score"]))
+            for c in s.get("criteria_results") or []:
+                if not c.get("passed"):
+                    d["fails"][c["label"]] = d["fails"].get(c["label"], 0) + 1
+    titles = await repo.titles([], [], list(per))
+    out = []
+    for ex, d in per.items():
+        sc = d["scores"]
+        out.append({
+            "exercise_id": ex, "exercise": titles["exercises"].get(ex), "attempts": d["attempts"],
+            "learners": len(d["learners"]), "completion_rate": round(100 * len(d["passed_learners"]) / len(d["learners"]), 1),
+            "average_score": round(sum(sc) / len(sc), 1) if sc else None, "system_errors": d["system_errors"],
+            "score_distribution": {"below_50": sum(x < 50 for x in sc), "50_to_79": sum(50 <= x < 80 for x in sc),
+                                   "80_and_above": sum(x >= 80 for x in sc)},
+            "common_failures": [{"criterion": k, "count": v} for k, v in sorted(d["fails"].items(), key=lambda kv: -kv[1])[:5]],
+        })
+    return {"exercises": out}
+
+
+@router.get("/content-status")
+async def content_status(_: CurrentUser = Depends(guard), repo: Repository = Depends(get_repository)):
+    """§13.1: which content version learners are currently using (read-only; authoring is not enabled)."""
+    return {"lectures": [{"id": x["id"], "lecture_number": x["lecture_number"], "title": x["title"], "status": x["status"],
+                          "version": x["content_version"]} for x in await repo.list_all_lectures()]}
 
 
 def _sub_row(s: dict, titles: dict) -> dict[str, Any]:

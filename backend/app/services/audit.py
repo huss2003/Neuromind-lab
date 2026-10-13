@@ -9,7 +9,7 @@ from app.repository import Repository
 
 log = logging.getLogger("neuromind.audit")
 ALLOWED_META = {"status", "score", "role", "reason", "count", "lecture_id", "exercise_id", "checkpoint_id",
-                "submission_id", "hint_index", "published", "path"}
+                "submission_id", "hint_index", "published", "path", "previous_role", "new_role", "course_id"}
 
 
 async def record(repo: Repository, request: Request | None, actor_id: str | None, event: str, resource_type: str,

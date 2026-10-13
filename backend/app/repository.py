@@ -41,7 +41,7 @@ class Repository(Protocol):
     async def list_hint_reveals(self, learner_id: str, exercise_id: str, attempt_number: int) -> list[Row]: ...
     async def insert_hint_reveal(self, row: Row) -> Row: ...
     async def get_draft(self, learner_id: str, exercise_id: str) -> Row | None: ...
-    async def upsert_draft(self, learner_id: str, exercise_id: str, source_code: str) -> None: ...
+    async def upsert_draft(self, learner_id: str, exercise_id: str, source_code: str, content_version: int | None = None) -> None: ...
     async def submission_load(self, learner_id: str, since_iso: str) -> tuple[int, int]: ...  # (recent, in-flight)
     async def list_assigned_learner_ids(self, teacher_id: str) -> list[str]: ...
     async def list_learners_page(self, ids: list[str] | None, q: str | None, limit: int, offset: int) -> tuple[list[Row], int]: ...
@@ -49,6 +49,15 @@ class Repository(Protocol):
     async def insert_feedback(self, row: Row) -> Row: ...
     async def list_feedback(self, learner_id: str, published_only: bool) -> list[Row]: ...
     async def ping(self) -> bool: ...
+    # --- flow v1.0 ---
+    async def list_enrolled_course_ids(self, learner_id: str) -> list[str]: ...
+    async def list_exercises_basic(self, ids: list[str]) -> list[Row]: ...
+    async def list_all_lectures(self) -> list[Row]: ...
+    async def set_role(self, user_id: str, role: str) -> str | None: ...  # returns previous role
+    async def upsert_enrollment(self, learner_id: str, course_id: str) -> None: ...
+    async def revoke_enrollment(self, learner_id: str, course_id: str) -> None: ...
+    async def upsert_assignment(self, teacher_id: str, learner_id: str, course_id: str) -> None: ...
+    async def revoke_assignment(self, teacher_id: str, learner_id: str, course_id: str) -> None: ...
     # --- teacher ---
     async def list_learners(self) -> list[Row]: ...
     async def get_profile(self, user_id: str) -> Row | None: ...
@@ -94,7 +103,7 @@ class PostgrestRepository:
     async def list_published_lectures(self, course_id):
         return await self._get(
             "lectures", course_id=f"eq.{course_id}", status="eq.published",
-            select="id,module_id,lecture_number,title,summary,duration_seconds", order="lecture_number")
+            select="id,module_id,lecture_number,title,summary,duration_seconds,prerequisites", order="lecture_number")
 
     async def get_published_lecture(self, lecture_id):
         return await self._one("lectures", id=f"eq.{lecture_id}", status="eq.published", select="*")
@@ -105,7 +114,7 @@ class PostgrestRepository:
     async def get_checkpoint_with_question(self, checkpoint_id):
         return await self._one(
             "lecture_checkpoints", id=f"eq.{checkpoint_id}",
-            select="id,checkpoint_type,required,question:mcq_questions(id,prompt,options)")
+            select="id,checkpoint_type,required,question:mcq_questions(id,prompt,options,shuffle_options)")
 
     async def get_checkpoint(self, checkpoint_id):
         return await self._one("lecture_checkpoints", id=f"eq.{checkpoint_id}", select="*")
@@ -213,6 +222,52 @@ class PostgrestRepository:
         r.raise_for_status()
         return r.json()[0]
 
+    # flow v1.0
+    async def list_enrolled_course_ids(self, learner_id):
+        rows = await self._get("enrollments", learner_id=f"eq.{learner_id}", revoked_at="is.null", select="course_id")
+        return [r["course_id"] for r in rows]
+
+    async def list_exercises_basic(self, ids):
+        if not ids:
+            return []
+        return await self._get("lecture_exercises", id=_in(ids), select="id,title,lecture_id")
+
+    async def list_all_lectures(self):
+        return await self._get("lectures", select="id,lecture_number,title,status,content_version,published_at", order="lecture_number")
+
+    async def set_role(self, user_id, role):
+        prev = await self._one("profiles", id=f"eq.{user_id}", select="role")
+        if not prev:
+            return None
+        r = await self._req("PATCH", "profiles", {"id": f"eq.{user_id}"}, json={"role": role})
+        r.raise_for_status()
+        return prev["role"]
+
+    async def upsert_enrollment(self, learner_id, course_id):
+        r = await self._req("POST", "enrollments", {"on_conflict": "learner_id,course_id"},
+                            json={"learner_id": learner_id, "course_id": course_id, "revoked_at": None},
+                            prefer="resolution=merge-duplicates")
+        r.raise_for_status()
+
+    async def revoke_enrollment(self, learner_id, course_id):
+        from datetime import UTC, datetime
+        r = await self._req("PATCH", "enrollments", {"learner_id": f"eq.{learner_id}", "course_id": f"eq.{course_id}"},
+                            json={"revoked_at": datetime.now(UTC).isoformat()})
+        r.raise_for_status()
+
+    async def upsert_assignment(self, teacher_id, learner_id, course_id):
+        r = await self._req("POST", "teacher_assignments", {"on_conflict": "teacher_id,learner_id,course_id"},
+                            json={"teacher_id": teacher_id, "learner_id": learner_id, "course_id": course_id, "revoked_at": None},
+                            prefer="resolution=merge-duplicates")
+        r.raise_for_status()
+
+    async def revoke_assignment(self, teacher_id, learner_id, course_id):
+        from datetime import UTC, datetime
+        r = await self._req("PATCH", "teacher_assignments", {"teacher_id": f"eq.{teacher_id}", "learner_id": f"eq.{learner_id}",
+                                                              "course_id": f"eq.{course_id}"},
+                            json={"revoked_at": datetime.now(UTC).isoformat()})
+        r.raise_for_status()
+
     # teacher
     async def list_learners(self):
         return await self._get("profiles", role="eq.learner", select="id,display_name,created_at", order="created_at")
@@ -253,11 +308,11 @@ class PostgrestRepository:
     async def get_draft(self, learner_id, exercise_id):
         return await self._one("lab_drafts", learner_id=f"eq.{learner_id}", exercise_id=f"eq.{exercise_id}", select="*")
 
-    async def upsert_draft(self, learner_id, exercise_id, source_code):
+    async def upsert_draft(self, learner_id, exercise_id, source_code, content_version=None):
         from datetime import UTC, datetime
         r = await self._req("POST", "lab_drafts", {"on_conflict": "learner_id,exercise_id"}, json={
             "learner_id": learner_id, "exercise_id": exercise_id, "source_code": source_code,
-            "updated_at": datetime.now(UTC).isoformat()}, prefer="resolution=merge-duplicates")
+            "content_version": content_version, "updated_at": datetime.now(UTC).isoformat()}, prefer="resolution=merge-duplicates")
         r.raise_for_status()
 
     async def submission_load(self, learner_id, since_iso):

@@ -26,9 +26,17 @@ class FakeRepo:
     async def list_published_courses(self): return [{"id": "c1", "slug": "x", "title": "T", "description": ""}]
     async def get_published_course(self, i): return {"id": "c1", "slug": "x", "title": "T", "description": ""} if i == "00000000-0000-4000-8000-000000000001" else None
     async def list_published_lectures(self, c): return []
+    async def list_published_modules(self, c): return []
+    async def list_enrolled_course_ids(self, learner): return ["00000000-0000-4000-8000-000000000001"]
+    async def list_learner_sessions(self, learner): return []
+    async def list_learner_submissions(self, learner): return []
+    async def titles(self, a, b, c): return {"lectures": {}, "checkpoints": {}, "exercises": {}}
+    async def get_published_exercise(self, i): return None
+    async def list_exercises_basic(self, ids): return []
     async def get_published_lecture(self, i):
         return {"id": LID, "lecture_number": 9, "title": "L9", "summary": "", "learning_objectives": [],
-                "duration_seconds": 3600, "content_version": 1} if i == LID else None
+                "duration_seconds": 3600, "content_version": 1, "course_id": "00000000-0000-4000-8000-000000000001",
+                "prerequisites": []} if i == LID else None
     async def list_segments(self, lecture_id): return self.segments
     async def get_checkpoint_with_question(self, c):
         # Even if a buggy repo leaked the key, the manifest model must not expose it.

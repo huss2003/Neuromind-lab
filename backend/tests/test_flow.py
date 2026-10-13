@@ -232,7 +232,7 @@ def test_stuck_submission_becomes_infrastructure_error(env):
     sub = next(s for s in repo.submissions if s["id"] == sid)
     sub.update(status="running", created_at="2020-01-01T00:00:00+00:00")
     v = c.get(f"/api/v1/submissions/{sid}", headers=H()).json()
-    assert v["status"] == "error" and v["infrastructure_error"] is True
+    assert v["status"] == "expired" and v["infrastructure_error"] is True
 
 
 def test_teacher_endpoints_and_role_enforcement(env):

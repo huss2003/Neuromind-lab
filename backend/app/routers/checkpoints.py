@@ -7,6 +7,7 @@ from app.repository import Repository, get_repository
 from app.routers.deps import idempotency_key, path_uuid
 from app.services.audit import record as audit_record
 from app.services.context import load_context
+from app.services.grading import explanation_for
 from app.services.progress import attempt_meets_threshold, max_reachable_order
 
 router = APIRouter(prefix="/api/v1")
@@ -15,10 +16,11 @@ router = APIRouter(prefix="/api/v1")
 class AttemptBody(BaseModel):
     question_id: str
     selected_option_id: str
+    question_version: int | None = None  # §11.1: validated against the active content version when supplied
 
 
 def _response(attempt: dict, q: dict, completed: bool) -> dict:
-    explanation = q["explanation_correct"] if attempt["is_correct"] else (q.get("explanation_incorrect") or q["explanation_correct"])
+    explanation = explanation_for(q, attempt["is_correct"])
     return {"attempt_id": attempt["id"], "is_correct": attempt["is_correct"], "score": float(attempt["score"]),
             "explanation": explanation, "checkpoint_completed": completed,
             "next_action": {"type": "next_segment"} if completed else {"type": "retry"}}
@@ -40,6 +42,8 @@ async def submit_attempt(checkpoint_id: str, body: AttemptBody, request: Request
         raise ApiError(404, "NOT_FOUND")
     if body.question_id != cp["question_id"]:
         raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "question_id", "issue": "Does not belong to checkpoint"}])
+    if body.question_version is not None and body.question_version != q.get("question_version", body.question_version):
+        raise ApiError(409, "CONTENT_CHANGED", "This question was updated. Reload the lecture and answer again.")
     if body.selected_option_id not in {o["id"] for o in q["options"]}:
         raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "option_id", "issue": "Unknown option"}])
 

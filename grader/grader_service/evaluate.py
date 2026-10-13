@@ -88,4 +88,4 @@ def evaluate(tests: list[dict], run: RunResult, pass_threshold: float) -> dict[s
         feedback.insert(0, {"kind": "success", "message": "All required tests passed." if passed == len(tests) else "You reached the pass mark."})
     return {"status": status, "passed_tests": passed, "total_tests": len(tests), "score": score,
             "execution_ms": run.execution_ms, "feedback": feedback, "criteria": criteria,
-            "grader_version": GRADER_VERSION}
+            "grader_version": GRADER_VERSION, "runtime_error": bool(run.error)}

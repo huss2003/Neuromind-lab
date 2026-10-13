@@ -21,10 +21,26 @@ class LectureContext:
     exercises: dict[str, Row]
 
 
+async def ensure_enrolled(repo: Repository, learner_id: str, course_id: str) -> None:
+    """Unenrolled learners get the same 404 as a missing course (no existence leak)."""
+    if course_id not in await repo.list_enrolled_course_ids(learner_id):
+        raise ApiError(404, "NOT_FOUND")
+
+
+async def ensure_available(repo: Repository, learner_id: str, lecture: Row) -> None:
+    """Server-decided locking: every prerequisite lecture must be completed by this learner."""
+    for pid in lecture.get("prerequisites") or []:
+        prereq = await repo.get_session(learner_id, pid)
+        if not prereq or prereq["status"] != "completed":
+            raise ApiError(400, "LECTURE_LOCKED", "Complete the earlier lecture first to unlock this one.")
+
+
 async def load_context(repo: Repository, learner_id: str, lecture_id: str) -> LectureContext:
     lecture = await repo.get_published_lecture(lecture_id)
     if not lecture:
         raise ApiError(404, "NOT_FOUND")
+    await ensure_enrolled(repo, learner_id, lecture["course_id"])
+    await ensure_available(repo, learner_id, lecture)
     segments = sorted(await repo.list_segments(lecture_id), key=lambda s: s["segment_order"])
     checkpoints: dict[str, Row] = {}
     questions: dict[str, Row] = {}

@@ -41,6 +41,7 @@ def test_wrong_solution_fails_with_feedback_but_hides_hidden_test_details():
 
 def test_runtime_error_is_a_learner_failure_with_safe_message():
     g = grade("student_name = 1/0\n")
+    assert g["runtime_error"] is True
     assert g["status"] == "failed" and "ZeroDivisionError" in g["feedback"][0]["message"] and "line 1" in g["feedback"][0]["message"]
 
 

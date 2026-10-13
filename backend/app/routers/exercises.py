@@ -1,3 +1,4 @@
+import hashlib
 import os
 from datetime import UTC, datetime, timedelta
 
@@ -16,7 +17,7 @@ from app.services.progress import max_reachable_order
 
 router = APIRouter(prefix="/api/v1")
 STALE_AFTER_SECONDS = 120
-COUNTED = ("passed", "failed", "timeout")  # infrastructure errors never consume an attempt (when a cap exists)
+COUNTED = ("passed", "failed", "timeout", "runtime_error")  # infrastructure errors never consume an attempt (when a cap exists)
 MAX_SUBMISSIONS_PER_MINUTE = 6  # abuse limit (§6.2): policy stays "unlimited practice attempts"
 MAX_IN_FLIGHT = 2
 
@@ -59,9 +60,10 @@ def _view(sub: dict) -> dict:
         "passed_tests": sub["passed_tests"], "total_tests": sub["total_tests"],
         "execution_ms": sub["execution_ms"], "feedback": sub["safe_feedback"],
         "criteria": criteria,
-        "remediation": [{"criterion": c["label"], "text": c["remediation"]} for c in criteria
-                        if not c["passed"] and c.get("remediation")],
-        "infrastructure_error": status == "error", "created_at": sub["created_at"],
+        "remediation": [{"criterion": c["label"], "text": c["remediation"], "objective": c.get("objective"),
+                         "review_segment_id": c.get("review_segment_id"), "review_title": c.get("review_title")}
+                        for c in criteria if not c["passed"] and c.get("remediation")],
+        "infrastructure_error": status in ("error", "expired", "cancelled"), "created_at": sub["created_at"],
     }
 
 
@@ -72,6 +74,8 @@ async def get_exercise(exercise_id: str, user: CurrentUser = Depends(current_use
     reveals = await repo.list_hint_reveals(user.id, ex["id"], number)
     hints = ex.get("hints") or []
     draft = await repo.get_draft(user.id, ex["id"])
+    version = ctx.lecture.get("content_version")
+    draft_stale = bool(draft and draft.get("content_version") is not None and draft["content_version"] != version)
     mine = [s for s in ctx.submissions if s["exercise_id"] == ex["id"]]
     return {
         "id": ex["id"], "title": ex["title"], "instructions": ex["instructions"], "language": ex["language"],
@@ -80,7 +84,12 @@ async def get_exercise(exercise_id: str, user: CurrentUser = Depends(current_use
         "hints_total": len(hints), "hint_penalty_percent": float(ex.get("hint_penalty_percent") or 0),
         "hints_revealed": [hints[r["hint_index"]] for r in reveals if r["hint_index"] < len(hints)],
         "best_score": best_valid_score(mine), "attempts_used": len(mine),
-        "draft": draft["source_code"] if draft else None,
+        "draft": draft["source_code"] if draft and not draft_stale else None, "draft_stale": draft_stale,
+        "content_version": version, "runtime": "Python 3 — practice runs in your browser; official grading runs on the server",
+        "objective": ex.get("objective") or "", "constraints": ex.get("constraints") or "",
+        "visible_examples": ex.get("visible_examples") or [], "success_criteria": ex.get("success_criteria") or [],
+        "hints_policy": (f"Hints are optional. Each one lowers that attempt's score by {float(ex.get('hint_penalty_percent') or 0):g} points; "
+                         "it never lowers a score you already earned.") if hints else "No hints are available for this exercise.",
         "unlocked": segment["segment_order"] <= max_reachable_order(ctx.segments, ctx.checkpoints, ctx.progress),
     }
 
@@ -124,17 +133,20 @@ async def save_draft(exercise_id: str, body: DraftBody, user: CurrentUser = Depe
     _require_reachable(ctx, segment)
     if len(body.source_code.encode()) > _max_bytes():
         raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "source_code", "issue": "Too large"}])
-    await repo.upsert_draft(user.id, ex["id"], body.source_code)
+    await repo.upsert_draft(user.id, ex["id"], body.source_code, ctx.lecture.get("content_version"))
 
 
 class SubmissionBody(BaseModel):
     source_code: str
+    language: str | None = None
+    content_version: int | None = None
 
 
 async def _run_grading(repo: Repository, grader: Grader, sub: dict, ex: dict, lecture: dict, request_id: str | None) -> None:
     started = datetime.now(UTC).isoformat()
     await repo.update_submission(sub["id"], {"status": "running", "started_at": started})
     tests: list[dict] = []
+    section_titles = {x["id"]: x["title"] for x in await repo.list_segments(lecture["id"])}
     try:
         tests = await repo.list_exercise_tests(ex["id"])
         result = await grader.grade(sub["source_code"], tests, float(ex["pass_threshold"]))
@@ -149,7 +161,7 @@ async def _run_grading(repo: Repository, grader: Grader, sub: dict, ex: dict, le
         adjusted, penalty = apply_hint_penalty(raw, hints_used, float(ex.get("hint_penalty_percent") or 0))
     else:
         adjusted = raw
-    status = decide_status(result.status, adjusted, float(ex["pass_threshold"]))
+    status = decide_status(result.status, adjusted, float(ex["pass_threshold"]), result.runtime_error)
     feedback = list(result.feedback)
     if penalty > 0:
         feedback.append({"kind": "info", "message": f"Hints used: {hints_used}. This attempt's score was reduced by {penalty:g} points. Your best earlier score is unchanged."})
@@ -158,7 +170,7 @@ async def _run_grading(repo: Repository, grader: Grader, sub: dict, ex: dict, le
     await repo.update_submission(sub["id"], {
         "status": status, "score": adjusted, "raw_score": raw, "hints_used": hints_used, "hint_penalty": penalty,
         "passed_tests": result.passed_tests, "total_tests": result.total_tests, "execution_ms": result.execution_ms,
-        "safe_feedback": feedback, "criteria_results": build_criteria(tests, result.criteria),
+        "safe_feedback": feedback, "criteria_results": build_criteria(tests, result.criteria, section_titles),
         "grader_version": result.grader_version, "test_suite_version": ex.get("test_suite_version"),
         "content_version": lecture.get("content_version"), "pass_threshold": ex["pass_threshold"], "max_score": 100,
         "correlation_id": request_id, "finished_at": datetime.now(UTC).isoformat()})
@@ -176,6 +188,8 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
     ex, ctx, segment = await _exercise_ctx(repo, user.id, exercise_id)
     if len(body.source_code.encode()) > _max_bytes() or not body.source_code.strip():
         raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "source_code", "issue": "Empty or too large"}])
+    if body.language is not None and body.language.lower() != ex["language"]:
+        raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "language", "issue": f"Only {ex['language']} is supported here"}])
 
     existing = await repo.find_submission_by_key(user.id, key)
     if existing:
@@ -185,6 +199,8 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
                 "status_url": f"/api/v1/submissions/{existing['id']}"}
 
     _require_reachable(ctx, segment)
+    if body.content_version is not None and body.content_version != ctx.lecture.get("content_version"):
+        raise ApiError(409, "CONTENT_CHANGED", "This exercise was updated. Reload the lecture, then submit again.")
     counted = [s for s in ctx.submissions if s["exercise_id"] == exercise_id and s["status"] in COUNTED]
     if ex["max_attempts"] is not None and len(counted) >= ex["max_attempts"]:
         raise ApiError(409, "ATTEMPTS_EXHAUSTED", "No attempts remaining for this exercise")
@@ -198,6 +214,7 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
     sub = await repo.insert_submission({
         "learner_id": user.id, "exercise_id": exercise_id, "source_code": body.source_code,
         "idempotency_key": key, "status": "queued", "content_version": ctx.lecture.get("content_version"),
+        "snapshot_sha256": hashlib.sha256(body.source_code.encode()).hexdigest(),
         "test_suite_version": ex.get("test_suite_version"), "pass_threshold": ex["pass_threshold"],
         "correlation_id": getattr(request.state, "request_id", None)})
     await audit.record(repo, request, user.id, "submission.created", "submission", sub["id"],
@@ -214,8 +231,8 @@ async def get_submission(submission_id: str, user: CurrentUser = Depends(current
     if sub["status"] in ("queued", "running"):
         created = datetime.fromisoformat(str(sub["created_at"]).replace("Z", "+00:00"))
         if (datetime.now(UTC) - created).total_seconds() > STALE_AFTER_SECONDS:
-            sub = await repo.update_submission(sub["id"], {"status": "error", "safe_feedback": [
-                {"kind": "infrastructure", "message": "Grading did not finish. Your code was not judged. Please retry."}]}) or sub
+            sub = await repo.update_submission(sub["id"], {"status": "expired", "safe_feedback": [
+                {"kind": "infrastructure", "message": "Grading took too long and was stopped. Your code was not judged and your score is unchanged. Please submit again."}]}) or sub
     return _view(sub)
 
 

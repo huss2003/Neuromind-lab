@@ -8,7 +8,7 @@ from app.errors import ApiError
 from app.repository import Repository, get_repository
 from app.routers.deps import path_uuid
 from app.services.context import LectureContext, load_context
-from app.services.grading import best_valid_score
+from app.services.grading import best_valid_score, explanation_for
 from app.services.audit import record as audit_record
 from app.services.progress import max_reachable_order, missing_gates
 
@@ -16,10 +16,7 @@ router = APIRouter(prefix="/api/v1")
 
 
 def _explanation(ctx: LectureContext, attempt: dict) -> str:
-    q = ctx.questions.get(attempt["question_id"], {})
-    if attempt["is_correct"]:
-        return q.get("explanation_correct", "")
-    return q.get("explanation_incorrect") or q.get("explanation_correct", "")
+    return explanation_for(ctx.questions.get(attempt["question_id"], {}), attempt["is_correct"])
 
 
 def session_view(ctx: LectureContext, session: dict) -> dict:
@@ -32,6 +29,7 @@ def session_view(ctx: LectureContext, session: dict) -> dict:
         for cid, a in latest.items()
     }
     return {
+        "lecture_state": lecture_state(ctx, session),
         "progress": progress_breakdown(ctx, session),
         "lecture_id": session["lecture_id"],
         "current_segment_id": session["current_segment_id"],
@@ -43,6 +41,21 @@ def session_view(ctx: LectureContext, session: dict) -> dict:
         "max_reachable_order": max_reachable_order(ctx.segments, ctx.checkpoints, ctx.progress),
         "state_version": session["state_version"],
     }
+
+
+def lecture_state(ctx: LectureContext, session: dict) -> str:
+    """Central, server-side state vocabulary from the flow spec (§7)."""
+    if session["status"] == "completed":
+        return "COMPLETED"
+    subs = [x for x in ctx.submissions]
+    if any(x["status"] in ("queued", "running") for x in subs):
+        return "GRADING_PENDING"
+    passed = {x["exercise_id"] for x in subs if x["status"] == "passed"}
+    if any(x["status"] in ("failed", "runtime_error") and x["exercise_id"] not in passed for x in subs):
+        return "REMEDIATION_REQUIRED"
+    first = ctx.segments[0]["id"] if ctx.segments else None
+    untouched = not ctx.attempts and not subs and session.get("current_segment_id") == first and not session.get("playback_position_seconds")
+    return "NOT_STARTED" if untouched else "IN_PROGRESS"
 
 
 def progress_breakdown(ctx: LectureContext, session: dict) -> dict:
@@ -65,18 +78,21 @@ def progress_breakdown(ctx: LectureContext, session: dict) -> dict:
     }
 
 
-async def get_or_create(repo: Repository, user_id: str, ctx: LectureContext) -> dict:
+async def get_or_create(repo: Repository, user_id: str, ctx: LectureContext, request: Request | None = None) -> dict:
     session = await repo.get_session(user_id, ctx.lecture["id"])
     if not session:
         first = ctx.segments[0]["id"] if ctx.segments else None
         session = await repo.create_session(user_id, ctx.lecture["id"], first)
+        await audit_record(repo, request, user_id, "lecture.opened", "lecture", ctx.lecture["id"],
+                           {"lecture_id": ctx.lecture["id"]})
     return session
 
 
 @router.get("/lectures/{lecture_id}/session")
-async def get_session(lecture_id: str, user: CurrentUser = Depends(current_user), repo: Repository = Depends(get_repository)):
+async def get_session(lecture_id: str, request: Request, user: CurrentUser = Depends(current_user),
+                      repo: Repository = Depends(get_repository)):
     ctx = await load_context(repo, user.id, path_uuid(lecture_id))
-    session = await get_or_create(repo, user.id, ctx)
+    session = await get_or_create(repo, user.id, ctx, request)
     return session_view(ctx, session)
 
 

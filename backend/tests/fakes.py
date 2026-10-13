@@ -37,7 +37,8 @@ def build_data() -> dict[str, Any]:
         "course": {"id": CID, "slug": "c", "title": "C", "description": "", "status": "published"},
         "module": {"id": "m", "module_number": 1, "title": "Module 1", "description": "", "sort_order": 1},
         "lecture": {"id": LID, "course_id": CID, "module_id": "m", "lecture_number": 9, "title": "L9", "summary": "",
-                    "learning_objectives": [], "duration_seconds": 3600, "content_version": 1, "status": "published"},
+                    "learning_objectives": [], "duration_seconds": 3600, "content_version": 1, "status": "published",
+                    "prerequisites": []},
         "segments": [
             seg(1, "video", media_url="http://x/1.mp4"),
             seg(2, "checkpoint", checkpoint_id=CP1),
@@ -58,9 +59,11 @@ def build_data() -> dict[str, Any]:
                      "test_suite_version": 1, "hints": ["hint one", "hint two", "hint three"], "hint_penalty_percent": 10},
         "tests": [
             {"id": "t1", "exercise_id": EX, "test_order": 1, "test_type": "stdout", "definition": {"secret": "HIDDEN-EXPECTED"},
-             "points": 1, "is_hidden": True, "criterion_label": "SECRET-LABEL", "remediation": "Review how print works."},
+             "points": 1, "is_hidden": True, "criterion_label": "SECRET-LABEL", "remediation": "Review how print works.",
+             "objective": "Print output", "remediation_segment_id": SEG[5]},
             {"id": "t2", "exercise_id": EX, "test_order": 2, "test_type": "stdout", "definition": {"description": "visible"},
-             "points": 1, "is_hidden": False, "criterion_label": "Prints a value", "remediation": "Add a print call."},
+             "points": 1, "is_hidden": False, "criterion_label": "Prints a value", "remediation": "Add a print call.",
+             "objective": "Variables", "remediation_segment_id": SEG[3]},
         ],
     }
 
@@ -78,6 +81,10 @@ class InMemoryRepository:
         self.drafts: dict[tuple, str] = {}
         self.assignments: dict[str, list[str]] = {}
         self.feedback: list[dict] = []
+        # learners 1 and 2 are enrolled in the sample course by default (flow spec: enrolment decides what is visible)
+        self.enrollments: dict[str, set[str]] = {
+            "11111111-1111-4111-8111-111111111111": {CID}, "22222222-2222-4222-8222-222222222222": {CID}}
+        self.roles: dict[str, str] = {}
 
     # content
     async def list_published_courses(self): return [self.d["course"]]
@@ -91,7 +98,8 @@ class InMemoryRepository:
         if not cp:
             return None
         q = self.d["questions"][cp["question_id"]]
-        return {**cp, "question": {"id": q["id"], "prompt": q["prompt"], "options": q["options"]}}
+        return {**cp, "question": {"id": q["id"], "prompt": q["prompt"], "options": q["options"],
+                                   "shuffle_options": q.get("shuffle_options", False)}}
 
     async def get_checkpoint(self, cid): return copy.deepcopy(self.d["checkpoints"].get(cid))
     async def get_question_full(self, qid): return copy.deepcopy(self.d["questions"].get(qid))
@@ -169,10 +177,11 @@ class InMemoryRepository:
         return dict(row)
 
     async def get_draft(self, learner, exercise):
-        code = self.drafts.get((learner, exercise))
-        return {"source_code": code} if code is not None else None
+        d = self.drafts.get((learner, exercise))
+        return {"source_code": d[0], "content_version": d[1]} if d is not None else None
 
-    async def upsert_draft(self, learner, exercise, code): self.drafts[(learner, exercise)] = code
+    async def upsert_draft(self, learner, exercise, code, content_version=None):
+        self.drafts[(learner, exercise)] = (code, content_version)
 
     async def submission_load(self, learner, since_iso):
         mine = [s for s in self.submissions if s["learner_id"] == learner]
@@ -200,6 +209,35 @@ class InMemoryRepository:
         return [dict(f) for f in self.feedback if f["learner_id"] == learner and (f["published"] or not published_only)]
 
     async def ping(self): return True
+
+    async def list_enrolled_course_ids(self, learner): return sorted(self.enrollments.get(learner, set()))
+
+    async def list_exercises_basic(self, ids):
+        return [{"id": EX, "title": "Print", "lecture_id": LID}] if EX in ids else []
+
+    async def list_all_lectures(self):
+        lec = self.d["lecture"]
+        return [{"id": lec["id"], "lecture_number": lec["lecture_number"], "title": lec["title"], "status": lec["status"],
+                 "content_version": lec["content_version"], "published_at": None}]
+
+    async def set_role(self, user_id, role):
+        prev = (self.profiles.get(user_id) or {}).get("role")
+        if prev is None:
+            return None
+        self.profiles[user_id]["role"] = role
+        return prev
+
+    async def upsert_enrollment(self, learner, course): self.enrollments.setdefault(learner, set()).add(course)
+    async def revoke_enrollment(self, learner, course): self.enrollments.get(learner, set()).discard(course)
+
+    async def upsert_assignment(self, teacher, learner, course):
+        self.assignments.setdefault(teacher, [])
+        if learner not in self.assignments[teacher]:
+            self.assignments[teacher].append(learner)
+
+    async def revoke_assignment(self, teacher, learner, course):
+        if learner in self.assignments.get(teacher, []):
+            self.assignments[teacher].remove(learner)
 
     async def list_learners(self): return [p for p in self.profiles.values() if p["role"] == "learner"]
     async def get_profile(self, uid): return self.profiles.get(uid)
@@ -237,6 +275,11 @@ class FakeGrader:
         if "GOOD" in source_code:
             return GradeResult("passed", 2, 2, 100.0, 10, [{"kind": "success", "message": "All required tests passed."}],
                                [{"test_order": 1, "passed": True}, {"test_order": 2, "passed": True}], "test-1.0")
+        if "CRASH" in source_code:
+            return GradeResult("failed", 0, 2, 0.0, 5, [{"kind": "failure", "message": "Your program raised ZeroDivisionError on line 1: division by zero"}],
+                               [{"test_order": 1, "passed": False}, {"test_order": 2, "passed": False}], "test-1.0", True)
+        if "TIMEOUT" in source_code:
+            return GradeResult("timeout", 0, 2, 0.0, 5000, [{"kind": "failure", "message": "Your program took too long."}], [], "test-1.0")
         if "HALF" in source_code:
             return GradeResult("failed", 1, 2, 50.0, 10, [{"kind": "failure", "message": "Some checks failed."}],
                                [{"test_order": 1, "passed": False}, {"test_order": 2, "passed": True}], "test-1.0")
