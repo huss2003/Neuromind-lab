@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BrandMark, BrandName } from '../components/Brand';
 import { EmptyState, ErrorMessage, Loading } from '../components/States';
@@ -43,27 +43,36 @@ export function Certificates() {
 /** Public page: anyone with a serial can check it is genuine. Shows only the course, the date and a shortened name. */
 export function VerifyCertificate() {
   const [serial, setSerial] = useState(window.location.pathname.split('/')[2] ?? '');
-  const [submitted, setSubmitted] = useState(serial);
-  const q = useQuery({ queryKey: ['verify', submitted], queryFn: () => verifyCertificate(submitted), enabled: submitted.length > 0, retry: false });
+  const [state, setState] = useState<{ phase: 'idle' | 'checking' | 'done' | 'error'; result?: Awaited<ReturnType<typeof verifyCertificate>>; error?: string }>({ phase: 'idle' });
+
+  const check = useCallback((value: string) => {
+    const v = value.trim().toUpperCase();
+    if (!v) return;
+    setState({ phase: 'checking' });
+    verifyCertificate(v).then((result) => setState({ phase: 'done', result })).catch((e) => setState({ phase: 'error', error: errorMessage(e) }));
+  }, []);
+  useEffect(() => { if (serial) check(serial); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- once, for a serial in the address
+
+  const r = state.result;
   return (
     <main className="page narrow legal">
       <p><Link className="brand legal-brand" to="/"><BrandMark size={28} /><BrandName /></Link></p>
       <h1>Check a certificate</h1>
-      <form onSubmit={(e) => { e.preventDefault(); setSubmitted(serial.trim().toUpperCase()); }}>
+      <form onSubmit={(e) => { e.preventDefault(); check(serial); }}>
         <label htmlFor="serial">Certificate serial</label>
         <input id="serial" type="text" value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="NM-2026-1A2B3C4D" autoComplete="off" spellCheck={false} />
         <button className="btn btn-primary" type="submit" style={{ marginTop: 12 }}>Check</button>
       </form>
       <div aria-live="polite">
-        {q.isFetching && <Loading label="Checking…" />}
-        {q.isError && <ErrorMessage message={errorMessage(q.error)} />}
-        {q.data?.valid && (
+        {state.phase === 'checking' && <Loading label="Checking…" />}
+        {state.phase === 'error' && <ErrorMessage message={state.error ?? 'Could not check right now.'} />}
+        {state.phase === 'done' && r?.valid && (
           <div role="status" className="notice notice-success">
             <strong>This certificate is genuine.</strong>
-            <p>{q.data.holder} completed {q.data.course} on {q.data.issued_at ? date(q.data.issued_at) : '—'}.</p>
+            <p>{r.holder} completed {r.course} on {r.issued_at ? date(r.issued_at) : '—'}.</p>
           </div>
         )}
-        {q.data && !q.data.valid && <div role="status" className="notice notice-warning"><strong>No certificate was found for that serial.</strong><p>Check the characters and try again.</p></div>}
+        {state.phase === 'done' && r && !r.valid && <div role="status" className="notice notice-warning"><strong>No certificate was found for that serial.</strong><p>Check the characters and try again.</p></div>}
       </div>
     </main>
   );

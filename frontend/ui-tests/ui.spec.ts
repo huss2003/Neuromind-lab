@@ -603,3 +603,12 @@ test('two-step verification: set up in the profile, then required before anythin
   await challenged.getByRole('button', { name: 'Verify' }).click();
   await expect(challenged.getByRole('heading', { level: 1 })).toContainText('Lecture 9');
 });
+
+test('certificate check works for a visitor who is not signed in (the sign-out notice on load must not cancel the request)', async ({ page }) => {
+  await installMocks(page, newState()); // no session
+  await page.goto('/verify/NM-2026-ABCD1234');
+  await expect(page.getByText('This certificate is genuine.')).toBeVisible();
+  await page.getByLabel('Certificate serial').fill('NM-2026-FFFFFFFF');
+  await page.getByRole('button', { name: 'Check' }).click();
+  await expect(page.getByText('No certificate was found for that serial.')).toBeVisible();
+});

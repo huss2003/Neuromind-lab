@@ -47,7 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (event === 'SIGNED_IN') { setExpired(false); setDeactivated(false); }
-      if (!s) { clearUserState(); setLoading(false); }
+      // The initial "no session" notice on page load must not wipe the query cache: it would orphan queries already running on public pages.
+      if (!s) { if (event !== 'INITIAL_SESSION') clearUserState(); setLoading(false); }
     });
     return () => data.subscription.unsubscribe();
   }, [clearUserState]);
