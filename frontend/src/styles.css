@@ -222,3 +222,25 @@ details.card > summary { cursor: pointer; list-style: none; } details.card > sum
 .auth-legal { margin-top: var(--s6); font-size: .88rem; }
 
 .policy-list { list-style: none; padding: 0; display: grid; gap: var(--s4); margin-top: var(--s5); } .policy-list h2 { margin: 0 0 var(--s2); font-size: 1.15rem; } .policy-list p { margin: 0; }
+
+/* Administration, certificates, announcements, print */
+.subnav { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s4) 0 var(--s6); padding: 0 0 var(--s3); border-bottom: 1px solid var(--line); }
+.subnav a { padding: 8px 14px; border-radius: 999px; text-decoration: none; color: var(--text); font-weight: 600; border: 1.5px solid transparent; }
+.subnav a:hover { background: var(--axon-soft); }
+.subnav a.active { background: var(--axon); color: #fff; }
+.subnav a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.grid-3 { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.status-list, .plain-list { list-style: none; padding: 0; margin: var(--s3) 0; } .status-list li { display: flex; gap: var(--s3); align-items: center; padding: 6px 0; } .plain-list li { padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
+.check-row { display: flex; gap: var(--s3); align-items: flex-start; font-weight: 400; } .check-row input { width: 20px; height: 20px; margin-top: 3px; flex: none; }
+.oauth { margin-top: var(--s5); display: grid; gap: var(--s3); }
+.certificate { margin: var(--s5) 0; } .certificate-inner { border: 3px double var(--axon); border-radius: 18px; padding: var(--s8) var(--s6); text-align: center; background: linear-gradient(180deg, #fff, var(--mist, #eef1fb)); color: #0b1230; }
+.certificate-brand { display: flex; gap: var(--s2); justify-content: center; align-items: center; font-weight: 700; } .certificate-kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .85rem; color: #3b4468; }
+.certificate-name { font-size: clamp(1.8rem, 5vw, 2.6rem); margin: var(--s3) 0; } .certificate-course { font-size: 1.35rem; font-weight: 700; margin: var(--s2) 0 var(--s4); }
+.certificate-verify { font-size: .85rem; color: #3b4468; word-break: break-all; }
+@media print {
+  .rail, .skip-link, .no-print, .subnav { display: none !important; }
+  .app, .content { display: block !important; margin: 0 !important; padding: 0 !important; }
+  body { background: #fff !important; } .page { max-width: none !important; padding: 0 !important; }
+  .certificate-inner { break-inside: avoid; border-color: #000; background: #fff; }
+  table { font-size: 11pt; } a { color: inherit; text-decoration: none; }
+}

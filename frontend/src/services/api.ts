@@ -40,3 +40,35 @@ export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}
 
 export const errorMessage = (e: unknown): string =>
   e instanceof ApiError ? (e.requestId ? `${e.message} (ref ${e.requestId.slice(0, 8)})` : e.message) : 'Something went wrong. Please try again.';
+
+/** Downloads a file the API generates (for example a CSV report) with the learner's token, then hands it to the browser. */
+export async function downloadFile(path: string, filename: string): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  let res: Response;
+  try {
+    res = await request(path, {}, data.session?.access_token);
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', 'Cannot reach the server. Check your connection and try again.');
+  }
+  if (!res.ok) throw new ApiError(res.status, 'DOWNLOAD_FAILED', 'The report could not be created.');
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Calls a public endpoint (no sign-in), for example certificate verification. */
+export async function publicFetch<T = unknown>(path: string): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/v1${path}`);
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', 'Cannot reach the server. Check your connection and try again.');
+  }
+  if (!res.ok) throw new ApiError(res.status, 'UNKNOWN', 'Request failed');
+  return (await res.json()) as T;
+}

@@ -8,6 +8,7 @@ import { ReviewDialog } from '../../components/ReviewDialog';
 import { ErrorMessage, Loading } from '../../components/States';
 import { STATUS_HELP, STATUS_LABEL } from '../../components/SubmissionStatus';
 import { ApiError, errorMessage } from '../../services/api';
+import { addPortfolio } from '../../services/adminApi';
 import { getExercise, getSubmission, listSubmissions, revealHint, saveDraft, submitCode } from '../../services/lectureApi';
 import { FINAL_STATUSES, PLATFORM_FAULT, type Exercise, type Segment, type Submission } from '../../services/types';
 import { usePyodide, type PracticeResult } from './usePyodide';
@@ -120,6 +121,10 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
 
   const latest = live ?? history[history.length - 1];
   const passed = alreadyPassed || history.some((h) => h.status === 'passed');
+  const announcement = grading ? 'Grading your submission. This usually takes a few seconds.'
+    : latest && FINAL_STATUSES.includes(latest.status)
+      ? `Official result: ${STATUS_LABEL[latest.status][1]}.${PLATFORM_FAULT.includes(latest.status) ? ' This was a grading system problem, not your code.' : ` Score ${latest.score ?? 0} percent, ${latest.passed_tests} of ${latest.total_tests} checks passed.`}`
+      : '';
   const exhausted = exercise?.max_attempts != null && history.filter((h) => ['passed', 'failed', 'timeout', 'runtime_error'].includes(h.status)).length >= exercise.max_attempts && !passed;
 
   async function runPractice() {
@@ -334,6 +339,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
               </div>
             )}
             {!grading && !latest && <p>Not submitted yet. When you're ready, choose “Submit for grading”.</p>}
+            <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="result-announcement">{announcement}</div>
             {!grading && latest && <ResultPanel sub={latest} passMark={exercise.pass_threshold} sections={sections} onReview={setReview} onShowHint={nextHint < exercise.hints_total ? () => { setTab('task'); void showHint(); } : undefined} />}
             {submitError && <ErrorMessage message={submitError} />}
             {exhausted && <p role="alert">You have used all {exercise.max_attempts} attempts. Ask your teacher for help.</p>}
@@ -366,6 +372,22 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
       </ConfirmDialog>
       <ReviewDialog segment={review} onClose={() => setReview(null)} />
     </section>
+  );
+}
+
+function AddToPortfolio({ sub }: { sub: Submission }) {
+  const [state, setState] = useState<'idle' | 'form' | 'saving' | 'done'>('idle');
+  const [title, setTitle] = useState('My passing solution');
+  const [error, setError] = useState('');
+  if (state === 'done') return <p role="status">Added to your <Link to="/portfolio">portfolio</Link>.</p>;
+  if (state === 'idle') return <button className="btn btn-secondary" onClick={() => setState('form')}>Add to portfolio</button>;
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); setState('saving'); addPortfolio(sub.submission_id, title.trim(), '').then(() => setState('done')).catch((err) => { setError(errorMessage(err)); setState('form'); }); }} aria-label="Add to portfolio">
+      <label htmlFor="pf-title">Name this piece of work</label>
+      <input id="pf-title" type="text" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
+      {error && <p role="alert" className="field-error">{error}</p>}
+      <div className="actions"><button className="btn btn-primary" type="submit" disabled={state === 'saving'}>{state === 'saving' ? 'Adding…' : 'Add'}</button><button className="btn btn-tertiary" type="button" onClick={() => setState('idle')}>Cancel</button></div>
+    </form>
   );
 }
 
@@ -410,6 +432,7 @@ export function ResultPanel({ sub, passMark, sections = [], onReview, onShowHint
             </div>
           )}
           <ul>{sub.feedback.map((f, i) => <li key={i}>{f.message}</li>)}</ul>
+          {sub.status === 'passed' && <AddToPortfolio sub={sub} />}
         </>
       )}
     </div>

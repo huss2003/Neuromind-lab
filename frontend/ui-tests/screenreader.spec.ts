@@ -77,6 +77,7 @@ test('a signed-out visit to the home page is redirected to sign-in with the skip
   await installMocks(page, newState({}));
   await page.goto('/');
   await expect(page).toHaveURL(/\/sign-in$/);
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible(); // the new page has rendered before the keyboard is used
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
 });

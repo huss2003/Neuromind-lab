@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Badge } from '../components/Badge';
 import { EmptyState, ErrorMessage, Loading } from '../components/States';
 import { errorMessage } from '../services/api';
+import { AnnouncementsPanel, CohortsPanel, ReportExport } from './TeacherTools';
 import { getContentStatus, getExerciseAnalytics, getTeacherSummary, listLearners } from '../services/lectureApi';
 
 const PAGE = 10;
@@ -40,6 +41,10 @@ export function TeacherDashboard() {
           <div key={label} className="tile"><strong>{value ?? '—'}</strong><span className="tile-label">{label}</span><span className="tile-hint">{hint}</span></div>
         ))}
       </div>
+
+      <CohortsPanel />
+      <ReportExport />
+      <AnnouncementsPanel />
 
       <h2 style={{ marginTop: 32 }}>Learners</h2>
       <form role="search" className="actions" onSubmit={(e) => { e.preventDefault(); reset(); setTerm(q.trim()); }}>

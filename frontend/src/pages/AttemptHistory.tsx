@@ -29,7 +29,7 @@ export function AttemptHistory() {
         <div className="table-wrap">
           <table>
             <caption>Official attempts, newest first</caption>
-            <thead><tr><th scope="col">Attempt</th><th scope="col">Submitted</th><th scope="col">Result</th><th scope="col">Score</th><th scope="col">Tests</th></tr></thead>
+            <thead><tr><th scope="col">Attempt</th><th scope="col">Submitted</th><th scope="col">Result</th><th scope="col">Score</th><th scope="col">Tests</th><th scope="col">Exercise version</th></tr></thead>
             <tbody>
               {list.map((s) => {
                 const [kind, label] = STATUS_LABEL[s.status];
@@ -40,6 +40,7 @@ export function AttemptHistory() {
                     <td><Badge kind={kind}>{label}</Badge>{STATUS_HELP[s.status] && s.infrastructure_error && <div className="muted">Not marked incorrect.</div>}</td>
                     <td>{s.score == null ? '—' : `${s.score}%`}</td>
                     <td>{s.total_tests ? `${s.passed_tests} of ${s.total_tests}` : '—'}</td>
+                    <td>{s.content_version != null ? `Lesson v${s.content_version}` : '—'}{s.test_suite_version != null ? `, checks v${s.test_suite_version}` : ''}</td>
                   </tr>
                 );
               })}

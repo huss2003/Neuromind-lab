@@ -16,6 +16,19 @@ import { Legal, POLICIES, Policies } from './pages/Legal';
 import { Recover } from './pages/Recover';
 import { SignIn } from './pages/SignIn';
 import { Welcome } from './pages/Welcome';
+import { SignUp } from './pages/SignUp';
+import { Certificates, VerifyCertificate } from './pages/Certificates';
+import { Portfolio } from './pages/Portfolio';
+import { TeacherReport } from './pages/TeacherTools';
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminOverview } from './pages/admin/AdminOverview';
+import { AdminUsers } from './pages/admin/AdminUsers';
+import { AdminCohorts } from './pages/admin/AdminCohorts';
+import { AdminContent } from './pages/admin/AdminContent';
+import { AdminQueue } from './pages/admin/AdminQueue';
+import { AdminAudit } from './pages/admin/AdminAudit';
+import { AdminIssues } from './pages/admin/AdminIssues';
+import { AdminSettings } from './pages/admin/AdminSettings';
 
 const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard').then((m) => ({ default: m.TeacherDashboard })));
 const TeacherLearner = lazy(() => import('./pages/TeacherLearner').then((m) => ({ default: m.TeacherLearner })));
@@ -28,6 +41,9 @@ export function App() {
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/recover" element={<Recover />} />
+      <Route path="/sign-up" element={<SignUp />} />
+      <Route path="/verify" element={<VerifyCertificate />} />
+      <Route path="/verify/:serial" element={<VerifyCertificate />} />
       <Route path="/policies" element={<Policies />} />
       {POLICIES.map((p) => <Route key={p.kind} path={p.path} element={<Legal kind={p.kind} />} />)}
       <Route element={<AppShell />}>
@@ -40,11 +56,26 @@ export function App() {
           <Route path="/help" element={<Help />} />
           <Route path="/welcome" element={<Welcome />} />
           <Route path="/exercises/:exerciseId/attempts" element={<AttemptHistory />} />
+          <Route path="/certificates" element={<Certificates />} />
+          <Route path="/portfolio" element={<Portfolio />} />
         </Route>
         <Route element={<RequireAuth roles={['teacher', 'admin']} />}>
           <Route path="/teacher" element={<TeacherDashboard />} />
           <Route path="/teacher/learners/:learnerId" element={<TeacherLearner />} />
           <Route path="/teacher/submissions/:submissionId" element={<TeacherSubmission />} />
+          <Route path="/teacher/report" element={<TeacherReport />} />
+        </Route>
+        <Route element={<RequireAuth roles={['admin']} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="cohorts" element={<AdminCohorts />} />
+            <Route path="content" element={<AdminContent />} />
+            <Route path="queue" element={<AdminQueue />} />
+            <Route path="audit" element={<AdminAudit />} />
+            <Route path="issues" element={<AdminIssues />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>
