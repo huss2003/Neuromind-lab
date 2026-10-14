@@ -75,6 +75,8 @@ def _view(sub: dict) -> dict:
                          "review_segment_id": c.get("review_segment_id"), "review_title": c.get("review_title")}
                         for c in criteria if not c["passed"] and c.get("remediation")],
         "infrastructure_error": status in ("error", "expired", "cancelled"), "created_at": sub["created_at"],
+        "content_version": sub.get("content_version"), "test_suite_version": sub.get("test_suite_version"),
+        "started_at": sub.get("started_at"), "finished_at": sub.get("finished_at"),
     }
 
 

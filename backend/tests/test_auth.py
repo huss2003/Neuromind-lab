@@ -1,3 +1,4 @@
+import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -16,9 +17,16 @@ class FakeVerifier:
         return self.users[token]
 
 
-app.dependency_overrides[get_verifier] = FakeVerifier
-app.dependency_overrides[get_repository] = InMemoryRepository  # hermetic: no SUPABASE_* environment needed
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _overrides():
+    """Set per test (other test modules clear app.dependency_overrides); hermetic: no SUPABASE_* environment needed."""
+    app.dependency_overrides[get_verifier] = FakeVerifier
+    app.dependency_overrides[get_repository] = InMemoryRepository
+    yield
+    app.dependency_overrides.clear()
 
 
 def auth(t):

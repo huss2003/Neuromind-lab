@@ -11,8 +11,12 @@ body="$(curl -fsS -m 10 -H "X-Worker-Token: $GRADER_WORKER_TOKEN" "$API_BASE_URL
 if [ -n "$body" ]; then
   a="$(printf '%s' "$body" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("oldest_queued_seconds") or 0)' 2>/dev/null || echo 0)"
   age="${a:-0}"
+  waitp95="$(printf '%s' "$body" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("queue_wait_p95_seconds") or 0)' 2>/dev/null || echo 0)"
+  execp95="$(printf '%s' "$body" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("execution_p95_seconds") or 0)' 2>/dev/null || echo 0)"
 else
+  waitp95=0; execp95=0
   age=-1   # API unreachable: reported as -1 so the alarm on "missing or bad data" can fire separately
 fi
 aws cloudwatch put-metric-data --region "$REGION" --namespace NeuroMind/Grading \
-  --metric-data "MetricName=WorkerActive,Value=$active,Unit=Count" "MetricName=OldestQueuedSeconds,Value=$age,Unit=Seconds" >/dev/null
+  --metric-data "MetricName=WorkerActive,Value=$active,Unit=Count" "MetricName=OldestQueuedSeconds,Value=$age,Unit=Seconds" \
+  "MetricName=QueueWaitP95Seconds,Value=${waitp95:-0},Unit=Seconds" "MetricName=ExecutionP95Seconds,Value=${execp95:-0},Unit=Seconds" >/dev/null

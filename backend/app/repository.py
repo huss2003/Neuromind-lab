@@ -97,6 +97,38 @@ class Repository(Protocol):
     async def list_learner_sessions(self, learner_id: str) -> list[Row]: ...
     async def list_learner_attempts(self, learner_id: str) -> list[Row]: ...
     async def list_learner_submissions(self, learner_id: str) -> list[Row]: ...
+    # --- generic table access for the newer features (cohorts, announcements, certificates, issues, audit viewer) ---
+    async def tbl_select(self, table: str, filters: "list[Filter] | None" = None, *, columns: str = "*", order: str | None = None,
+                         limit: int | None = None, offset: int = 0) -> tuple[list[Row], int]: ...
+    async def tbl_insert(self, table: str, row: Row, *, ignore_duplicates: bool = False) -> Row | None: ...
+    async def tbl_update(self, table: str, filters: "list[Filter]", fields: Row) -> list[Row]: ...
+    async def tbl_delete(self, table: str, filters: "list[Filter]") -> int: ...
+    async def queue_metrics(self, since_iso: str) -> list[Row]: ...
+    async def list_teacher_ids_for_learner(self, learner_id: str) -> list[str]: ...
+
+
+Filter = tuple[str, str, Any]  # (column, op, value); ops: eq, neq, in, gte, lt, is_null, ilike (substring)
+FILTER_OPS = {"eq", "neq", "in", "gte", "lt", "is_null", "ilike"}
+SAFE_TABLES = {"audit_logs", "certificates", "portfolio_items", "announcements", "cohorts", "cohort_members", "cohort_teachers",
+               "issue_reports", "profiles", "enrollments", "teacher_assignments", "lectures", "lecture_exercises", "lab_submissions",
+               "lecture_sessions", "courses", "modules"}
+
+
+def _pg_params(filters: list[Filter] | None) -> list[tuple[str, str]]:
+    out: list[tuple[str, str]] = []
+    for col, op, val in filters or []:
+        if op not in FILTER_OPS or not col.replace("_", "").isalnum():
+            raise ValueError("bad filter")
+        if op == "in":
+            out.append((col, "in.(" + ",".join(str(v) for v in val) + ")"))
+        elif op == "is_null":
+            out.append((col, "is.null" if val else "not.is.null"))
+        elif op == "ilike":
+            safe = "".join(ch for ch in str(val) if ch.isalnum() or ch in " ._-@")[:60]
+            out.append((col, f"ilike.*{safe}*"))
+        else:
+            out.append((col, f"{op}.{val}"))
+    return out
 
 
 def _in(values: list[str]) -> str:
@@ -109,7 +141,7 @@ class PostgrestRepository:
         key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
         self.headers = http.service_headers(key)
 
-    async def _req(self, method: str, table: str, params: dict[str, str] | None = None,
+    async def _req(self, method: str, table: str, params: Any = None,
                    json: Any = None, prefer: str | None = None) -> httpx.Response:
         headers = dict(self.headers)
         if prefer:
@@ -435,6 +467,55 @@ class PostgrestRepository:
         r = await self._req("GET", "teacher_feedback", params)
         r.raise_for_status()
         return r.json()
+
+    # generic table access
+    async def tbl_select(self, table, filters=None, *, columns="*", order=None, limit=None, offset=0):
+        if table not in SAFE_TABLES:
+            raise ValueError("table not allowed")
+        params: list[tuple[str, str]] = [("select", columns), *_pg_params(filters)]
+        if order:
+            params.append(("order", order))
+        if limit is not None:
+            params += [("limit", str(limit)), ("offset", str(offset))]
+        headers = dict(self.headers, Prefer="count=exact")
+        r = await http.request("GET", f"{self.url}/{table}", params=params, headers=headers)
+        r.raise_for_status()
+        total = int(r.headers.get("content-range", "0-0/0").split("/")[-1] or 0)
+        return r.json(), total
+
+    async def tbl_insert(self, table, row, *, ignore_duplicates=False):
+        if table not in SAFE_TABLES:
+            raise ValueError("table not allowed")
+        prefer = "return=representation" + (",resolution=ignore-duplicates" if ignore_duplicates else "")
+        r = await self._req("POST", table, json=row, prefer=prefer)
+        r.raise_for_status()
+        rows = r.json()
+        return rows[0] if rows else None
+
+    async def tbl_update(self, table, filters, fields):
+        if table not in SAFE_TABLES or not filters:
+            raise ValueError("table not allowed or unfiltered update")
+        r = await http.request("PATCH", f"{self.url}/{table}", params=_pg_params(filters), json=fields,
+                               headers=dict(self.headers, Prefer="return=representation"))
+        r.raise_for_status()
+        return r.json()
+
+    async def tbl_delete(self, table, filters):
+        if table not in SAFE_TABLES or not filters:
+            raise ValueError("table not allowed or unfiltered delete")
+        r = await http.request("DELETE", f"{self.url}/{table}", params=_pg_params(filters),
+                               headers=dict(self.headers, Prefer="return=representation"))
+        r.raise_for_status()
+        return len(r.json())
+
+    async def list_teacher_ids_for_learner(self, learner_id):
+        rows = await self._get("teacher_assignments", learner_id=f"eq.{learner_id}", revoked_at="is.null", select="teacher_id")
+        return sorted({r["teacher_id"] for r in rows})
+
+    async def queue_metrics(self, since_iso):
+        rows, _ = await self.tbl_select("lab_submissions", [("created_at", "gte", since_iso), ("started_at", "is_null", False)],
+                                        columns="status,created_at,started_at,finished_at", order="created_at.desc", limit=500)
+        return rows
 
     async def ping(self):
         try:
