@@ -4,6 +4,7 @@ Every probe prints what it found in stdout; the assertions require the probe to 
 import asyncio
 import shutil
 import subprocess
+import time
 
 import pytest
 
@@ -64,6 +65,10 @@ def test_infinite_loop_times_out_and_container_is_removed():
     before = _sandbox_ids()  # a live worker on the same host may own other containers
     r = run("while True:\n    pass\n", timeout=2)
     assert r.status == "timeout"
+    # `docker kill` returns before the daemon has finished `--rm`; allow that removal a short, bounded time (a CI run showed the race).
+    deadline = time.monotonic() + 10
+    while _sandbox_ids() - before and time.monotonic() < deadline:
+        time.sleep(0.2)
     assert _sandbox_ids() - before == set()
 
 
