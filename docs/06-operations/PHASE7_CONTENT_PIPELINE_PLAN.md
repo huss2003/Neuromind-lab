@@ -7,4 +7,5 @@
 **Impact:** schema none; security: hidden definitions stay in `private/`, import uses the service key from `.env` locally only; cost none.
 **Acceptance:** packs validate; rows equal the legacy script's rows; defects are reported by field; re-import is idempotent; draft import cannot unpublish; CI runs the validator; guide explains the workflow.
 **Tests:** `backend/tests/test_content_pack.py` (20), plus the one-off equivalence check recorded in the guide.
-**Next candidates (need your decision):** a `video` segment type to convert Lecture 9; admin upload screen for packs; bulk "publish range" command.
+**Added in step 2 (2026-10-14):** admin API (`/admin/content/packs/validate` and `/import`, admin only, audited, no schema change) and the Administration > Content "Import a lecture" screen; publishing a lecture now also publishes its questions and lab. Tests: `backend/tests/test_admin_content.py` (9), two UI tests.
+**Next candidates (need your decision):** a `video` segment type to convert Lecture 9; bulk "publish range"; export an existing lecture back to a pack.

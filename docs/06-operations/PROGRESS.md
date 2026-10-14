@@ -145,3 +145,8 @@ Open: owner decisions on credentials (not rotated by choice), staging project, l
 - New: content pipeline (see PHASE7_CONTENT_PIPELINE_PLAN.md and CONTENT_PACK_GUIDE.md). Backend 151 passed (20 new), ruff clean. The import command was dry-run against production and correctly refused to unpublish lecture 10; nothing was written.
 - **PENDING (owner): human screen-reader test (NVDA or VoiceOver) of the learner flow. Remind the owner at the end of the project. Not done.**
 - Still open: policy details (placeholders stay until owner supplies them), admin password change (owner, later), Supabase key rotation (declined), staging (not possible on free plan), 100 more lectures (owner will upload later).
+
+## Session 2026-10-14 (c) — Admin lecture import
+- Built: admin API to validate/import lecture packs, repository `upsert_content` (allow-listed content tables only) and `set_content_status`, status change now cascades to questions and labs, Administration > Content "Import a lecture" screen, docs.
+- Tests run: backend 160 passed, ruff clean; frontend lint, tsc, 37 unit; UI suite 59 (57 earlier + 2 new) — all passed after pointing Playwright at the installed Chromium (`PLAYWRIGHT_CHROMIUM_PATH`); first run failed only because the pinned Playwright expects a different browser build.
+- Not run: live production test (not deployed yet: no deploy was requested); real Postgres upsert path (`upsert_content` is exercised only against the in-memory repository; first real use should be a draft import on production followed by a check).

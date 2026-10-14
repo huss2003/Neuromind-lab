@@ -28,7 +28,7 @@ export interface Ext {
   portfolio: { id: string; title: string; note: string; created_at: string; exercise: string; score: number; submission_id: string; source_code: string }[];
   announcements: { id: string; title: string; body: string; created_at: string; from: string }[];
   teacherAnnouncements: { id: string; title: string; body: string; scope: string; course_id: string; created_at: string }[];
-  factors: { id: string; factor_type: 'totp'; status: 'verified' | 'unverified' }[]; signups: string[]; oauth: string[];
+  factors: { id: string; factor_type: 'totp'; status: 'verified' | 'unverified' }[]; signups: string[]; oauth: string[]; imports: { lecture_number: number; publish: boolean; replace: boolean }[];
   lectureStatus: string; reported: { category: string; message: string }[]; requeued: string[];
 }
 
@@ -38,7 +38,7 @@ export function newState(opts: MockOpts = {}): MockState {
     { id: 'u-2', email: 'tara@example.test', display_name: 'Tara Teacher', role: 'teacher', deactivated: false, last_sign_in_at: null, created_at: '2026-10-01T00:00:00Z', email_confirmed: true },
     { id: IDS.learner, email: 'owner@example.test', display_name: 'Owner', role: 'admin', deactivated: false, last_sign_in_at: '2026-10-14T05:00:00Z', created_at: '2026-10-01T00:00:00Z', email_confirmed: true }],
     cohorts: [], issues: [{ id: 'i-1', reference: 'I1ABCDEF', category: 'content', message: 'There is a typo in lesson two', page: '/lectures/l-9', status: 'open', admin_note: null, created_at: '2026-10-14T05:00:00Z', reporter: 'Asha Rao' }],
-    deadLetters: [{ submission_id: 'dead0001-aaaa', exercise_id: 'ex-1', created_at: '2026-10-14T04:00:00Z', claim_count: 3 }], certificates: [], portfolio: [], announcements: [], teacherAnnouncements: [], lectureStatus: 'published', reported: [], requeued: [], factors: [], signups: [], oauth: [] },
+    deadLetters: [{ submission_id: 'dead0001-aaaa', exercise_id: 'ex-1', created_at: '2026-10-14T04:00:00Z', claim_count: 3 }], certificates: [], portfolio: [], announcements: [], teacherAnnouncements: [], lectureStatus: 'published', reported: [], requeued: [], factors: [], signups: [], oauth: [], imports: [] },
   hintsShown: 0, feedback: [], calls: [], auditPatches: 0, opts };
 }
 
@@ -253,6 +253,16 @@ export async function installMocks(page: Page, state: MockState) {
       if (rq) { u.requeued.push(rq[1]); u.deadLetters = u.deadLetters.filter((d) => d.submission_id !== rq[1]); return ok(r, { submission_id: rq[1], status: 'queued' }); }
       if (path === '/admin/audit') { const t = url.searchParams.get('event_type'); const ev = [{ id: 'a1', actor_id: 'u-3aaaaaaa', event_type: 'admin.user_created', resource_type: 'user', resource_id: 'u-1bbbbbbb', request_id: 'r1', metadata: { new_role: 'learner' }, created_at: '2026-10-14T05:00:00Z' }, { id: 'a2', actor_id: null, event_type: 'auth.denied', resource_type: 'route', resource_id: null, request_id: 'r2', metadata: { role: 'learner' }, created_at: '2026-10-14T04:00:00Z' }].filter((e) => !t || e.event_type === t); return ok(r, { events: ev, total: ev.length, limit: 25, offset: 0 }); }
       if (path === '/admin/courses') return ok(r, { courses: [{ id: IDS.course, title: 'NeuroMind AI Foundations', status: 'published', learners_enrolled: 1, lectures: [{ id: IDS.lecture, lecture_number: 9, title: 'Python setup', status: u.lectureStatus, content_version: 2, exercises: [{ id: IDS.ex, title: 'Print your name', status: 'published', test_suite_version: 1, pass_threshold: 80, max_attempts: null }] }] }], note: 'Published content is cached for up to 15 seconds.' });
+      if (path === '/admin/content/packs/validate' || path === '/admin/content/packs/import') {
+        const b = body(); const missing = (b.pack?.lab?.tests ?? []).map((t: { key: string }) => t.key).filter((k: string) => !(k in (b.tests ?? {})));
+        const problems = b.pack?.title ? [] : ['title: Field required'];
+        const valid = problems.length === 0 && missing.length === 0;
+        if (path.endsWith('validate')) return ok(r, { valid, problems, missing_tests: missing, ...(b.pack?.title ? { summary: { lecture_number: b.pack.lecture_number, title: b.pack.title, segments: b.pack.segments.length, checkpoints: b.pack.checkpoints.length, lab_tests: b.pack.lab.tests.length } } : {}) });
+        if (!valid) return err(r, 422, 'VALIDATION_ERROR', 'The pack is not valid');
+        if (b.pack.lecture_number === 9 && !b.publish && !b.replace_published) return err(r, 409, 'CONFLICT', 'Lecture 9 is published. Importing as a draft would hide it from learners.');
+        u.imports.push({ lecture_number: b.pack.lecture_number, publish: !!b.publish, replace: !!b.replace_published });
+        return ok(r, { lecture_id: 'l-new', lecture_number: b.pack.lecture_number, status: b.publish ? 'published' : 'draft', created: true });
+      }
       const ls = path.match(/^\/admin\/lectures\/(.+)\/status$/);
       if (ls) { u.lectureStatus = body().status; return ok(r, { lecture_id: ls[1], status: u.lectureStatus, previous_status: 'published' }); }
       if (path === '/admin/cohorts' && m === 'GET') return ok(r, { cohorts: u.cohorts });

@@ -46,6 +46,15 @@ const courseRow = z.object({ id: z.string(), title: z.string(), status: z.string
 export const getAdminCourses = async () => z.object({ courses: z.array(courseRow), note: z.string() }).parse(await apiFetch('/admin/courses'));
 export const setLectureStatus = (id: string, status: string) => apiFetch(`/admin/lectures/${id}/status`, { method: 'PATCH', ...json({ status }) });
 
+const packReport = z.object({ valid: z.boolean(), problems: z.array(z.string()), missing_tests: z.array(z.string()),
+  summary: z.object({ lecture_number: z.number(), title: z.string(), segments: z.number(), checkpoints: z.number(), lab_tests: z.number() }).optional() });
+export type PackReport = z.infer<typeof packReport>;
+export const validatePack = async (pack: unknown, tests: unknown) =>
+  packReport.parse(await apiFetch('/admin/content/packs/validate', { method: 'POST', ...json({ pack, tests }) }));
+const packResult = z.object({ lecture_id: z.string(), lecture_number: z.number(), status: z.string(), created: z.boolean() });
+export const importPack = async (pack: unknown, tests: unknown, opts: { publish: boolean; replace_published: boolean }) =>
+  packResult.parse(await apiFetch('/admin/content/packs/import', { method: 'POST', ...json({ pack, tests, ...opts }) }));
+
 const person = z.object({ id: z.string(), display_name: z.string() });
 const cohortRow = z.object({ id: z.string(), course_id: z.string(), name: z.string(), learners: z.array(person), teachers: z.array(person) });
 export type AdminCohort = z.infer<typeof cohortRow>;

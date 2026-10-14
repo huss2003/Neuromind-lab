@@ -4,6 +4,7 @@ import { Badge } from '../../components/Badge';
 import { ErrorMessage, Loading } from '../../components/States';
 import { errorMessage } from '../../services/api';
 import { getAdminCourses, setLectureStatus } from '../../services/adminApi';
+import { PackImport } from './PackImport';
 
 export function AdminContent() {
   const qc = useQueryClient();
@@ -18,7 +19,8 @@ export function AdminContent() {
   if (q.isError) return <ErrorMessage message={errorMessage(q.error)} onRetry={() => void q.refetch()} />;
   return (
     <section aria-label="Content">
-      <p className="muted">{q.data.note} Writing and editing lectures is done through reviewed scripts and migrations, not here; hidden test definitions are never shown.</p>
+      <p className="muted">{q.data.note} Lectures are added by importing a lecture pack below; hidden test definitions are never shown.</p>
+      <PackImport />
       {notice && <div role="status" className="notice notice-info"><p>{notice}</p></div>}
       {q.data.courses.map((c) => (
         <section key={c.id} className="card" aria-labelledby={`c-${c.id}`}>

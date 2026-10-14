@@ -104,11 +104,15 @@ class Repository(Protocol):
     async def tbl_update(self, table: str, filters: "list[Filter]", fields: Row) -> list[Row]: ...
     async def tbl_delete(self, table: str, filters: "list[Filter]") -> int: ...
     async def queue_metrics(self, since_iso: str) -> list[Row]: ...
+    async def upsert_content(self, table: str, rows: list[Row]) -> None: ...
+    async def set_content_status(self, lecture_id: str, status: str) -> None: ...
     async def list_teacher_ids_for_learner(self, learner_id: str) -> list[str]: ...
 
 
 Filter = tuple[str, str, Any]  # (column, op, value); ops: eq, neq, in, gte, lt, is_null, ilike (substring)
 FILTER_OPS = {"eq", "neq", "in", "gte", "lt", "is_null", "ilike"}
+# Tables an administrator content import may write (never learner data). Writes are upserts keyed by id.
+CONTENT_TABLES = ("lectures", "mcq_questions", "lecture_checkpoints", "lecture_exercises", "lecture_segments", "exercise_tests")
 SAFE_TABLES = {"audit_logs", "certificates", "portfolio_items", "announcements", "cohorts", "cohort_members", "cohort_teachers",
                "issue_reports", "profiles", "enrollments", "teacher_assignments", "lectures", "lecture_exercises", "lab_submissions",
                "lecture_sessions", "courses", "modules"}
@@ -491,6 +495,24 @@ class PostgrestRepository:
         r.raise_for_status()
         rows = r.json()
         return rows[0] if rows else None
+
+    async def upsert_content(self, table, rows):
+        if table not in CONTENT_TABLES:
+            raise ValueError("table not allowed")
+        r = await self._req("POST", table, json=rows, prefer="resolution=merge-duplicates,return=minimal")
+        r.raise_for_status()
+
+    async def set_content_status(self, lecture_id, status):
+        """Give a lecture's exercises and checkpoint questions the same status as the lecture (draft/published/archived)."""
+        cps = await self._get("lecture_checkpoints", lecture_id=f"eq.{lecture_id}", select="question_id")
+        qids = [c["question_id"] for c in cps]
+        for table, params in (("lecture_exercises", {"lecture_id": f"eq.{lecture_id}"}),
+                              ("mcq_questions", {"id": f"in.({','.join(qids)})"} if qids else None)):
+            if params is None:
+                continue
+            r = await http.request("PATCH", f"{self.url}/{table}", params=params, json={"status": status},
+                                   headers=dict(self.headers, Prefer="return=minimal"))
+            r.raise_for_status()
 
     async def tbl_update(self, table, filters, fields):
         if table not in SAFE_TABLES or not filters:

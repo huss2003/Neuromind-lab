@@ -20,6 +20,9 @@ backend/.venv/bin/python scripts/content_pack.py import content/lectures/013-x.j
 ```
 Re-importing the same pack updates the same rows (ids come from the lecture number), so fixing a typo is: edit the JSON, validate, import. Importing a draft over a published lecture is refused unless `--force`, so a mistake cannot silently unpublish live content. Take a backup first (`scripts/backup_db.py`) before importing to production.
 
+## Importing from the browser
+Administration > Content > **Import a lecture**: choose the pack and the hidden-tests file, press **Check pack** (lists every problem in plain words), then **Import as draft** (or tick publish). A published lecture is protected from being turned back into a draft unless you tick the replace box. The same rules and validator as the command line apply, and the hidden tests are stored server-side only. After importing a draft, review it, then change its status to Published in the table below (this also publishes its questions and lab).
+
 ## Checks the validator makes
 Unique option ids and texts; the correct option exists; checkpoints and segments agree in order and type; one exercise and one exit check; remediation points before the lab; prerequisites are earlier lectures; no unknown fields; no duplicate lecture numbers across packs.
 

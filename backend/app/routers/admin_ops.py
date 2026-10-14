@@ -197,6 +197,7 @@ async def set_lecture_status(lecture_id: str, body: LectureStatus, request: Requ
     if body.status == "published":
         fields["published_at"] = _now()
     await repo.tbl_update("lectures", [("id", "eq", lid)], fields)
+    await repo.set_content_status(lid, body.status)  # questions and labs follow the lecture, so publishing makes the whole lecture live
     await audit.record(repo, request, admin.id, "admin.lecture_status_changed", "lecture", lid, {"lecture_id": lid, "status": body.status})
     return {"lecture_id": lid, "status": body.status, "previous_status": rows[0]["status"]}
 

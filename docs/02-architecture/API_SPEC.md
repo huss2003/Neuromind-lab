@@ -128,7 +128,9 @@ All routes are under `/api/v1`. Errors use the standard shape. Admin routes need
 | GET | `/admin/overview` · `/admin/queue` | counts, health, queue depth, queue-wait / execution / end-to-end percentiles for 24 h, dead letters |
 | POST | `/admin/submissions/{id}/requeue` | only `status=error` with `claim_count>=3`; 404 otherwise |
 | GET | `/admin/audit?event_type&actor_id&limit(<=200)&offset` | newest first |
-| GET | `/admin/courses` · PATCH `/admin/lectures/{id}/status` | `{status: draft|published|archived}`; publishing a lecture with no sections is refused (422) |
+| GET | `/admin/courses` · PATCH `/admin/lectures/{id}/status` | `{status: draft|published|archived}`; publishing a lecture with no sections is refused (422); the lecture's questions and lab take the same status |
+| POST | `/admin/content/packs/validate` | `{pack, tests}` → `{valid, problems[], missing_tests[], summary}`; writes nothing; max about 400 KB (413) |
+| POST | `/admin/content/packs/import` | `{pack, tests, publish=false, replace_published=false, course_id?}`; idempotent upsert of the lecture, questions, checkpoints, lab, sections and hidden tests; draft unless `publish`; 422 if invalid or a hidden test definition is missing; 409 if it would turn a published lecture into a draft without `replace_published`; audited as `admin.content_pack_imported` (counts only, never test definitions) |
 | GET/POST | `/admin/cohorts` · DELETE `/admin/cohorts/{id}` | archive, not delete |
 | PUT/DELETE | `/admin/cohorts/{id}/members/{learner}` · `/teachers/{teacher}` | membership drives enrolment and teacher assignment |
 | GET/PATCH | `/admin/issues` | `{status, admin_note}` |

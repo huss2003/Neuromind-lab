@@ -86,13 +86,17 @@ class InMemoryRepository:
             "11111111-1111-4111-8111-111111111111": {CID}, "22222222-2222-4222-8222-222222222222": {CID}}
         self.roles: dict[str, str] = {}
         self.tables: dict[str, list[dict]] = {}
+        self.content: dict[str, list[dict]] = {}  # rows written by content imports
 
     # content
     async def list_published_courses(self): return [self.d["course"]]
     async def get_published_course(self, i): return self.d["course"] if i == CID else None
     async def list_published_lectures(self, c): return [self.d["lecture"]]
     async def get_published_lecture(self, i): return copy.deepcopy(self.d["lecture"]) if i == LID else None
-    async def list_segments(self, lecture_id): return copy.deepcopy(self.d["segments"]) if lecture_id == LID else []
+    async def list_segments(self, lecture_id):
+        if lecture_id == LID:
+            return copy.deepcopy(self.d["segments"])
+        return sorted((copy.deepcopy(x) for x in self.content.get("lecture_segments", []) if x["lecture_id"] == lecture_id), key=lambda x: x["segment_order"])
 
     async def get_checkpoint_with_question(self, cid):
         cp = self.d["checkpoints"].get(cid)
@@ -256,9 +260,9 @@ class InMemoryRepository:
         if table == "profiles":
             return list(self.profiles.values())
         if table == "lectures":
-            return [self.d["lecture"]]
+            return [self.d["lecture"], *self.content.setdefault(table, [])]
         if table == "lecture_exercises":
-            return [self.d["exercise"]]
+            return [self.d["exercise"], *self.content.setdefault(table, [])]
         if table == "courses":
             return [self.d["course"]]
         if table == "enrollments":
@@ -314,6 +318,24 @@ class InMemoryRepository:
         for r in hit:
             rows.remove(r)
         return len(hit)
+
+    async def upsert_content(self, table, rows):
+        store = self.content.setdefault(table, [])
+        for row in rows:
+            hit = next((r for r in store if r["id"] == row["id"]), None)
+            if hit:
+                hit.update(copy.deepcopy(row))
+            else:
+                store.append(copy.deepcopy(row))
+
+    async def set_content_status(self, lecture_id, status):
+        qids = {c["question_id"] for c in self.content.get("lecture_checkpoints", []) if c["lecture_id"] == lecture_id}
+        for r in self.content.get("lecture_exercises", []):
+            if r["lecture_id"] == lecture_id:
+                r["status"] = status
+        for r in self.content.get("mcq_questions", []):
+            if r["id"] in qids:
+                r["status"] = status
 
     async def list_teacher_ids_for_learner(self, learner):
         return sorted(t for t, ls in self.assignments.items() if learner in ls)
