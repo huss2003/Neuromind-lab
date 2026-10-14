@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "lecture_number": 12,
+  "title": "Lists and loops",
+  "summary": "Keep several values in a list and use a for loop to work through them one at a time.",
+  "objectives": [
+    "Create a list and read items by position",
+    "Repeat an action for every item with a for loop",
+    "Add values up with an accumulator variable"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    11
+  ],
+  "checkpoints": [
+    {
+      "key": "cp1",
+      "type": "mcq",
+      "question": {
+        "prompt": "numbers = [4, 8, 15]. What is numbers[1]?",
+        "options": [
+          {
+            "id": "a",
+            "text": "4"
+          },
+          {
+            "id": "b",
+            "text": "8"
+          },
+          {
+            "id": "c",
+            "text": "15"
+          }
+        ],
+        "correct_option_id": "b",
+        "explanation_correct": "Positions start at zero, so numbers[0] is 4 and numbers[1] is 8.",
+        "explanation_incorrect": "Not quite. Counting starts at 0: numbers[0] is 4, numbers[1] is 8 and numbers[2] is 15.",
+        "shuffle_options": false
+      }
+    },
+    {
+      "key": "cp2",
+      "type": "mcq",
+      "question": {
+        "prompt": "How many times does the body of `for n in [3, 6, 9]:` run?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Three times, once for each item"
+          },
+          {
+            "id": "b",
+            "text": "Nine times"
+          },
+          {
+            "id": "c",
+            "text": "Once"
+          }
+        ],
+        "correct_option_id": "a",
+        "explanation_correct": "A for loop runs its body once per item. The list has three items, so the body runs three times.",
+        "explanation_incorrect": "Not quite. The body runs once for each item in the list, and this list has three items.",
+        "shuffle_options": true
+      }
+    },
+    {
+      "key": "cp3",
+      "type": "exit_check",
+      "question": {
+        "prompt": "total starts at 0. The loop is for n in [1, 2, 3]: total = total + n. What is total afterwards?",
+        "options": [
+          {
+            "id": "a",
+            "text": "3"
+          },
+          {
+            "id": "b",
+            "text": "6"
+          },
+          {
+            "id": "c",
+            "text": "123"
+          }
+        ],
+        "correct_option_id": "b",
+        "explanation_correct": "Each pass adds the current item: 0 + 1 + 2 + 3 gives 6.",
+        "explanation_incorrect": "Not quite. The loop adds each item to the running total: 0 + 1 = 1, then 1 + 2 = 3, then 3 + 3 = 6.",
+        "shuffle_options": false
+      }
+    }
+  ],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will do today",
+      "body": "## What you will do today\n\nReal data comes in groups: scores, prices, names. Today you will keep a group of values in a list and process it with a loop.\n\n- Create lists and read items by position\n- Use a `for` loop to visit every item\n- Add up values with a running total\n\nIn the lab you will add up a list of numbers with a loop."
+    },
+    {
+      "key": "reading-1",
+      "type": "reading",
+      "title": "Lists",
+      "body": "## A list holds many values\n\nA **list** keeps values in order, between square brackets and separated by commas.\n\n```\nnumbers = [4, 8, 15]\n```\n\n## Positions start at zero\n\nEach item has a position called an **index**, and the first index is `0`.\n\n- `numbers[0]` is `4`\n- `numbers[1]` is `8`\n- `numbers[-1]` is the last item, `15`\n\n## Useful tools\n\n- `len(numbers)` is how many items: `3`\n- `numbers.append(16)` adds an item at the end\n- Asking for a position that does not exist, such as `numbers[5]`, causes an `IndexError`."
+    },
+    {
+      "key": "check-1",
+      "type": "checkpoint",
+      "title": "Check: lists",
+      "checkpoint": "cp1"
+    },
+    {
+      "key": "reading-2",
+      "type": "reading",
+      "title": "for loops",
+      "body": "## Repeating an action\n\nA `for` loop runs its indented block once for each item in a list. On each pass, the loop variable holds the current item.\n\n```\nfor n in [3, 6, 9]:\n    print(n)\n```\n\nThis prints 3, then 6, then 9.\n\n## Counting with range\n\n`range(3)` produces `0, 1, 2`, which is handy when you just need to repeat something three times:\n\n```\nfor i in range(3):\n    print(\"hello\")\n```\n\n## Keeping a running total\n\nCreate a variable before the loop and update it inside:\n\n```\ntotal = 0\nfor n in [3, 6, 9]:\n    total = total + n\nprint(total)\n```\n\nThis prints `18`. The variable that collects the answer is often called an **accumulator**."
+    },
+    {
+      "key": "check-2",
+      "type": "checkpoint",
+      "title": "Check: for loops",
+      "checkpoint": "cp2"
+    },
+    {
+      "key": "example",
+      "type": "example",
+      "title": "Adding up a list",
+      "body": "## Summing a list of scores\n\n```\nscores = [70, 85, 90]\ntotal = 0\nfor s in scores:\n    total = total + s\nprint(total)\n```\n\nOutput:\n\n```\n245\n```\n\n## Following it step by step\n\n| pass | s | total after |\n|---|---|---|\n\nWork through it on paper: `total` starts at 0. After the first pass it is 70, after the second 155, after the third 245.\n\n## Common mistakes\n\n- Setting `total = 0` inside the loop resets it every time. Set it once, before the loop.\n- Forgetting to indent the line inside the loop means it runs only once, after the loop ends.\n- Printing inside the loop prints every running total; print after the loop for just the answer.",
+      "opens_exercise": true
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: add up a list"
+    },
+    {
+      "key": "exit",
+      "type": "exit_check",
+      "title": "Exit check",
+      "checkpoint": "cp3"
+    }
+  ],
+  "lab": {
+    "title": "Add up a list",
+    "objective": "Use a for loop and a running total to add up every number in a list.",
+    "instructions": "The list numbers is already set. Create total as 0, use a for loop to add every item of numbers to it, then print total.",
+    "constraints": "Use a for loop. Keep the variable names numbers and total. Print only total, once, after the loop.",
+    "starter_code": "numbers = [3, 1, 4, 1, 5]\n\n# Create total, starting at 0\n# Use a for loop to add every number to total\n# Print total\n",
+    "hints": [
+      "Create the variable before the loop: total = 0.",
+      "Write for n in numbers: and, on the next line indented, total = total + n.",
+      "Put print(total) after the loop, at the left margin, so it prints once."
+    ],
+    "hint_penalty_percent": 10,
+    "pass_threshold": 80,
+    "practice_mode": "both",
+    "visible_examples": [
+      {
+        "description": "A shorter list",
+        "code": "numbers = [2, 2, 2]\ntotal = 0\nfor n in numbers:\n    total = total + n\nprint(total)",
+        "expected_output": "6"
+      }
+    ],
+    "success_criteria": [
+      "Your program prints a line of text",
+      "total holds the sum of the numbers",
+      "The printed text is exactly 14"
+    ],
+    "tests": [
+      {
+        "key": "l12-t1",
+        "label": "Your program prints something",
+        "remediation": "Add a print(...) line so your program shows a result.",
+        "objective": "Print output with print()",
+        "remediation_segment": "example",
+        "hidden": false
+      },
+      {
+        "key": "l12-t2",
+        "label": "total holds the sum of the numbers",
+        "remediation": "Start total at 0 and add each number inside the loop.",
+        "objective": "Accumulate with a loop",
+        "remediation_segment": "reading-2",
+        "hidden": false
+      },
+      {
+        "key": "l12-t3",
+        "label": "",
+        "remediation": "Print total once after the loop so the output is the sum.",
+        "objective": "Accumulate with a loop",
+        "remediation_segment": "example",
+        "hidden": true
+      }
+    ]
+  }
+}

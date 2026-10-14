@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "lecture_number": 11,
+  "title": "Making decisions with if",
+  "summary": "Compare values, combine conditions, and make your program choose what to do with if, elif and else.",
+  "objectives": [
+    "Write comparisons that give True or False",
+    "Combine conditions with and, or and not",
+    "Choose between actions with if, elif and else"
+  ],
+  "duration_minutes": 35,
+  "prerequisites": [
+    10
+  ],
+  "checkpoints": [
+    {
+      "key": "cp1",
+      "type": "mcq",
+      "question": {
+        "prompt": "What does 5 > 3 and 2 > 4 evaluate to?",
+        "options": [
+          {
+            "id": "a",
+            "text": "True"
+          },
+          {
+            "id": "b",
+            "text": "False"
+          },
+          {
+            "id": "c",
+            "text": "3"
+          }
+        ],
+        "correct_option_id": "b",
+        "explanation_correct": "`and` needs both sides to be True. 5 > 3 is True but 2 > 4 is False, so the whole expression is False.",
+        "explanation_incorrect": "Not quite. 5 > 3 is True, but 2 > 4 is False, and `and` is only True when both sides are True.",
+        "shuffle_options": false
+      }
+    },
+    {
+      "key": "cp2",
+      "type": "mcq",
+      "question": {
+        "prompt": "Which line correctly starts an if block?",
+        "options": [
+          {
+            "id": "a",
+            "text": "if score >= 50:"
+          },
+          {
+            "id": "b",
+            "text": "if score >= 50"
+          },
+          {
+            "id": "c",
+            "text": "if (score >= 50) then"
+          }
+        ],
+        "correct_option_id": "a",
+        "explanation_correct": "An if line ends with a colon, and the block that follows is indented.",
+        "explanation_incorrect": "Not quite. Python needs the colon at the end of the line. There is no `then` in Python.",
+        "shuffle_options": true
+      }
+    },
+    {
+      "key": "cp3",
+      "type": "exit_check",
+      "question": {
+        "prompt": "x is 10. The branches print big when x > 20, medium when x > 5 (checked second), and small otherwise. What is printed?",
+        "options": [
+          {
+            "id": "a",
+            "text": "big"
+          },
+          {
+            "id": "b",
+            "text": "medium"
+          },
+          {
+            "id": "c",
+            "text": "small"
+          }
+        ],
+        "correct_option_id": "b",
+        "explanation_correct": "x > 20 is False, so Python moves to elif. x > 5 is True, so it prints medium and skips the rest.",
+        "explanation_incorrect": "Not quite. 10 is not above 20, so the first branch is skipped. 10 is above 5, so the elif branch runs and prints medium.",
+        "shuffle_options": false
+      }
+    }
+  ],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will do today",
+      "body": "## What you will do today\n\nUp to now your programs ran every line in order. Today they start to make choices.\n\n- Compare values and read the True or False answer\n- Combine conditions with `and`, `or` and `not`\n- Run different code with `if`, `elif` and `else`\n\nIn the lab your program will decide whether a score is a pass."
+    },
+    {
+      "key": "reading-1",
+      "type": "reading",
+      "title": "True, False and comparisons",
+      "body": "## Booleans\n\nPython has two truth values, `True` and `False`. A comparison produces one.\n\n- `==` equal, `!=` not equal\n- `<` less than, `>` greater than, `<=` and `>=` including equal\n\n`5 > 3` is `True`. `5 == 3` is `False`.\n\nRemember: one `=` stores a value; two `==` ask whether two values are equal.\n\n## Combining conditions\n\n- `and` is True only when both sides are True\n- `or` is True when at least one side is True\n- `not` flips True and False\n\n```\nage = 20\nprint(age >= 18 and age < 65)\n```\n\nThis prints `True`."
+    },
+    {
+      "key": "check-1",
+      "type": "checkpoint",
+      "title": "Check: true, false and comparisons",
+      "checkpoint": "cp1"
+    },
+    {
+      "key": "reading-2",
+      "type": "reading",
+      "title": "if, elif and else",
+      "body": "## Making a choice\n\nAn `if` statement runs its indented block only when the condition is True.\n\n```\nscore = 72\nif score >= 50:\n    print(\"pass\")\nelse:\n    print(\"fail\")\n```\n\nThree details matter:\n\n- The line ends with a colon `:`\n- The block underneath is **indented** (four spaces). Indentation is how Python knows what belongs to the `if`\n- `else` runs when the condition was False\n\n## More than two outcomes\n\nUse `elif` (short for else if) for extra conditions. Python checks them from the top and runs the first one that is True.\n\n```\nif score >= 80:\n    print(\"distinction\")\nelif score >= 50:\n    print(\"pass\")\nelse:\n    print(\"fail\")\n```"
+    },
+    {
+      "key": "check-2",
+      "type": "checkpoint",
+      "title": "Check: if, elif and else",
+      "checkpoint": "cp2"
+    },
+    {
+      "key": "example",
+      "type": "example",
+      "title": "Storing a decision",
+      "body": "## A decision you can keep\n\nOften you want to remember the outcome, not just print it. Store it in a variable:\n\n```\nscore = 72\nif score >= 50:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(grade)\n```\n\nOutput:\n\n```\npass\n```\n\n## Reading the program\n\n1. `score` is 72.\n2. `72 >= 50` is True, so the first block runs and `grade` becomes `\"pass\"`.\n3. The `else` block is skipped.\n4. `print(grade)` shows `pass`.\n\n## Common mistakes\n\n- A missing colon causes a `SyntaxError`.\n- Blocks that are not indented cause an `IndentationError`.\n- Writing `if score = 50` (one `=`) is an error. Use `==` to compare.",
+      "opens_exercise": true
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: pass or fail"
+    },
+    {
+      "key": "exit",
+      "type": "exit_check",
+      "title": "Exit check",
+      "checkpoint": "cp3"
+    }
+  ],
+  "lab": {
+    "title": "Pass or fail",
+    "objective": "Use if and else to store a decision in a variable and print it.",
+    "instructions": "The variable score is already set. Create a variable named grade that is \"pass\" when score is 50 or more, and \"fail\" otherwise. Then print grade.",
+    "constraints": "Use if and else. Keep the variable names score and grade. Print only grade.",
+    "starter_code": "score = 72\n\n# Create grade: \"pass\" if score is 50 or more, otherwise \"fail\"\n# Print grade\n",
+    "hints": [
+      "Start with if score >= 50: and indent the next line by four spaces.",
+      "Inside the if block write grade = \"pass\". Inside else: write grade = \"fail\".",
+      "Print the variable on its own line at the end, with no indentation: print(grade)."
+    ],
+    "hint_penalty_percent": 10,
+    "pass_threshold": 80,
+    "practice_mode": "both",
+    "visible_examples": [
+      {
+        "description": "A lower score",
+        "code": "score = 30\nif score >= 50:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(grade)",
+        "expected_output": "fail"
+      }
+    ],
+    "success_criteria": [
+      "Your program prints a line of text",
+      "grade is the right word for the score",
+      "What you print matches grade"
+    ],
+    "tests": [
+      {
+        "key": "l11-t1",
+        "label": "Your program prints something",
+        "remediation": "Add a print(...) line so your program shows a result.",
+        "objective": "Print output with print()",
+        "remediation_segment": "example",
+        "hidden": false
+      },
+      {
+        "key": "l11-t2",
+        "label": "grade is the right word for the score",
+        "remediation": "Use an if/else so grade is \"pass\" when score >= 50.",
+        "objective": "Choose with if and else",
+        "remediation_segment": "reading-2",
+        "hidden": false
+      },
+      {
+        "key": "l11-t3",
+        "label": "",
+        "remediation": "Print the variable grade so the output matches what it stores.",
+        "objective": "Print output with print()",
+        "remediation_segment": "example",
+        "hidden": true
+      }
+    ]
+  }
+}

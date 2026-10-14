@@ -22,6 +22,7 @@ jobs:
         with: { python-version: "3.13" }
       - run: pip install -r backend/requirements.txt ruff
       - run: ruff check backend grader scripts
+      - run: python scripts/content_pack.py validate content/lectures   # lecture packs must stay valid
       - run: cd backend && pytest -q
   grader:
     runs-on: ubuntu-latest
