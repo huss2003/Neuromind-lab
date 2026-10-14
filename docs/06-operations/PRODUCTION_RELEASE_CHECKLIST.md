@@ -3,9 +3,9 @@
 Mandatory gates must all be ticked with evidence. Current state is in the readiness report: **CONDITIONAL GO (supervised pilot)**; unticked items below are the conditions.
 
 ## Mandatory gates
-- [ ] **G0 Secrets:** the Supabase service-role key is rotated and the new value is in Vercel only; dev accounts' passwords are changed or the accounts deleted; Git history reviewed (the old default password is in public history).
+- [~] **G0 Secrets (partly):** all synthetic accounts deleted 2026-10-14 and the old password verified dead; the service-role key was NOT rotated (owner decision). Original item:  the Supabase service-role key is rotated and the new value is in Vercel only; dev accounts' passwords are changed or the accounts deleted; Git history reviewed (the old default password is in public history).
 - [ ] **G0 Hidden tests:** the real assessment definitions exist only in the private store; none in Git, bundles, or responses.
-- [x] CI exists (`.github/workflows/ci.yml`) and a local secret scan passes. [ ] CI has actually run on GitHub.
+- [x] CI exists (`.github/workflows/ci.yml`) and a local secret scan passes. [x] CI ran on GitHub (PR 1): secrets, grader and frontend passed; backend failed on a test that needed local env vars, fixed to be hermetic.
 - [x] **G1** Full learner journey passes against real services (`E2E_LEARNER_JOURNEY.md`).
 - [x] **G2** Docker sandbox adversarial run passes (CPU, memory, pids, network, filesystem, metadata, escape probes).
 - [x] **G3** Hosted worker runs privately; restart, duplicate, lease-expiry and dead-letter behaviours demonstrated in staging.

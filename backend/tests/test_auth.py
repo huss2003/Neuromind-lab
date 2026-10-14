@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 
 from app.auth import CurrentUser, get_verifier
 from app.main import app
+from app.repository import get_repository
+from tests.fakes import InMemoryRepository
 
 
 class FakeVerifier:
@@ -15,6 +17,7 @@ class FakeVerifier:
 
 
 app.dependency_overrides[get_verifier] = FakeVerifier
+app.dependency_overrides[get_repository] = InMemoryRepository  # hermetic: no SUPABASE_* environment needed
 client = TestClient(app)
 
 

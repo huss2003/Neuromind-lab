@@ -124,3 +124,11 @@ Timings are single samples, **not a load test**. The first attempt's 13 s shows 
 5. **Policies:** privacy and terms pages are drafts without legal review; retention periods in `DATA_RETENTION_AND_POLICIES.md` are proposals.
 6. **Alerting:** confirm the SNS e-mail subscription; one worker host is still a single point of failure (submissions wait, then fail safe as a system issue).
 7. **Release process:** CI has never run on GitHub; production aliases currently serve builds of the working branch, not `main`.
+
+---
+## Update 2026-10-14: credentials, CI, policies, accessibility, staging
+- **Accounts:** all 44 synthetic accounts deleted after a backup; old password verified to fail; no real users or admin exist yet (owner creates the admin with `scripts/create_admin.py`). Service-role key still unrotated by owner decision, so Gate 0 stays a condition. See `ENVIRONMENTS_AND_TEST_ACCOUNTS.md`.
+- **CI:** `main` created (at the first commit) and PR 1 opened. First real CI run: secrets, grader (incl. Docker tests) and frontend (lint, typecheck, unit, build, UI + axe) passed; backend failed because one test relied on local `SUPABASE_*` variables. Fixed so the suite passes with an empty environment (112 passed).
+- **Accessibility audit (structure, not a real screen reader):** new `ui-tests/screenreader.spec.ts` found two real defects: every screen had the same document title, and keyboard focus stayed on the clicked link after in-app navigation. Fixed with `RouteA11y` (title from the page heading, focus moved to the new content). Also now checked on all learner screens: one main landmark, one h1, no skipped heading levels, distinct nav labels, labelled fields, grouped radio options, status live region for answers. **No test with NVDA, JAWS, VoiceOver or TalkBack was done** and none can be run from this environment; a manual pass by a person using one is still recommended before an open launch.
+- **Policies:** privacy notice expanded (storage regions, browser storage, backups, age, request handling). Still a draft needing the owner's operator/contact details and legal review.
+- **Staging:** **not created.** Supabase refused (free plan, 2 active projects limit reached). Needs an owner decision (see `ENVIRONMENTS_AND_TEST_ACCOUNTS.md`).

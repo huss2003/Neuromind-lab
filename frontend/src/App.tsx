@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Loading } from './components/States';
 import { RequireAuth } from './auth/RequireAuth';
+import { RouteA11y } from './components/RouteA11y';
 import { AppShell } from './components/AppShell';
 import { LecturePage } from './features/lecture/LecturePage';
 import { CourseOverview } from './pages/CourseOverview';
@@ -23,6 +24,7 @@ const TeacherSubmission = lazy(() => import('./pages/TeacherSubmission').then((m
 export function App() {
   return (
     <Suspense fallback={<Loading />}>
+    <RouteA11y />
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/recover" element={<Recover />} />

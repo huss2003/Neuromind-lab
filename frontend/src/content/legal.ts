@@ -35,6 +35,22 @@ To run the course, mark your work fairly, show you your progress, let your teach
 
 We do not sell your data and we do not use it for advertising.
 
+## Where it is stored
+
+Account and course data is stored in Japan (Supabase, Tokyo). The application interface runs from Vercel in Japan, and the website files are delivered from servers close to you. Submitted code is checked on a private server in Sydney, Australia. This means your data can leave the country you live in.
+
+## What your browser keeps
+
+When you sign in, your browser keeps a sign-in session. While you work on a lab it may keep an unsent copy of your code on your device so nothing is lost if your connection drops. We use no advertising or tracking cookies. Signing out ends the session; clearing site data removes the local copy.
+
+## Backups
+
+Copies of the course database are made by the course team for recovery. They hold the same information as above and are kept for up to 4 weeks, then replaced.
+
+## Age
+
+The service is for learners enrolled in the course. If you are under the age where you may agree to this yourself, your school or guardian must allow you to use it.
+
 ## How long we keep it
 
 - Account and learning record: while you are enrolled and for 12 months after, then deleted or made anonymous.
@@ -44,7 +60,7 @@ We do not sell your data and we do not use it for advertising.
 
 ## Your choices
 
-Ask ${CONTACT} to see your data, correct it, or delete it. Deleting your account removes your learning record.
+Ask ${CONTACT} to see your data, correct it, or delete it. Requests are handled by a person, not automatically, and deleting your account removes your learning record (backups are replaced within 4 weeks). You can also complain to the data-protection authority in your country.
 
 ## Please do not
 
