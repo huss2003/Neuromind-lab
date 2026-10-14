@@ -82,3 +82,17 @@ export async function toLab(page: Page) {
   await expect(lab).toBeVisible();
 }
 
+
+/** Calls the API from inside the page with the signed-in token; returns the status and parsed JSON (or null). */
+export async function apiJson(page: Page, method: string, path: string, body?: unknown): Promise<{ status: number; json: any }> {
+  const token = await accessToken(page);
+  return page.evaluate(async ([m, url, t, b]) => {
+    const res = await fetch(url as string, { method: m as string, headers: { Authorization: `Bearer ${t}`, ...(b ? { 'Content-Type': 'application/json' } : {}) }, body: b ? (b as string) : undefined });
+    return { status: res.status, json: await res.json().catch(() => null) };
+  }, [method, `${API}/api/v1${path}`, token, body ? JSON.stringify(body) : null] as const);
+}
+
+export async function signOutUi(page: Page) {
+  await page.getByRole('button', { name: 'Sign out' }).first().click();
+  await expect(page).toHaveURL(/sign-in/);
+}

@@ -3,7 +3,9 @@
 Identity comes from Supabase Auth (token verified server-side); role comes from the
 `profiles` table read with the server-only service-role key. Never from client input.
 """
+import base64
 import hashlib
+import json
 import os
 import time
 from dataclasses import dataclass
@@ -47,7 +49,10 @@ class SupabaseVerifier:
         if r.status_code != 200:
             _cache.pop(key, None)
             raise HTTPException(401)
-        uid = r.json()["id"]
+        me = r.json()
+        uid = me["id"]
+        if any(f.get("status") == "verified" for f in me.get("factors") or []) and _claims(token).get("aal") != "aal2":
+            raise ApiError(403, "MFA_REQUIRED", "Complete two-step verification to continue.")  # the account turned it on: a password-only session is not enough
         p = await http.request("GET", f"{url}/rest/v1/profiles", params={"id": f"eq.{uid}", "select": "role,display_name,deactivated_at"},
                                headers=http.service_headers(service))
         rows = p.json() if p.status_code == 200 else []
@@ -62,6 +67,15 @@ class SupabaseVerifier:
                 _cache.clear()
             _cache[key] = (now + AUTH_CACHE_SECONDS, user)
         return user
+
+
+def _claims(token: str) -> dict:
+    """Unverified read of the JWT payload. Safe here only because Supabase Auth has already accepted this very token (the /user call above)."""
+    try:
+        part = token.split(".")[1]
+        return json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4)))
+    except (IndexError, ValueError):
+        return {}
 
 
 def get_verifier() -> SupabaseVerifier:
