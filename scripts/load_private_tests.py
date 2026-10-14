@@ -18,7 +18,7 @@ SRC = Path(os.getenv("PRIVATE_TESTS_FILE", ROOT / "private" / "exercise_tests.js
 if not SRC.exists():
     sys.exit(f"{SRC} not found. Create it locally (it is git-ignored); see docs/06-operations/E2E_LEARNER_JOURNEY.md.")
 URL, KEY = os.environ["SUPABASE_URL"].rstrip("/"), os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json"}
+H = {"apikey": KEY, **({} if KEY.startswith("sb_secret_") else {"Authorization": f"Bearer {KEY}"}), "Content-Type": "application/json"}
 defs = json.loads(SRC.read_text())
 with httpx.Client(timeout=15) as c:
     for test_id, definition in defs.items():

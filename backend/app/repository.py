@@ -107,7 +107,7 @@ class PostgrestRepository:
     def __init__(self) -> None:
         self.url = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1"
         key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-        self.headers = {"apikey": key, "Authorization": f"Bearer {key}"}
+        self.headers = http.service_headers(key)
 
     async def _req(self, method: str, table: str, params: dict[str, str] | None = None,
                    json: Any = None, prefer: str | None = None) -> httpx.Response:

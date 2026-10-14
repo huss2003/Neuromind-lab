@@ -94,3 +94,70 @@ We aim to keep the service available but cannot promise it will never be interru
 ## Changes and contact
 
 These terms may change. Questions go to ${CONTACT}.`;
+
+
+export const ACCEPTABLE_USE = `## Learning honestly
+
+NeuroMind Lab only works if scores mean something. These rules apply to everyone who uses it.
+
+- Do your own graded work. Ask your teacher before using help from other people or AI tools on a graded lab.
+- Do not share, copy or look for hidden tests, answer keys or other learners' work.
+- Do not try to break, overload, scan or bypass the site, the grader or its limits. Code you submit runs in a locked-down sandbox with no network; attempts to escape it, read the system or slow it for others are misuse.
+- Do not put passwords, keys, personal data or anything illegal in code you submit.
+- Use one account, your own.
+
+## If you break these rules
+
+A teacher or administrator may remove an attempt, pause an account or ask you to explain. Fair marking matters more than a single score. If you think a decision is wrong, tell ${CONTACT}.`;
+
+export const RETENTION = `## How long information is kept
+
+- **Account details:** while you are enrolled and for 12 months after, then deleted or made anonymous.
+- **Progress, answers, lab attempts, submitted code and drafts:** the same.
+- **Teacher notes about your work:** the same.
+- **Security records** (sensitive actions, denied access): 12 months.
+- **Website and server logs:** up to 30 days.
+- **Recovery copies of the course database:** up to 4 weeks, then replaced.
+
+## Deleting your information
+
+Ask ${CONTACT}. A person handles the request, removes your account, and your learning record goes with it. Recovery copies disappear when they are replaced, within 4 weeks.
+
+These periods are proposals by the course team. They are shown here so you know what to expect and may change; changes are announced on this page.`;
+
+export const ACCESSIBILITY = `## Our aim
+
+NeuroMind Lab should be usable with a keyboard, a screen reader, magnification and different devices. We aim for WCAG 2.1 level AA.
+
+## What has been checked
+
+- Automated checks of every main screen at desktop and phone widths.
+- Keyboard-only use of sign-in, lessons, knowledge checks and the lab, with a skip-to-content link.
+- Each page has its own title and a single main heading, and keyboard focus moves to the new page after you navigate.
+- Quiz results and status messages are announced to screen readers.
+
+## What has not been checked yet
+
+- Testing with real screen readers (NVDA, JAWS, VoiceOver, TalkBack) by people who use them.
+- Lecture videos: captions and transcripts are supported, but recordings are not published yet.
+- The code editor is a third-party component. A plain text editor is available through "Use simple text editor".
+
+## Tell us about a barrier
+
+Contact ${CONTACT}. Say what you were doing, the device and any assistive technology. We will reply with a workaround or a fix date.`;
+
+export const SECURITY = `## How we protect the service
+
+- Sign-in is handled by Supabase Auth. Passwords are never visible to teachers or administrators.
+- Every request is checked on the server: who you are, your role and whether the item belongs to you. The browser is never trusted for scores or completion.
+- Official scores come only from the grader. Submitted code runs in an isolated container with no network, limited memory and time, and is thrown away afterwards.
+- Hidden tests are never sent to your browser.
+- Sensitive actions are recorded in a security log without your code or password.
+
+## Reporting a problem
+
+If you find a security problem, please do not test it further or share it. Tell ${CONTACT} what you saw and when. Reports made in good faith will not be treated as misuse.
+
+## Honest limits
+
+This is a small learning service. It has automated tests and load checks for a few dozen learners, but it has not had an independent security audit.`;

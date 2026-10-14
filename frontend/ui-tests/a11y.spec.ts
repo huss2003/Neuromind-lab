@@ -48,7 +48,7 @@ test('axe: sign-in, recovery and teacher screens', async ({ page }) => {
   await page.goto('/recover');
   await expect(page.getByRole('heading', { name: 'Recover your account' })).toBeVisible();
   await scan(page, 'recover');
-  for (const [name, path] of [['privacy', '/privacy'], ['terms', '/terms']]) {
+  for (const [name, path] of [['policies', '/policies'], ['privacy', '/privacy'], ['terms', '/terms'], ['acceptable use', '/policies/acceptable-use'], ['retention', '/policies/retention'], ['accessibility', '/policies/accessibility'], ['security', '/policies/security']]) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await scan(page, name);

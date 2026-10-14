@@ -220,3 +220,5 @@ details.card > summary { cursor: pointer; list-style: none; } details.card > sum
 }
 .legal { padding-top: var(--s8); } .legal-brand { color: var(--text); text-decoration: none; } .legal .richtext { max-width: 70ch; }
 .auth-legal { margin-top: var(--s6); font-size: .88rem; }
+
+.policy-list { list-style: none; padding: 0; display: grid; gap: var(--s4); margin-top: var(--s5); } .policy-list h2 { margin: 0 0 var(--s2); font-size: 1.15rem; } .policy-list p { margin: 0; }

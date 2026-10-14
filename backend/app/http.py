@@ -26,3 +26,9 @@ async def request(method: str, url: str, **kw: Any) -> httpx.Response:
         bucket = upstream.get()
         if bucket is not None:
             bucket.append((time.perf_counter() - start) * 1000)
+
+
+def service_headers(key: str) -> dict[str, str]:
+    """Headers for the server-only Supabase key. Legacy service_role keys are JWTs and go in both headers; the newer `sb_secret_...`
+    keys are opaque, are sent in `apikey` only, and the gateway maps them to the service role."""
+    return {"apikey": key} if key.startswith("sb_secret_") else {"apikey": key, "Authorization": f"Bearer {key}"}

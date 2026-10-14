@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 URL, KEY = os.environ["SUPABASE_URL"].rstrip("/"), os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+H = {"apikey": KEY, **({} if KEY.startswith("sb_secret_") else {"Authorization": f"Bearer {KEY}"})}
 email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
 if "@" not in email or email.endswith("@neuromind.test"):
     sys.exit("Set ADMIN_EMAIL to a real address (not @neuromind.test).")

@@ -14,7 +14,7 @@ gen = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gen)  # also regenerates the .sql file from the same constants
 
 URL, KEY = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1", os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json", "Prefer": "return=minimal"}
+H = {"apikey": KEY, **({} if KEY.startswith("sb_secret_") else {"Authorization": f"Bearer {KEY}"}), "Content-Type": "application/json", "Prefer": "return=minimal"}
 S = lambda n: f"00000000-0000-4000-8000-{n}"  # noqa: E731
 
 

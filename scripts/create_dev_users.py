@@ -19,7 +19,7 @@ if os.getenv("APP_ENV", "development").lower() in {"production", "prod"}:
 USERS = [("learner1@neuromind.test", "Learner One", "learner"), ("learner2@neuromind.test", "Learner Two", "learner"),
          ("learner3@neuromind.test", "Learner Three", "learner"),
          ("teacher@neuromind.test", "Teacher", "teacher")]
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+H = {"apikey": KEY, **({} if KEY.startswith("sb_secret_") else {"Authorization": f"Bearer {KEY}"})}
 
 if "localhost" not in URL and os.getenv("CONFIRM_DEV_PROJECT") != "yes":
     print(f"About to create test users in {URL}. Re-run with CONFIRM_DEV_PROJECT=yes if this is a DEV project.")

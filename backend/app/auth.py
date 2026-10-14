@@ -48,7 +48,7 @@ class SupabaseVerifier:
             raise HTTPException(401)
         uid = r.json()["id"]
         p = await http.request("GET", f"{url}/rest/v1/profiles", params={"id": f"eq.{uid}", "select": "role,display_name"},
-                               headers={"apikey": service, "Authorization": f"Bearer {service}"})
+                               headers=http.service_headers(service))
         rows = p.json() if p.status_code == 200 else []
         if not rows or rows[0]["role"] not in ROLES:
             raise HTTPException(403)

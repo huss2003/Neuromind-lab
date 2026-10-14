@@ -60,7 +60,7 @@ export function SignIn() {
             </div>
             <p><Link to="/recover">Forgot your password?</Link></p>
           </form>
-          <p className="muted auth-legal"><Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link></p>
+          <p className="muted auth-legal"><Link to="/policies">Policies</Link> · <Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link></p>
         </div>
       </main>
     </div>
