@@ -3,17 +3,20 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { BrandMark, BrandName } from '../components/Brand';
 import { NeuralField } from '../components/NeuralField';
+import { OAUTH_PROVIDERS, SIGNUP_ENABLED } from '../config';
 import { supabase } from '../services/supabase';
 
 export function SignIn() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { session, expired } = useAuth();
+  const { session, expired, deactivated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resent, setResent] = useState(false);
   const from = (location.state as { from?: string } | null)?.from ?? '/';
 
   if (session) return <Navigate to={from} replace />;
@@ -25,7 +28,8 @@ export function SignIn() {
     setError(null);
     const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
-    if (err) setError('Sign-in failed. Check your email and password, then try again.'); // generic: never reveals which part was wrong
+    if (err && /not confirmed/i.test(err.message)) { setUnconfirmed(true); setError('Please confirm your email first. We sent you a link when you registered.'); } // only shown after a correct password
+    else if (err) setError('Sign-in failed. Check your email and password, then try again.'); // generic: never reveals which part was wrong
     else navigate(from, { replace: true });
   }
 
@@ -45,6 +49,7 @@ export function SignIn() {
           <div className="brand auth-brand"><BrandMark size={32} /><BrandName /></div>
           <h1>Sign in</h1>
           <p className="muted">Pick up where you left off.</p>
+          {deactivated && <div role="alert" className="notice notice-warning">This account has been deactivated. Contact your course administrator.</div>}
           {expired && <div role="status" className="notice notice-warning">Your session ended. Please sign in again — your saved progress is safe.</div>}
           <form onSubmit={onSubmit} noValidate={false} aria-describedby={error ? 'signin-error' : undefined}>
             <label htmlFor="email">Email</label>
@@ -58,8 +63,20 @@ export function SignIn() {
             <div className="actions">
               <button type="submit" className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
             </div>
+            {unconfirmed && <p><button type="button" className="btn btn-secondary" disabled={resent} onClick={() => { void supabase.auth.resend({ type: 'signup', email: email.trim() }); setResent(true); }}>{resent ? 'Sent again' : 'Send the confirmation email again'}</button></p>}
             <p><Link to="/recover">Forgot your password?</Link></p>
           </form>
+          {OAUTH_PROVIDERS.length > 0 && (
+            <div className="oauth" role="group" aria-label="Other ways to sign in">
+              <p className="muted">or continue with</p>
+              {OAUTH_PROVIDERS.map((p) => (
+                <button key={p} type="button" className="btn btn-secondary btn-block" onClick={() => void supabase.auth.signInWithOAuth({ provider: p as 'google', options: { redirectTo: `${window.location.origin}/` } })}>
+                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
+          {SIGNUP_ENABLED && <p>New here? <Link to="/sign-up">Create an account</Link></p>}
           <p className="muted auth-legal"><Link to="/policies">Policies</Link> · <Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link></p>
         </div>
       </main>

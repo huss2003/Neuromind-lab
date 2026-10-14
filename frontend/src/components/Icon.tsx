@@ -16,6 +16,7 @@ const PATHS: Record<string, string> = {
   book: 'M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h11',
   video: 'M4 6h11v12H4zM15 10l5-3v10l-5-3',
   trophy: 'M8 4h8v6a4 4 0 01-8 0zM5 5h3M16 5h3M12 14v4M8 20h8',
+  shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4',
   reset: 'M4 4v6h6M4.5 15a8 8 0 100-6',
 };
 

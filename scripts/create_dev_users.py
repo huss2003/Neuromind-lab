@@ -18,7 +18,8 @@ if os.getenv("APP_ENV", "development").lower() in {"production", "prod"}:
     sys.exit("Refusing to create development users when APP_ENV is production.")
 USERS = [("learner1@neuromind.test", "Learner One", "learner"), ("learner2@neuromind.test", "Learner Two", "learner"),
          ("learner3@neuromind.test", "Learner Three", "learner"),
-         ("teacher@neuromind.test", "Teacher", "teacher")]
+         ("teacher@neuromind.test", "Teacher", "teacher"), ("admin@neuromind.test", "Test Administrator", "admin")]
+COURSE = "00000000-0000-4000-8000-000000000001"  # the sample course: test learners are enrolled in it, and the test teacher is assigned to them
 H = {"apikey": KEY, **({} if KEY.startswith("sb_secret_") else {"Authorization": f"Bearer {KEY}"})}
 
 if "localhost" not in URL and os.getenv("CONFIRM_DEV_PROJECT") != "yes":
@@ -37,4 +38,11 @@ with httpx.Client(timeout=15) as c:
             sys.exit(f"{email}: {r.status_code} {r.text[:200]}")
         c.patch(f"{URL}/rest/v1/profiles", headers=H, params={"id": f"eq.{uid}"}, json={"role": role, "display_name": name}).raise_for_status()
         print(f"ok  {email}  role={role}")
+    ids = {u["email"]: u["id"] for u in c.get(f"{URL}/auth/v1/admin/users", headers=H, params={"per_page": 200}).json()["users"]}
+    for email in ("learner1@neuromind.test", "learner2@neuromind.test", "learner3@neuromind.test"):
+        c.post(f"{URL}/rest/v1/enrollments", headers={**H, "Prefer": "resolution=ignore-duplicates"}, params={"on_conflict": "learner_id,course_id"},
+               json={"learner_id": ids[email], "course_id": COURSE}).raise_for_status()
+        c.post(f"{URL}/rest/v1/teacher_assignments", headers={**H, "Prefer": "resolution=ignore-duplicates"}, params={"on_conflict": "teacher_id,learner_id,course_id"},
+               json={"teacher_id": ids["teacher@neuromind.test"], "learner_id": ids[email], "course_id": COURSE}).raise_for_status()
+    print("enrolled the three learners and assigned them to the teacher")
 print("Done. Passwords were set from DEV_USER_PASSWORD (not printed).")

@@ -59,3 +59,30 @@ test('axe: sign-in, recovery and teacher screens', async ({ page }) => {
   await page.waitForLoadState('networkidle');
   await scan(page, 'teacher dashboard');
 });
+
+test('axe and structure: administrator, certificate, portfolio, sign-up, verification and teacher-tool screens', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const state = newState({ role: 'admin', name: 'Owner', email: 'admin@neuromind.test' });
+  state.ext.certificates.push({ id: 'c1', serial: 'NM-2026-ABCD1234', course: 'NeuroMind AI Foundations', issued_at: '2026-10-14T00:00:00Z', completed_lectures: 4, holder: 'Owner' });
+  state.ext.portfolio.push({ id: 'pf-1', title: 'My first program', note: 'Prints a name', created_at: '2026-10-14T00:00:00Z', exercise: 'Print your name', score: 100, submission_id: 's-1', source_code: 'print(1)\n' });
+  state.ext.cohorts.push({ id: 'co-1', course_id: IDS.course, name: 'Autumn group', learners: [{ id: 'u-1', display_name: 'Asha Rao' }], teachers: [{ id: 'u-2', display_name: 'Tara Teacher' }] });
+  await installMocks(page, state);
+  await signedIn(page, 'admin@neuromind.test');
+  for (const [name, path] of [['admin overview', '/admin'], ['admin users', '/admin/users'], ['admin cohorts', '/admin/cohorts'], ['admin content', '/admin/content'],
+    ['admin queue', '/admin/queue'], ['admin audit', '/admin/audit'], ['admin issues', '/admin/issues'], ['admin settings', '/admin/settings'],
+    ['certificates', '/certificates'], ['portfolio', '/portfolio'], ['teacher dashboard', '/teacher'], ['teacher report', '/teacher/report'], ['profile', '/profile'], ['help', '/help'],
+    ['verify', '/verify/NM-2026-ABCD1234']]) {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await scan(page, name);
+    const levels = await page.evaluate(() => [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map((h) => Number(h.tagName[1])));
+    levels.forEach((l, i) => { if (i > 0) expect(l - levels[i - 1], `${name}: heading levels ${levels.join(',')}`).toBeLessThanOrEqual(1); });
+    expect(levels.filter((l) => l === 1), `${name}: exactly one h1`).toHaveLength(1);
+  }
+  const anon = await (await browser.newContext()).newPage(); // sign-up is for people who are not signed in: a clean browser profile
+  await installMocks(anon, newState());
+  await anon.goto('/sign-up');
+  await expect(anon.getByRole('heading', { name: 'Create an account' })).toBeVisible();
+  await scan(anon, 'sign-up');
+});

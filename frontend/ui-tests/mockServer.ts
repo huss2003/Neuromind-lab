@@ -16,11 +16,30 @@ export interface MockOpts { role?: 'learner' | 'teacher' | 'admin'; email?: stri
 export interface MockState {
   version: number; current: string; position: number; status: 'in_progress' | 'completed'; started: boolean;
   attempts: { cp: string; correct: boolean; at: number }[]; completedCps: Set<string>; submissions: any[]; drafts: Record<string, string>;
-  hintsShown: number; feedback: { id: string; body: string; published: boolean }[]; calls: string[]; auditPatches: number; opts: MockOpts;
+  ext: Ext; hintsShown: number; feedback: { id: string; body: string; published: boolean }[]; calls: string[]; auditPatches: number; opts: MockOpts;
+}
+
+export interface Ext {
+  users: { id: string; email: string; display_name: string; role: string; deactivated: boolean; last_sign_in_at: string | null; created_at: string; email_confirmed: boolean }[];
+  cohorts: { id: string; course_id: string; name: string; learners: { id: string; display_name: string }[]; teachers: { id: string; display_name: string }[] }[];
+  issues: { id: string; reference: string; category: string; message: string; page: string | null; status: string; admin_note: string | null; created_at: string; reporter: string }[];
+  deadLetters: { submission_id: string; exercise_id: string; created_at: string; claim_count: number }[];
+  certificates: { id: string; serial: string; course: string; issued_at: string; completed_lectures: number; holder: string }[];
+  portfolio: { id: string; title: string; note: string; created_at: string; exercise: string; score: number; submission_id: string; source_code: string }[];
+  announcements: { id: string; title: string; body: string; created_at: string; from: string }[];
+  teacherAnnouncements: { id: string; title: string; body: string; scope: string; course_id: string; created_at: string }[];
+  factors: { id: string; factor_type: 'totp'; status: 'verified' | 'unverified' }[]; signups: string[]; oauth: string[];
+  lectureStatus: string; reported: { category: string; message: string }[]; requeued: string[];
 }
 
 export function newState(opts: MockOpts = {}): MockState {
-  return { version: 1, current: SEG(0), position: 0, status: 'in_progress', started: false, attempts: [], completedCps: new Set(), submissions: [], drafts: {}, hintsShown: 0, feedback: [], calls: [], auditPatches: 0, opts };
+  return { version: 1, current: SEG(0), position: 0, status: 'in_progress', started: false, attempts: [], completedCps: new Set(), submissions: [], drafts: {}, ext: { users: [
+    { id: 'u-1', email: 'asha@example.test', display_name: 'Asha Rao', role: 'learner', deactivated: false, last_sign_in_at: '2026-10-13T09:00:00Z', created_at: '2026-10-01T00:00:00Z', email_confirmed: true },
+    { id: 'u-2', email: 'tara@example.test', display_name: 'Tara Teacher', role: 'teacher', deactivated: false, last_sign_in_at: null, created_at: '2026-10-01T00:00:00Z', email_confirmed: true },
+    { id: IDS.learner, email: 'owner@example.test', display_name: 'Owner', role: 'admin', deactivated: false, last_sign_in_at: '2026-10-14T05:00:00Z', created_at: '2026-10-01T00:00:00Z', email_confirmed: true }],
+    cohorts: [], issues: [{ id: 'i-1', reference: 'I1ABCDEF', category: 'content', message: 'There is a typo in lesson two', page: '/lectures/l-9', status: 'open', admin_note: null, created_at: '2026-10-14T05:00:00Z', reporter: 'Asha Rao' }],
+    deadLetters: [{ submission_id: 'dead0001-aaaa', exercise_id: 'ex-1', created_at: '2026-10-14T04:00:00Z', claim_count: 3 }], certificates: [], portfolio: [], announcements: [], teacherAnnouncements: [], lectureStatus: 'published', reported: [], requeued: [], factors: [], signups: [], oauth: [] },
+  hintsShown: 0, feedback: [], calls: [], auditPatches: 0, opts };
 }
 
 const segments = [
@@ -88,21 +107,21 @@ const submissionView = (x: any) => ({
   submission_id: x.id, submission_number: x.number, status: x.status, score: x.score, raw_score: x.raw, max_score: 100, pass_threshold: 80, hints_used: x.hints, hint_penalty: x.hints * 10,
   passed_tests: x.criteria.filter((c: any) => c.passed).length, total_tests: 2, execution_ms: 12, feedback: ['error', 'expired'].includes(x.status) ? [{ kind: 'infrastructure', message: 'The grading service is unavailable. Your code was not judged. Please try again.' }] : [{ kind: x.status === 'passed' ? 'success' : 'failure', message: x.status === 'passed' ? 'All required tests passed.' : 'Some checks are not passed yet.' }],
   criteria: ['error', 'expired'].includes(x.status) ? [] : x.criteria, remediation: ['error', 'expired'].includes(x.status) ? [] : x.criteria.filter((c: any) => !c.passed && c.remediation).map((c: any) => ({ criterion: c.label, text: c.remediation, objective: c.objective, review_segment_id: c.review_segment_id, review_title: c.review_title })),
-  infrastructure_error: ['error', 'expired', 'cancelled'].includes(x.status), created_at: new Date(x.at).toISOString(),
+  infrastructure_error: ['error', 'expired', 'cancelled'].includes(x.status), created_at: new Date(x.at).toISOString(), content_version: 1, test_suite_version: 1,
 });
 
 const learners = Array.from({ length: 13 }, (_, i) => ({ id: i === 0 ? IDS.learner : `lrn-${i + 1}`, display_name: i === 0 ? 'Asha Rao' : `Learner ${String(i + 1).padStart(2, '0')}` }));
 
-export function token(email: string) {
+export function token(email: string, aal: 'aal1' | 'aal2' = 'aal1', factors: { id: string; factor_type: string; status: string }[] = []) {
   const b = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
   const exp = Math.floor(Date.now() / 1000) + 3600;
-  const jwt = `${b({ alg: 'HS256', typ: 'JWT' })}.${b({ sub: IDS.learner, email, exp, role: 'authenticated' })}.sig`;
-  return { access_token: jwt, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'refresh-mock', user: { id: IDS.learner, aud: 'authenticated', role: 'authenticated', email, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
+  const jwt = `${b({ alg: 'HS256', typ: 'JWT' })}.${b({ sub: IDS.learner, email, exp, role: 'authenticated', aal, amr: [{ method: 'password', timestamp: 1 }] })}.sig`;
+  return { access_token: jwt, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'refresh-mock', user: { id: IDS.learner, aud: 'authenticated', role: 'authenticated', email, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString(), factors } };
 }
 
 /** Pre-seeds a signed-in browser session (as supabase-js would store it). */
-export async function signedIn(page: Page, email = 'learner1@neuromind.test') {
-  await page.addInitScript(([key, value]) => localStorage.setItem(key, value), ['sb-mock-auth-token', JSON.stringify(token(email))]);
+export async function signedIn(page: Page, email = 'learner1@neuromind.test', session = token(email)) {
+  await page.addInitScript(([key, value]) => localStorage.setItem(key, value), ['sb-mock-auth-token', JSON.stringify(session)]);
 }
 
 export async function installMocks(page: Page, state: MockState) {
@@ -119,6 +138,20 @@ export async function installMocks(page: Page, state: MockState) {
         return ok(r, token(body.email));
       }
       return ok(r, { error: 'invalid_grant' }, 400); // refresh fails
+    }
+    const userView = () => ({ ...token('learner1@neuromind.test').user, factors: state.ext.factors });
+    if (url.pathname.endsWith('/auth/v1/user')) return ok(r, userView());
+    if (url.pathname.endsWith('/auth/v1/signup')) { state.ext.signups.push(req.postDataJSON?.().email); return ok(r, { id: 'new', email: req.postDataJSON?.().email, identities: [] }); }
+    if (url.pathname.endsWith('/auth/v1/resend')) { state.calls.push('POST /auth/v1/resend'); return ok(r, {}); }
+    if (url.pathname.endsWith('/auth/v1/authorize')) { state.ext.oauth.push(url.searchParams.get('provider') ?? ''); return r.fulfill({ status: 200, headers: J, body: '{}' }); }
+    if (url.pathname.endsWith('/auth/v1/factors') && req.method() === 'POST') { state.ext.factors.push({ id: 'f-new', factor_type: 'totp', status: 'unverified' }); return ok(r, { id: 'f-new', type: 'totp', totp: { qr_code: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>', secret: 'JBSWY3DPEHPK3PXP', uri: 'otpauth://totp/x' } }); }
+    const fm = url.pathname.match(/\/auth\/v1\/factors\/([^/]+)(?:\/(challenge|verify))?$/);
+    if (fm && req.method() === 'DELETE') { state.ext.factors = state.ext.factors.filter((f) => f.id !== fm[1]); return ok(r, { id: fm[1] }); }
+    if (fm && fm[2] === 'challenge') return ok(r, { id: 'ch-1', type: 'totp', expires_at: Math.floor(Date.now() / 1000) + 300 });
+    if (fm && fm[2] === 'verify') {
+      if (req.postDataJSON?.().code !== '123456') return ok(r, { code: 400, error_code: 'mfa_verification_failed', msg: 'Invalid TOTP code entered' }, 400);
+      state.ext.factors = state.ext.factors.map((f) => (f.id === fm[1] ? { ...f, status: 'verified' } : f));
+      return ok(r, token('learner1@neuromind.test', 'aal2', state.ext.factors));
     }
     if (url.pathname.endsWith('/auth/v1/recover')) { state.calls.push('POST /auth/v1/recover'); return r.fulfill({ status: 200, headers: J, body: '{}' }); }
     if (url.pathname.endsWith('/auth/v1/logout')) return r.fulfill({ status: 204, headers: J });
@@ -187,8 +220,71 @@ export async function installMocks(page: Page, state: MockState) {
     const sm = path.match(/^\/submissions\/(s-\d+)$/);
     if (sm) { const x = state.submissions.find((s) => s.id === sm[1]); return x ? ok(r, submissionView(x)) : err(r, 404, 'NOT_FOUND', 'Request could not be processed'); }
 
+
+    // ---- certificates, portfolio, announcements, issue reports ----
+    if (path === '/me/certificates') return ok(r, { certificates: state.ext.certificates });
+    if (path === '/me/announcements') return ok(r, { announcements: state.ext.announcements });
+    if (path === '/me/portfolio' && m === 'GET') return ok(r, { items: state.ext.portfolio });
+    if (path === '/me/portfolio' && m === 'POST') {
+      const b = body(); if (!state.submissions.some((x) => x.id === b.submission_id && x.status === 'passed')) return err(r, 422, 'VALIDATION_ERROR', 'Only passed submissions can be added');
+      state.ext.portfolio.push({ id: `pf-${state.ext.portfolio.length + 1}`, title: b.title, note: b.note ?? '', created_at: new Date().toISOString(), exercise: 'Print your name', score: 100, submission_id: b.submission_id, source_code: 'student_name = "Aarav"\nprint(student_name)\n' });
+      return ok(r, { id: 'pf', already_added: false }, 201);
+    }
+    const pfm = path.match(/^\/me\/portfolio\/(pf-\d+)$/);
+    if (pfm && m === 'DELETE') { state.ext.portfolio = state.ext.portfolio.filter((x) => x.id !== pfm[1]); return r.fulfill({ status: 204, headers: J }); }
+    if (path === '/me/issues' && m === 'POST') { const b = body(); state.ext.reported.push({ category: b.category, message: b.message }); return ok(r, { id: 'i-9', reference: 'I9ABCDEF' }, 201); }
+    if (path.startsWith('/certificates/verify/')) { const sr = path.split('/').pop(); return ok(r, sr === 'NM-2026-ABCD1234' ? { valid: true, serial: sr, course: 'NeuroMind AI Foundations', issued_at: '2026-10-14T00:00:00Z', holder: 'Asha R.' } : { valid: false }); }
+
+    // ---- administrator ----
+    if (path.startsWith('/admin')) {
+      if (role !== 'admin') return err(r, 403, 'FORBIDDEN', 'Request could not be processed');
+      const u = state.ext;
+      if (path === '/admin/overview') return ok(r, { users: { learners: 1, teachers: 1, admins: 1, deactivated: u.users.filter((x) => x.deactivated).length }, content: { courses_published: 1, lectures_published: 1, lectures_total: 1 }, queue: { queued: 0, running: 0, oldest_queued_seconds: null }, grading_24h: { sample: 3, by_status: { passed: 2, failed: 1 }, queue_wait_seconds: { p50: 2.5, p95: 4.2, max: 5 }, execution_seconds: { p50: 1.1, p95: 2, max: 2.4 }, end_to_end_seconds: { p50: 4, p95: 6, max: 7 } }, dead_letters: u.deadLetters.length, open_issues: u.issues.filter((i) => i.status === 'open').length, health: { api: true, database: true, checked_at: new Date().toISOString() } });
+      if (path === '/admin/users' && m === 'GET') {
+        const q = (url.searchParams.get('q') ?? '').toLowerCase(); const rl = url.searchParams.get('role'); const st = url.searchParams.get('status');
+        const rows = u.users.filter((x) => (!q || x.email.includes(q) || x.display_name.toLowerCase().includes(q)) && (!rl || x.role === rl) && (!st || x.deactivated === (st === 'deactivated')));
+        return ok(r, { users: rows, total: rows.length, limit: 15, offset: 0 });
+      }
+      if (path === '/admin/users' && m === 'POST') { const b = body(); u.users.push({ id: `u-${u.users.length + 1}`, email: b.email, display_name: b.display_name, role: b.role, deactivated: false, last_sign_in_at: null, created_at: new Date().toISOString(), email_confirmed: true }); return ok(r, { id: 'u-new', email: b.email, role: b.role }, 201); }
+      const um = path.match(/^\/admin\/users\/(u-\d+)\/(deactivate|reactivate|role)$/);
+      if (um) { const t = u.users.find((x) => x.id === um[1]); if (!t) return err(r, 404, 'NOT_FOUND', 'x'); if (um[2] === 'role') t.role = body().role; else t.deactivated = um[2] === 'deactivate'; return ok(r, { user_id: t.id, active: !t.deactivated }); }
+      if (path === '/admin/queue') return ok(r, { queue: { queued: 0, running: 0, oldest_queued_seconds: null }, grading_24h: { sample: 3, by_status: { passed: 3 }, queue_wait_seconds: { p50: 2.5, p95: 4.2, max: 5 }, execution_seconds: { p50: 1.1, p95: 2, max: 2.4 }, end_to_end_seconds: { p50: 4, p95: 6, max: 7 } }, dead_letters: u.deadLetters, procedure: 'Open the failure reason in the runbook, confirm the worker is healthy, then requeue.' });
+      const rq = path.match(/^\/admin\/submissions\/(.+)\/requeue$/);
+      if (rq) { u.requeued.push(rq[1]); u.deadLetters = u.deadLetters.filter((d) => d.submission_id !== rq[1]); return ok(r, { submission_id: rq[1], status: 'queued' }); }
+      if (path === '/admin/audit') { const t = url.searchParams.get('event_type'); const ev = [{ id: 'a1', actor_id: 'u-3aaaaaaa', event_type: 'admin.user_created', resource_type: 'user', resource_id: 'u-1bbbbbbb', request_id: 'r1', metadata: { new_role: 'learner' }, created_at: '2026-10-14T05:00:00Z' }, { id: 'a2', actor_id: null, event_type: 'auth.denied', resource_type: 'route', resource_id: null, request_id: 'r2', metadata: { role: 'learner' }, created_at: '2026-10-14T04:00:00Z' }].filter((e) => !t || e.event_type === t); return ok(r, { events: ev, total: ev.length, limit: 25, offset: 0 }); }
+      if (path === '/admin/courses') return ok(r, { courses: [{ id: IDS.course, title: 'NeuroMind AI Foundations', status: 'published', learners_enrolled: 1, lectures: [{ id: IDS.lecture, lecture_number: 9, title: 'Python setup', status: u.lectureStatus, content_version: 2, exercises: [{ id: IDS.ex, title: 'Print your name', status: 'published', test_suite_version: 1, pass_threshold: 80, max_attempts: null }] }] }], note: 'Published content is cached for up to 15 seconds.' });
+      const ls = path.match(/^\/admin\/lectures\/(.+)\/status$/);
+      if (ls) { u.lectureStatus = body().status; return ok(r, { lecture_id: ls[1], status: u.lectureStatus, previous_status: 'published' }); }
+      if (path === '/admin/cohorts' && m === 'GET') return ok(r, { cohorts: u.cohorts });
+      if (path === '/admin/cohorts' && m === 'POST') { const b = body(); u.cohorts.push({ id: `co-${u.cohorts.length + 1}`, course_id: b.course_id, name: b.name, learners: [], teachers: [] }); return ok(r, { id: `co-${u.cohorts.length}`, name: b.name }, 201); }
+      const cm = path.match(/^\/admin\/cohorts\/(co-\d+)(?:\/(members|teachers)\/(u-\d+))?$/);
+      if (cm) {
+        const c = u.cohorts.find((x) => x.id === cm[1]); if (!c) return err(r, 404, 'NOT_FOUND', 'x');
+        if (!cm[2]) { u.cohorts = u.cohorts.filter((x) => x !== c); return r.fulfill({ status: 204, headers: J }); }
+        const person = u.users.find((x) => x.id === cm[3]); if (!person) return err(r, 404, 'NOT_FOUND', 'x');
+        const list = cm[2] === 'members' ? c.learners : c.teachers;
+        if (m === 'PUT') { if (!list.some((x) => x.id === person.id)) list.push({ id: person.id, display_name: person.display_name }); } else { const i = list.findIndex((x) => x.id === person.id); if (i >= 0) list.splice(i, 1); }
+        return r.fulfill({ status: 204, headers: J });
+      }
+      if (path === '/admin/issues' && m === 'GET') { const st = url.searchParams.get('status') ?? 'open'; const rows = u.issues.filter((i) => st === 'any' || i.status === st); return ok(r, { issues: rows, total: rows.length, limit: 10, offset: 0 }); }
+      const im = path.match(/^\/admin\/issues\/(i-\d+)$/);
+      if (im && m === 'PATCH') { const i = u.issues.find((x) => x.id === im[1]); if (i) { i.status = body().status; i.admin_note = body().admin_note ?? null; } return ok(r, { id: im[1], status: body().status }); }
+      if (path === '/admin/settings') return ok(r, { read_only: true, settings: [{ label: 'Grading mode', value: 'queue', note: 'queue = a private worker grades' }, { label: 'Submissions per learner per minute', value: '6', note: 'Rate limit' }] });
+      return err(r, 404, 'NOT_FOUND', 'Request could not be processed');
+    }
+
     // teacher
     if (path.startsWith('/teacher') && role === 'learner') return err(r, 403, 'FORBIDDEN', 'Request could not be processed');
+
+    if (path === '/teacher/cohorts') return ok(r, { cohorts: [{ id: 'co-1', name: 'Autumn evening group', course_id: IDS.course, learners: 6, lectures_completed: 2, in_progress: 3, needs_support: 1 }] });
+    if (path === '/teacher/announcements' && m === 'GET') return ok(r, { announcements: state.ext.teacherAnnouncements });
+    if (path === '/teacher/announcements' && m === 'POST') { const b = body(); state.ext.teacherAnnouncements.push({ id: `an-${state.ext.teacherAnnouncements.length + 1}`, title: b.title, body: b.body, scope: b.scope, course_id: b.course_id, created_at: new Date().toISOString() }); return ok(r, { id: 'an' }, 201); }
+    const anm = path.match(/^\/teacher\/announcements\/(an-\d+)$/);
+    if (anm && m === 'DELETE') { state.ext.teacherAnnouncements = state.ext.teacherAnnouncements.filter((x) => x.id !== anm[1]); return r.fulfill({ status: 204, headers: J }); }
+    if (path === '/teacher/reports/progress') {
+      if (url.searchParams.get('format') === 'csv') return r.fulfill({ status: 200, headers: { ...J, 'content-type': 'text/csv', 'content-disposition': 'attachment; filename="progress-report.csv"' }, body: 'learner,lectures_completed\nAsha Rao,1\n' });
+      return ok(r, { rows: [{ learner: 'Asha Rao', lectures_completed: 1, lectures_in_progress: 0, exercises_passed: 1, attempts: 3, average_best_score: 92.5, needs_support: false, last_active: '2026-10-13T09:00:00Z' }] });
+    }
     if (path === '/teacher/summary') return ok(r, { assigned_learners: 13, lectures_completed: 4, lectures_in_progress: 6, submissions_passed: 9, submissions_needing_retry: 5, infrastructure_failures: 1 });
     if (path === '/teacher/learners') {
       const q = (url.searchParams.get('q') ?? '').toLowerCase(); const limit = Number(url.searchParams.get('limit') ?? 25); const offset = Number(url.searchParams.get('offset') ?? 0);

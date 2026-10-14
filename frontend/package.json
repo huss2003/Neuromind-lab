@@ -11,7 +11,7 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "e2e:grader-down": "E2E_GRADER_DOWN=1 playwright test -g E:",
-    "build:mock": "VITE_SUPABASE_URL=https://mock.supabase.test VITE_SUPABASE_ANON_KEY=mock-anon VITE_API_BASE_URL=http://api.mock.test vite build",
+    "build:mock": "VITE_ENABLE_SIGNUP=true VITE_OAUTH_PROVIDERS=google VITE_SUPABASE_URL=https://mock.supabase.test VITE_SUPABASE_ANON_KEY=mock-anon VITE_API_BASE_URL=http://api.mock.test vite build",
     "test:ui": "playwright test -c playwright.ui.config.ts"
   },
   "dependencies": {

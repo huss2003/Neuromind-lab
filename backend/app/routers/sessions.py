@@ -7,6 +7,7 @@ from app.auth import CurrentUser, current_user
 from app.errors import ApiError
 from app.repository import Repository, get_repository
 from app.routers.deps import path_uuid
+from app.services import certificates
 from app.services.context import LectureContext, load_context
 from app.services.grading import best_valid_score, explanation_for
 from app.services.audit import record as audit_record
@@ -138,6 +139,9 @@ async def complete_lecture(lecture_id: str, request: Request, _: CompleteBody | 
             "status": "completed", "completed_at": datetime.now(UTC).isoformat()}) or session
         await repo.recompute_progress(user.id, ctx.lecture["course_id"])
         await audit_record(repo, request, user.id, "lecture.completed", "lecture", ctx.lecture["id"])
+        cert, created = await certificates.issue_if_eligible(repo, user.id, ctx.lecture["course_id"])
+        if cert and created:
+            await audit_record(repo, request, user.id, "certificate.issued", "certificate", cert["id"], {"serial": cert["serial"]})
     return session_view(ctx, session) | {"completed_at": session.get("completed_at")}
 
 

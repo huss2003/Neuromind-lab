@@ -85,6 +85,7 @@ class InMemoryRepository:
         self.enrollments: dict[str, set[str]] = {
             "11111111-1111-4111-8111-111111111111": {CID}, "22222222-2222-4222-8222-222222222222": {CID}}
         self.roles: dict[str, str] = {}
+        self.tables: dict[str, list[dict]] = {}
 
     # content
     async def list_published_courses(self): return [self.d["course"]]
@@ -245,6 +246,81 @@ class InMemoryRepository:
     async def list_feedback(self, learner, published_only):
         return [dict(f) for f in self.feedback if f["learner_id"] == learner and (f["published"] or not published_only)]
 
+
+    # --- generic table access (mirrors PostgrestRepository.tbl_*) ---
+    def _rows(self, table):
+        if table == "audit_logs":
+            return self.audit
+        if table == "lab_submissions":
+            return self.submissions
+        if table == "profiles":
+            return list(self.profiles.values())
+        if table == "lectures":
+            return [self.d["lecture"]]
+        if table == "lecture_exercises":
+            return [self.d["exercise"]]
+        if table == "courses":
+            return [self.d["course"]]
+        if table == "enrollments":
+            return [{"learner_id": lr, "course_id": c, "revoked_at": None} for lr, cs in self.enrollments.items() for c in cs]
+        if table == "teacher_assignments":
+            return [{"teacher_id": t, "learner_id": lr, "course_id": CID, "revoked_at": None} for t, ls in self.assignments.items() for lr in ls]
+        return self.tables.setdefault(table, [])
+
+    @staticmethod
+    def _match(row, filters):
+        for col, op, val in filters or []:
+            v = row.get(col)
+            ok = {"eq": lambda: str(v) == str(val), "neq": lambda: str(v) != str(val), "in": lambda: str(v) in {str(x) for x in val},
+                  "gte": lambda: v is not None and str(v) >= str(val), "lt": lambda: v is not None and str(v) < str(val),
+                  "is_null": lambda: (v is None) == bool(val), "ilike": lambda: str(val).lower() in str(v or "").lower()}[op]()
+            if not ok:
+                return False
+        return True
+
+    async def tbl_select(self, table, filters=None, *, columns="*", order=None, limit=None, offset=0):
+        rows = [r for r in self._rows(table) if self._match(r, filters)]
+        if order:
+            col, _, direction = order.partition(".")
+            rows.sort(key=lambda r: str(r.get(col) or ""), reverse=direction == "desc")
+        total = len(rows)
+        if limit is not None:
+            rows = rows[offset:offset + limit]
+        return copy.deepcopy(rows), total
+
+    async def tbl_insert(self, table, row, *, ignore_duplicates=False):
+        rows = self._rows(table)
+        keys = {"cohort_members": ("cohort_id", "learner_id"), "cohort_teachers": ("cohort_id", "teacher_id"),
+                "certificates": ("learner_id", "course_id"), "portfolio_items": ("submission_id",), "cohorts": ("course_id", "name")}.get(table)
+        if keys and any(all(r.get(k) == row.get(k) for k in keys) for r in rows):
+            if ignore_duplicates:
+                return None
+            raise RuntimeError("duplicate key")
+        defaults = {"certificates": {"issued_at": now(), "revoked_at": None}, "announcements": {"archived_at": None},
+                    "cohorts": {"archived_at": None}, "issue_reports": {"admin_note": None, "status": "open"}}.get(table, {})
+        r = {"id": str(uuid.uuid4()), "created_at": now(), **defaults, **row}
+        rows.append(r)
+        return copy.deepcopy(r)
+
+    async def tbl_update(self, table, filters, fields):
+        hit = [r for r in self._rows(table) if self._match(r, filters)]
+        for r in hit:
+            r.update(fields)
+        return copy.deepcopy(hit)
+
+    async def tbl_delete(self, table, filters):
+        rows = self._rows(table)
+        hit = [r for r in rows if self._match(r, filters)]
+        for r in hit:
+            rows.remove(r)
+        return len(hit)
+
+    async def list_teacher_ids_for_learner(self, learner):
+        return sorted(t for t, ls in self.assignments.items() if learner in ls)
+
+    async def queue_metrics(self, since_iso):
+        return copy.deepcopy([s for s in self.submissions if s.get("started_at") and s["created_at"] >= since_iso])
+
     async def ping(self): return True
 
     async def list_enrolled_course_ids(self, learner): return sorted(self.enrollments.get(learner, set()))
@@ -322,3 +398,26 @@ class FakeGrader:
                                [{"test_order": 1, "passed": False}, {"test_order": 2, "passed": True}], "test-1.0")
         return GradeResult("failed", 0, 2, 0.0, 10, [{"kind": "failure", "message": "Test 1 failed."}],
                            [{"test_order": 1, "passed": False}, {"test_order": 2, "passed": False}], "test-1.0")
+
+
+class FakeAuthAdmin:
+    def __init__(self) -> None:
+        self.users: dict[str, dict] = {}
+        self.banned: dict[str, bool] = {}
+
+    async def list_users(self, max_users=1000):
+        return [dict(u) for u in self.users.values()][:max_users]
+
+    async def create_user(self, email, password, display_name):
+        if any(u["email"] == email for u in self.users.values()) or len(password) < 8:
+            return None
+        uid = str(uuid.uuid4())
+        self.users[uid] = {"id": uid, "email": email, "last_sign_in_at": None, "created_at": now(), "banned_until": None, "email_confirmed": True}
+        return {"id": uid, "email": email}
+
+    async def set_banned(self, user_id, banned):
+        if user_id not in self.users:
+            return False
+        self.banned[user_id] = banned
+        self.users[user_id]["banned_until"] = "2999-01-01T00:00:00Z" if banned else None
+        return True

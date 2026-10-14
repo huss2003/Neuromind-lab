@@ -3,6 +3,7 @@ database credentials; it can claim a job, extend its lease, and post a result fo
 other data. Disabled (503) unless GRADER_WORKER_TOKEN is configured."""
 import hmac
 import os
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, Request, Response
@@ -12,6 +13,7 @@ from app.errors import ApiError
 from app.grader_client import GradeResult, InvalidGraderResult, validate_payload
 from app.repository import Repository, get_repository
 from app.routers.deps import path_uuid
+from app.services import metrics
 from app.services import audit
 from app.services.finalize import finalize_submission
 
@@ -100,4 +102,7 @@ async def release(submission_id: str, body: ClaimBody, repo: Repository = Depend
 @router.get("/health", dependencies=[Depends(require_worker)])
 async def queue_health(repo: Repository = Depends(get_repository)):
     """Queue depth and the age of the oldest waiting job, for monitoring. Counts only; no learner data."""
-    return await repo.queue_stats()
+    since = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
+    recent = metrics.summarise(await repo.queue_metrics(since))
+    return {**await repo.queue_stats(), "queue_wait_p95_seconds": recent["queue_wait_seconds"]["p95"],
+            "execution_p95_seconds": recent["execution_seconds"]["p95"], "sample_last_hour": recent["sample"]}

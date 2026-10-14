@@ -7,6 +7,7 @@ import { EmptyState, ErrorMessage, Loading } from '../components/States';
 import { STATUS_LABEL } from '../components/SubmissionStatus';
 import { useAuth } from '../auth/AuthProvider';
 import { errorMessage } from '../services/api';
+import { getAnnouncements } from '../services/adminApi';
 import { getDashboard, getMyFeedback } from '../services/lectureApi';
 import type { Submission } from '../services/types';
 
@@ -16,6 +17,7 @@ export function Home() {
   const { profile, session } = useAuth();
   const dash = useQuery({ queryKey: ['dashboard'], queryFn: getDashboard });
   const feedback = useQuery({ queryKey: ['feedback'], queryFn: getMyFeedback });
+  const news = useQuery({ queryKey: ['announcements'], queryFn: getAnnouncements });
 
   if (dash.isPending) return <main className="page"><Loading label="Loading your dashboard…" /></main>;
   if (dash.isError) return <main className="page"><ErrorMessage message={errorMessage(dash.error)} onRetry={() => void dash.refetch()} /></main>;
@@ -48,6 +50,16 @@ export function Home() {
           ? <Link className="btn btn-primary" to={`/lectures/${next.lecture_id}`}>{resuming ? 'Resume lecture' : 'Start lecture'}</Link>
           : <Link className="btn btn-primary" to={`/courses/${d.course.id}`}>Review course</Link>}
       </section>
+      {news.data && news.data.length > 0 && (
+        <section className="card" aria-labelledby="news-h">
+          <h2 id="news-h" style={{ marginTop: 0 }}>Announcements</h2>
+          <ul className="plain-list">
+            {news.data.slice(0, 3).map((a) => (
+              <li key={a.id}><strong>{a.title}</strong> <span className="muted">· {a.from} · {when(a.created_at)}</span><p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{a.body}</p></li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid-dash">
         <section className="card" aria-labelledby="course-title">

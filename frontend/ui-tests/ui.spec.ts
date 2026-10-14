@@ -485,3 +485,130 @@ test('policies hub lists every policy and each page opens without signing in', a
     await expect(page.getByRole('link', { name: 'All policies' }).first()).toBeVisible();
   }
 });
+
+test('portfolio: only a passed result can be added, it appears in the portfolio, and the result is announced to screen readers', async ({ page }) => {
+  await setup(page);
+  await toLab(page);
+  await typeCode(page, HALF);
+  await page.getByRole('button', { name: 'Submit for grading' }).click();
+  await expect(page.getByText('Needs work').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'Add to portfolio' })).toHaveCount(0); // a failed attempt cannot be added
+  await expect(page.getByTestId('result-announcement')).toContainText(/Official result: Needs work\. Score 50 percent/);
+  await page.locator('textarea.simple-editor').fill(GOOD); // the plain editor is already on from the first attempt
+  await page.getByRole('button', { name: 'Submit for grading' }).click();
+  await expect(page.getByText('Passed').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('result-announcement')).toContainText(/Official result: Passed\. Score 100 percent/);
+  await page.getByRole('button', { name: 'Add to portfolio' }).click();
+  await page.getByLabel('Name this piece of work').fill('My first program');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByText('Added to your')).toBeVisible();
+  await page.getByRole('link', { name: 'Portfolio', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: 'My first program' })).toBeVisible();
+  await expect(page.getByText('official score 100%')).toBeVisible();
+  await page.getByRole('button', { name: /Remove My first program/ }).click();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(page.getByText('Nothing here yet')).toBeVisible();
+});
+
+test('attempt history shows the exercise version of every attempt', async ({ page }) => {
+  await setup(page);
+  await toLab(page);
+  await typeCode(page, HALF);
+  await page.getByRole('button', { name: 'Submit for grading' }).click();
+  await expect(page.getByText('Needs work').first()).toBeVisible({ timeout: 15_000 });
+  await page.goto(`/exercises/${IDS.ex}/attempts`);
+  await expect(page.getByRole('columnheader', { name: 'Exercise version' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Lesson v1, checks v1' })).toBeVisible();
+});
+
+test('certificates: none until earned; an issued certificate can be printed; anyone can verify a serial', async ({ page }) => {
+  const state = await setup(page);
+  await page.goto('/certificates');
+  await expect(page.getByText('No certificate yet')).toBeVisible();
+  state.ext.certificates.push({ id: 'c1', serial: 'NM-2026-ABCD1234', course: 'NeuroMind AI Foundations', issued_at: '2026-10-14T00:00:00Z', completed_lectures: 4, holder: 'Asha Rao' });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Asha Rao' })).toBeVisible();
+  await expect(page.getByText('Serial NM-2026-ABCD1234')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Print or save as PDF' })).toBeVisible();
+  await page.goto('/verify/NM-2026-ABCD1234');
+  await expect(page.getByText('This certificate is genuine.')).toBeVisible();
+  await expect(page.getByText(/Asha R\. completed NeuroMind AI Foundations/)).toBeVisible();
+  await page.getByLabel('Certificate serial').fill('nm-2026-00000000');
+  await page.getByRole('button', { name: 'Check' }).click();
+  await expect(page.getByText('No certificate was found for that serial.')).toBeVisible();
+});
+
+test('help: a problem report is sent with a reference, and announcements show on the dashboard', async ({ page }) => {
+  const state = await setup(page);
+  state.ext.announcements.push({ id: 'an1', title: 'Lab on Friday', body: 'Bring your questions.', created_at: '2026-10-14T00:00:00Z', from: 'Tara Teacher' });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Announcements' })).toBeVisible();
+  await expect(page.getByText('Lab on Friday')).toBeVisible();
+  await page.goto('/help');
+  await page.getByLabel('What is it about?').selectOption('grading');
+  await page.getByLabel('What happened?').fill('My lab result looks wrong');
+  await page.getByRole('button', { name: 'Send report' }).click();
+  await expect(page.getByText('Your report was sent.')).toBeVisible();
+  await expect(page.getByText('Reference I9ABCDEF')).toBeVisible();
+  expect(state.ext.reported).toEqual([{ category: 'grading', message: 'My lab result looks wrong' }]);
+});
+
+test('sign-up: same confirmation for every address, and sign-in offers sign-up and social sign-in', async ({ page }) => {
+  const state = newState();
+  await installMocks(page, state);
+  await page.goto('/sign-in');
+  await expect(page.getByRole('link', { name: 'Create an account' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Google' })).toBeVisible();
+  await page.getByRole('link', { name: 'Create an account' }).click();
+  await page.getByLabel('Full name').fill('New Learner');
+  await page.getByLabel('Email').fill('new@example.test');
+  await page.getByLabel('Password').fill('a-long-password-123');
+  await expect(page.getByRole('button', { name: 'Create account' })).toBeDisabled(); // terms must be accepted first
+  await page.getByLabel(/I have read the/).check();
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  expect(state.ext.signups).toEqual(['new@example.test']);
+  await page.getByRole('button', { name: 'Send the email again' }).click();
+  await expect.poll(() => state.calls).toContain('POST /auth/v1/resend');
+  await page.goto('/sign-in');
+  await page.getByRole('button', { name: 'Google' }).click(); // leaves the app for the provider
+  await expect.poll(() => state.ext.oauth).toContain('google');
+});
+
+test('two-step verification: set up in the profile, then required before anything protected shows', async ({ page }) => {
+  const state = newState();
+  await installMocks(page, state);
+  await signedIn(page);
+  await page.goto('/profile');
+  await page.getByRole('button', { name: 'Set up' }).click();
+  await expect(page.getByAltText('QR code for your authenticator app')).toBeVisible();
+  await expect(page.getByText('JBSWY3DPEHPK3PXP')).toBeVisible();
+  await page.getByLabel('6-digit code').fill('000000');
+  await page.getByRole('button', { name: 'Turn on' }).click();
+  await expect(page.getByText('That code did not match.')).toBeVisible();
+  await page.getByLabel('6-digit code').fill('123456');
+  await page.getByRole('button', { name: 'Turn on' }).click();
+  await expect(page.getByText('Two-step verification is on.')).toBeVisible();
+  // a new session for an account with a verified factor starts at assurance level 1: the challenge comes before any content
+  const challenged = await page.context().newPage();
+  await installMocks(challenged, state);
+  await signedIn(challenged, 'learner1@neuromind.test', (await import('./mockServer')).token('learner1@neuromind.test', 'aal1', state.ext.factors));
+  await challenged.goto('/');
+  await expect(challenged.getByRole('heading', { name: 'Two-step verification' })).toBeVisible();
+  await expect(challenged.getByRole('heading', { name: /Lecture 9/ })).toHaveCount(0);
+  await challenged.getByLabel('6-digit code').fill('654321');
+  await challenged.getByRole('button', { name: 'Verify' }).click();
+  await expect(challenged.getByText('That code did not work.')).toBeVisible();
+  await challenged.getByLabel('6-digit code').fill('123456');
+  await challenged.getByRole('button', { name: 'Verify' }).click();
+  await expect(challenged.getByRole('heading', { level: 1 })).toContainText('Lecture 9');
+});
+
+test('certificate check works for a visitor who is not signed in (the sign-out notice on load must not cancel the request)', async ({ page }) => {
+  await installMocks(page, newState()); // no session
+  await page.goto('/verify/NM-2026-ABCD1234');
+  await expect(page.getByText('This certificate is genuine.')).toBeVisible();
+  await page.getByLabel('Certificate serial').fill('NM-2026-FFFFFFFF');
+  await page.getByRole('button', { name: 'Check' }).click();
+  await expect(page.getByText('No certificate was found for that serial.')).toBeVisible();
+});

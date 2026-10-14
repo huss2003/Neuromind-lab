@@ -84,6 +84,8 @@ export const submissionSchema = z.object({
   feedback: z.array(z.object({ kind: z.string(), message: z.string() })),
   infrastructure_error: z.boolean(),
   created_at: z.string(),
+  content_version: z.number().nullable().optional(),
+  test_suite_version: z.number().nullable().optional(),
 });
 export const exerciseSchema = z.object({
   id: z.string(),

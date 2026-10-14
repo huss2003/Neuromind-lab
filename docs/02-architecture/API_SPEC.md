@@ -115,3 +115,29 @@ New / changed endpoints:
 
 Evidence persisted per official attempt (§6.3, GRD-008): content version, test-suite version, grader version, max score, pass threshold, raw and adjusted score, hint use and penalty, per-criterion results, correlation id, started/finished timestamps. Checkpoint attempts store question and content versions.
 Audit events written (allow-listed metadata only): `auth.denied`, `checkpoint.attempt`, `submission.created`, `submission.finished`, `submission.rate_limited`, `hint.revealed`, `lecture.completed`, `teacher.view_learner`, `teacher.view_submission`, `feedback.created`.
+
+
+## 2026-10-14 additions (admin workspace, certificates, portfolio, announcements, cohorts, issue reports)
+All routes are under `/api/v1`. Errors use the standard shape. Admin routes need role `admin`; teacher-tool routes need `teacher` or `admin`; `/me/*` needs any signed-in user; `GET /certificates/verify/{serial}` is public.
+
+| Method | Route | Notes |
+|---|---|---|
+| GET | `/admin/users?q&role&status&limit&offset` | merges profiles with Supabase Auth data (email, last sign-in); searched in memory over at most 1,000 accounts |
+| POST | `/admin/users` | `{email, display_name, role, password (12+), course_id?}`; 409 `USER_NOT_CREATED` with one generic message if the address exists or the password is refused |
+| POST | `/admin/users/{id}/deactivate` · `/reactivate` | sets `profiles.deactivated_at` and bans the Auth user; 400 for your own account; the API answers 403 `ACCOUNT_DEACTIVATED` within the 30 s token cache |
+| GET | `/admin/overview` · `/admin/queue` | counts, health, queue depth, queue-wait / execution / end-to-end percentiles for 24 h, dead letters |
+| POST | `/admin/submissions/{id}/requeue` | only `status=error` with `claim_count>=3`; 404 otherwise |
+| GET | `/admin/audit?event_type&actor_id&limit(<=200)&offset` | newest first |
+| GET | `/admin/courses` · PATCH `/admin/lectures/{id}/status` | `{status: draft|published|archived}`; publishing a lecture with no sections is refused (422) |
+| GET/POST | `/admin/cohorts` · DELETE `/admin/cohorts/{id}` | archive, not delete |
+| PUT/DELETE | `/admin/cohorts/{id}/members/{learner}` · `/teachers/{teacher}` | membership drives enrolment and teacher assignment |
+| GET/PATCH | `/admin/issues` | `{status, admin_note}` |
+| GET | `/admin/settings` | read-only, no secrets |
+| GET | `/me/certificates` · `GET /certificates/verify/{serial}` | issued only by `POST /lectures/{id}/complete` when every published lecture of the course is complete |
+| GET/POST/DELETE | `/me/portfolio` | only own passed submissions; the same submission is added once |
+| GET | `/me/announcements` | course-wide from administrators, plus the learner's own teachers' |
+| POST | `/me/issues` | `{category: content|grading|account|accessibility|other, message, page?}`; 5 per hour per person |
+| GET/POST/DELETE | `/teacher/announcements` | teachers: scope `assigned` only |
+| GET | `/teacher/cohorts` · `/teacher/reports/progress?format=json|csv&cohort_id=` | CSV cells starting with `= + - @` are prefixed with `'` |
+
+Submission views now also return `content_version`, `test_suite_version`, `started_at`, `finished_at`. The worker `GET /internal/grader/health` also returns `queue_wait_p95_seconds`, `execution_p95_seconds`, `sample_last_hour`. The API returns 403 `MFA_REQUIRED` for an account with a verified second factor when the access token did not complete it (assurance level 1).

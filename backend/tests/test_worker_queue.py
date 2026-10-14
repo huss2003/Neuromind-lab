@@ -153,9 +153,11 @@ def test_worker_claim_payload_contains_tests_but_user_endpoints_never_do(env):
 def test_queue_health_reports_depth_and_age_without_learner_data_and_needs_the_worker_token(env):
     c, _, _ = env
     assert c.get(f"{BASE}/health").status_code == 401
-    assert c.get(f"{BASE}/health", headers=W).json() == {"queued": 0, "running": 0, "oldest_queued_seconds": None}
+    assert c.get(f"{BASE}/health", headers=W).json() == {"queued": 0, "running": 0, "oldest_queued_seconds": None, "queue_wait_p95_seconds": None,
+                                                         "execution_p95_seconds": None, "sample_last_hour": 0}
     submit(c)
     body = c.get(f"{BASE}/health", headers=W).json()
-    assert body["queued"] == 1 and body["running"] == 0 and body["oldest_queued_seconds"] >= 0 and set(body) == {"queued", "running", "oldest_queued_seconds"}
+    assert body["queued"] == 1 and body["running"] == 0 and body["oldest_queued_seconds"] >= 0 and set(body) == {"queued", "running", "oldest_queued_seconds", "queue_wait_p95_seconds",
+                                                                                                                          "execution_p95_seconds", "sample_last_hour"}  # counts and timings only
     claim(c)
     assert c.get(f"{BASE}/health", headers=W).json()["running"] == 1
