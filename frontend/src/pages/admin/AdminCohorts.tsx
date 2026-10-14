@@ -56,9 +56,10 @@ export function AdminCohorts() {
   const [name, setName] = useState('');
   const [course, setCourse] = useState('');
   const [notice, setNotice] = useState('');
+  const courseId = course || courses.data?.[0]?.id; // the first course until the person picks another
   const [archiving, setArchiving] = useState<AdminCohort | null>(null);
   const refresh = () => void qc.invalidateQueries({ queryKey: ['a-cohorts'] });
-  const create = useMutation({ mutationFn: () => createCohort(course || courses.data?.[0]?.id || '', name.trim()), onSuccess: () => { setNotice(`Cohort “${name.trim()}” created.`); setName(''); refresh(); }, onError: (e) => setNotice(errorMessage(e)) });
+  const create = useMutation({ mutationFn: () => createCohort(courseId ?? '', name.trim()), onSuccess: () => { setNotice(`Cohort “${name.trim()}” created.`); setName(''); refresh(); }, onError: (e) => setNotice(errorMessage(e)) });
   const archive = useMutation({ mutationFn: (id: string) => archiveCohort(id), onSuccess: () => { setNotice('Cohort archived. Teacher access that came only from it was removed.'); setArchiving(null); refresh(); }, onError: (e) => { setNotice(errorMessage(e)); setArchiving(null); } });
 
   return (
@@ -73,7 +74,7 @@ export function AdminCohorts() {
           <><label htmlFor="co-course">Course</label>
             <select id="co-course" value={course} onChange={(e) => setCourse(e.target.value)}>{courses.data.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}</select></>
         )}
-        <button className="btn btn-primary" type="submit" disabled={create.isPending || !name.trim()}>Create cohort</button>
+        <button className="btn btn-primary" type="submit" disabled={create.isPending || !name.trim() || !courseId}>Create cohort</button>
       </form>
       {cohorts.isPending && <Loading label="Loading cohorts…" />}
       {cohorts.isError && <ErrorMessage message={errorMessage(cohorts.error)} onRetry={() => void cohorts.refetch()} />}

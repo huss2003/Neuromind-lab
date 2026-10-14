@@ -119,18 +119,25 @@ Everything uses free plans. No Redis, paid queue, paid AI API or GPU is used.
 ### 4.6 Progress (S16)
 "My progress" lists lectures with status and completion date, plus an explanation: *a lecture is complete only when the server has recorded every required section, the checkpoints, the exit check and a passing lab score; watching a video alone does not complete it*. No mastery-by-objective or trend charts yet. 🟡
 
-### 4.7 Teacher workspace (T01, T04–T09)
+### 4.7 Teacher workspace (T01 to T09)
 - **Overview**: counts and learners needing support. 🟡
-- **Roster**: search, "needs support" filter, server-side pagination ("Showing 1–1 of 1"). ✅
-- **Learner detail**: progress, attempts, best score, evidence, feedback history. ✅
-- **Submission review**: the code snapshot, status, criteria, grader/test/content versions, timing, and a feedback composer (visible to the learner or private). ✅
-- **Analytics**: per-exercise attempts, completion and pass rate, most common failed criteria, system errors counted separately. 🟡
-- **Content status**: read-only list of content and versions. Editing/publishing is not available and the page says so. 🟡
-- **Scope**: a teacher sees only learners assigned to them. Anything outside that scope returns "not found" (404), not "forbidden", so existence is not leaked. ✅
-- Named cohorts, assignable remediation, due dates: ❌ (decision needed).
+- **Roster**: search, "needs support" filter, server-side pagination. ✅
+- **Cohorts**: cards for the cohorts the teacher teaches (learners, in progress, lectures completed, needing support), each linking to a cohort report. ✅ (since 2026-10-14)
+- **Learner detail**, **submission review**, feedback composer (visible to the learner or private). ✅
+- **Announcements**: write to your own assigned learners; they appear on those learners' dashboards; remove later. Only administrators can address a whole course. ✅
+- **Progress report**: one row per learner in scope, as a CSV download (formula-injection safe) or a printable page (browser "Save as PDF"). ✅
+- **Analytics** and **content status** (read-only). 🟡
+- **Scope**: a teacher sees only learners assigned to them (individually or through a cohort). Anything outside returns "not found" (404). ✅
+- Assignable remediation and due dates: ❌ (not requested).
 
-### 4.8 Administration
-Only API endpoints exist: change a user's role, enrol a learner in a course, assign a learner to a teacher. All are admin-only and audited. There is no admin UI, no queue/service health screen, no audit-log viewer. ❌
+### 4.8 Administration (since 2026-10-14; screens A01 to A06)
+Administrators see an **Administration** menu with: **Overview** (people counts, service health, queue, grading timing, dead letters, open issues), **Users** (search, filter, change role, create an account with a starting password, deactivate and reactivate with confirmation), **Cohorts** (create, add or remove teachers and learners; adding a learner enrols them in the course and gives the cohort's teachers access), **Content** (courses, lectures, versions, labs and test-suite versions; publish, draft or archive a lecture), **Grading queue** (waiting, running, queue-wait and execution percentiles, dead-lettered attempts with a Retry action), **Audit log** (filterable, paginated), **Issue reports** (triage, note, resolve) and **Settings** (read-only platform limits, no secrets). Everything an administrator changes is written to the audit log. There is still no endpoint that edits an official score. Writing new lecture content is done through reviewed scripts and migrations, not in the browser. ✅
+
+### 4.9 Achievements, portfolio, help
+- **Certificates**: issued by the server when a learner has completed every published lecture of a course; printable page ("Save as PDF"); a public page `/verify/<serial>` confirms a serial and shows only the course, the date and a shortened name. ✅
+- **Portfolio**: a learner can add their own *passed* official submissions with a title and note, and remove them. ✅
+- **Report a problem**: a form on the Help page (content, grading, accessibility, account, other), rate limited, goes to the administrators' queue. ✅
+- **Account options**: self-registration with email confirmation and social sign-in exist but are **off** unless the deployment turns them on; optional two-step verification (authenticator app) is available in Profile and is enforced by the API once enrolled. ✅
 
 ---
 
@@ -188,7 +195,9 @@ All API errors share one shape: a stable code, a plain-language message and a co
 | Checkpoints | `POST/GET /checkpoints/{id}/attempts` |
 | Exercises | `GET /exercises/{id}`, `POST /exercises/{id}/hints`, `PUT /exercises/{id}/draft`, `POST/GET /exercises/{id}/submissions`, `GET /submissions/{id}` |
 | Teacher | `/teacher/summary`, `/learners`, `/analytics/exercises`, `/content-status`, `/learners/{id}/results`, `/submissions/{id}`, `POST /learners/{id}/feedback` |
-| Admin | `PATCH /admin/users/{id}/role`, `PUT …/enrollments/{learner}`, `PUT …/teachers/{teacher}/learners/{learner}` |
+| Admin | users (`GET/POST /admin/users`, `POST …/{id}/deactivate|reactivate`, `PATCH …/{id}/role`), `GET /admin/overview`, `GET /admin/queue`, `POST /admin/submissions/{id}/requeue`, `GET /admin/audit`, `GET /admin/courses`, `PATCH /admin/lectures/{id}/status`, cohorts (`GET/POST /admin/cohorts`, `DELETE …/{id}`, `PUT/DELETE …/{id}/members/{learner}`, `…/teachers/{teacher}`), `GET/PATCH /admin/issues`, `GET /admin/settings`, enrolments and teacher assignments as before |
+| Learner extras | `GET /me/certificates`, `GET /certificates/verify/{serial}` (public), `GET/POST/DELETE /me/portfolio`, `GET /me/announcements`, `POST /me/issues` |
+| Teacher tools | `GET/POST/DELETE /teacher/announcements`, `GET /teacher/cohorts`, `GET /teacher/reports/progress?format=json|csv&cohort_id=` |
 
 Contract details are in `docs/02-architecture/API_SPEC.md`.
 
@@ -299,13 +308,12 @@ Decisions recorded in `docs/09-audit/DECISIONS_v1.md` and still needing the owne
 
 ## 14. What is not built (on purpose or pending approval)
 
-- Teacher/author **content editing, preview, validation and publishing** (T10–T14), content-issue queue (A06).
-- **Named cohorts** and cohort analytics (T02/T03); assignable remediation.
-- **Admin screens**: user management UI, queue and service health with p50/p95/p99, audit-log viewer (A01–A05).
-- **Durable grading queue**: outbox, worker leases, retry with back-off and jitter, dead-letter, fair scheduling. Today grading is a background task; a crash can leave an attempt unfinished until it is expired.
-- Load tests, latency targets, the 100-user capacity claim.
-- Problem-report form, announcements, accessibility preferences, notification settings.
-- AI tutor, RAG, agents, multi-file IDE/terminal, proctoring, portfolio sharing, the other 103 lectures.
+- Writing and publishing **lecture content in the browser** (authoring tools, preview, review workflow); content is changed by reviewed scripts and migrations.
+- Assignable remediation and due dates; accessibility and notification preferences; appeals.
+- A staging database (the Supabase plan limit blocked a second project).
+- Server-side PDF generation (printing the page to PDF is used instead).
+- AI tutor, RAG, agents, multi-file IDE/terminal, proctoring, portfolio sharing, the other 100 lectures (only Lectures 9 to 12 exist), recorded lecture videos.
+- The 100-user capacity claim: only 40 concurrent synthetic learners for 60 seconds were measured.
 
 ---
 
