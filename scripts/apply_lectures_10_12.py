@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
 URL, KEY = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1", os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal"}
+H = {"apikey": KEY, **({} if KEY.startswith("sb_secret_") else {"Authorization": f"Bearer {KEY}"}), "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal"}
 NS = uuid.UUID("5a1d3e84-7b6c-4f1e-9a52-0c2d8e4b7f10")
 COURSE, MODULE = "00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"
 LEC9 = "00000000-0000-4000-8000-000000000009"

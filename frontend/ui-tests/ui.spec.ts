@@ -474,3 +474,14 @@ test('UX spec S03/S18/S15: welcome, help with FAQ and attempt history', async ({
   await page.getByText('How is progress calculated?').click();
   await expect(page.getByText(/Watching a video alone does not complete/)).toBeVisible();
 });
+
+test('policies hub lists every policy and each page opens without signing in', async ({ page }) => {
+  await page.goto('/policies');
+  await expect(page.getByRole('heading', { level: 1, name: 'Policies' })).toBeVisible();
+  for (const name of ['Privacy notice', 'Terms of use', 'Acceptable use and academic honesty', 'Data retention', 'Accessibility statement', 'Security and reporting']) {
+    await page.goto('/policies');
+    await page.getByRole('link', { name }).click();
+    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'All policies' }).first()).toBeVisible();
+  }
+});

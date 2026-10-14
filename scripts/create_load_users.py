@@ -14,7 +14,7 @@ COURSE = "00000000-0000-4000-8000-000000000001"
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 50
 if len(PASSWORD) < 14 or os.getenv("CONFIRM_DEV_PROJECT") != "yes":
     sys.exit("Set DEV_USER_PASSWORD (14+ chars) and CONFIRM_DEV_PROJECT=yes. DEV projects only.")
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+H = {"apikey": KEY, **({} if KEY.startswith("sb_secret_") else {"Authorization": f"Bearer {KEY}"})}
 with httpx.Client(timeout=30) as c:
     for i in range(1, N + 1):
         email = f"loadtest{i:02d}@neuromind.test"

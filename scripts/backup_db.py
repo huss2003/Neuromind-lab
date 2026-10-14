@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
 BASE, KEY = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1", os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-H = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+H = {"apikey": KEY, **({} if KEY.startswith("sb_secret_") else {"Authorization": f"Bearer {KEY}"})}
 
 
 def tables() -> list[str]:
