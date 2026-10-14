@@ -168,3 +168,45 @@ The rubric says a failed mandatory gate means **NO-GO**, and Gate 1 (key rotatio
 10. Privacy/contact details and pilot terms: **OWN**.
 11. Support owner and escalation: **OWN**.
 12. Limit enrolment to demonstrated capacity: **recommend at most about 40 concurrent learners**.
+
+---
+## Update 2026-10-14 (later): the not-built and partly-done items were built
+
+Status codes as above. "PV" below means a real browser against the live site and API on commit `0dfe5fb` (frontend) and `9b41746` (API), with temporary accounts that were deleted afterwards. Migrations 0007 (certificates, portfolio, announcements, cohorts, issue reports) and 0008 (profile deactivation) are applied to the production database after a backup, and apply from empty in the local rehearsal.
+
+### Previously not built
+| Item | Status | Evidence |
+|---|---|---|
+| Admin screens (users, roles, enrolment through cohorts, content, queue, audit viewer, issues, settings, health) | **PV** | live E2E: overview, create a person, deactivate (sign-in really refused by Supabase), reactivate, audit trail shows both events; 8 more screens covered by mocked UI tests and axe |
+| Audit-log viewer, queue monitoring screen | **PV** (audit) / **T** (queue screen; live page loaded, requeue exercised with mocks and fakes) | |
+| Certificates | **PV** | issued by the server on completing the last published lecture; printable; serial verified by a signed-out visitor; another learner sees none |
+| Portfolio evidence | **PV** | only a passed official submission can be added; shown and owned per learner |
+| Teacher announcements | **PV** | teacher writes, assigned learner sees it on the dashboard, removed afterwards; only administrators can address a whole course (tests) |
+| Report export | **PV** (CSV download, JSON) / **T** (printable page, formula-injection guard) | PDF is the browser's "Save as PDF" of the printable page, not server-generated |
+| Named cohorts | **PV** | admin builds a cohort, the teacher sees the card and the learner; membership drives enrolment and teacher access |
+| Assignment management screen | **PV** | through cohort membership (administrators); there is no separate per-learner screen |
+| Sign-up, email verification, social sign-in | **T**; **off in production** | built behind `VITE_ENABLE_SIGNUP` and `VITE_OAUTH_PROVIDERS`; the confirmation page is identical for every address; **email confirmation and the Google provider need Supabase dashboard settings that were not verified** |
+| MFA (authenticator app) | **PV** | real enrolment with a computed TOTP code; a password-only session gets 403 `MFA_REQUIRED` from the API; the verified session is accepted; factor removed afterwards |
+| Report-an-issue form | **PV** | learner reports, administrator sees and resolves it with the reference |
+| Incident-response document | done | `docs/06-operations/INCIDENT_RESPONSE.md` (the named people in it are still blank: owner decision) |
+
+### Previously partly done
+| Item | Status | Evidence |
+|---|---|---|
+| Attempt history shows the exercise version | **T** | "Lesson v1, checks v1" column; API returns content and test-suite versions |
+| Next lecture unlocks | **PV** | before: Lecture 10 locked for an incomplete learner; after completing Lecture 9: available; the lecture page opens |
+| Logout then login after completion | **PV** | still complete, course page and certificate unchanged |
+| Dead-letter step-by-step procedure | done | `DEAD_LETTER_RUNBOOK.md` plus a Retry button (only for a real dead letter; tested) |
+| Queue wait measured separately | **P** | measured from timestamps and shown in the admin screens and the worker health response; **the new CloudWatch metrics (`QueueWaitP95Seconds`, `ExecutionP95Seconds`) need the updated monitor script installed on the worker host, which could not be done: AWS access has expired** |
+| Grading result announced to screen readers | **T** | a persistent live region announces "Official result: …" (mocked UI test, both a failed and a passed attempt); still not a real screen reader |
+| Alarm and budget email delivery | **not done** | AWS credentials expired during this work; needs your AWS access refreshed |
+| AWS credit balance | **not done** | same reason; the Cost Explorer API does not return the credit balance, so it is also visible only in the Billing console |
+
+### Bugs found and fixed by this round of testing
+1. Cohort creation could send an empty course before the course list had loaded (found by the live test; button now waits).
+2. The signed-out certificate check hung: the "no session" notice at page load cleared the data cache and orphaned the request. Fixed in the auth provider; regression test added.
+3. Two test-harness issues (a clean-up script that failed to delete test accounts when run from the wrong folder; fixed and the leftover accounts deleted).
+4. A heading-level skip on the issue reports page (found by the structure test).
+
+### Still open
+Key rotation (declined), staging database (plan limit), policy owner details and legal review, human screen-reader review, the CloudWatch/AWS items above, the live teacher-scope negative test, and the 100 lectures that do not exist.
