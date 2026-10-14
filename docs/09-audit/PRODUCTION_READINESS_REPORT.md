@@ -132,3 +132,11 @@ Timings are single samples, **not a load test**. The first attempt's 13 s shows 
 - **Accessibility audit (structure, not a real screen reader):** new `ui-tests/screenreader.spec.ts` found two real defects: every screen had the same document title, and keyboard focus stayed on the clicked link after in-app navigation. Fixed with `RouteA11y` (title from the page heading, focus moved to the new content). Also now checked on all learner screens: one main landmark, one h1, no skipped heading levels, distinct nav labels, labelled fields, grouped radio options, status live region for answers. **No test with NVDA, JAWS, VoiceOver or TalkBack was done** and none can be run from this environment; a manual pass by a person using one is still recommended before an open launch.
 - **Policies:** privacy notice expanded (storage regions, browser storage, backups, age, request handling). Still a draft needing the owner's operator/contact details and legal review.
 - **Staging:** **not created.** Supabase refused (free plan, 2 active projects limit reached). Needs an owner decision (see `ENVIRONMENTS_AND_TEST_ACCOUNTS.md`).
+
+---
+## Update 2026-10-14 (later): owner decisions and release
+- Merged to `main` through PRs 1 to 3 (CI green on each: secrets, backend, grader, frontend). Production deployments were made from `main` (`08b8b61`).
+- New `/policies` hub with six policy pages (privacy, terms, acceptable use, retention, accessibility, security). Still drafts pending the owner's operator details and a legal review.
+- The live smoke test found a regression from my own focus-management change (skip link no longer first after the signed-out redirect). Fixed in PR 3 and covered by a test.
+- Owner accounts: admin `hussainsingapuri24@gmail.com` created; no other accounts exist.
+- **Staging:** could not be created (Supabase 2-project limit, refused three times); the single project stays in use. **Key rotation:** owner chose not to rotate. Both are accepted conditions, not resolved issues. The decision stays CONDITIONAL GO for a supervised pilot.
