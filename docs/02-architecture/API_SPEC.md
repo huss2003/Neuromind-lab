@@ -75,3 +75,43 @@ Do not reveal hidden inputs, expected output or container internals.
 
 ## Idempotency and versioning
 MCQ and code submissions accept idempotency keys. Same key/same payload returns original result; same key/different payload returns 409. Prefix API with `/v1`; update OpenAPI and contract tests with changes.
+
+## Additive endpoints and conventions (implementation notes, 2026-10-13 — need owner approval)
+- `GET /me/progress` (Auth): learner's own lecture session statuses for the dashboard.
+- `GET /exercises/{id}/submissions` (Auth): learner's own attempt history for an exercise.
+- `GET /teacher/learners` (Teacher/admin): learner list so the teacher results screen can choose a learner.
+- Session responses additionally include `checkpoint_results` (so explanations survive refresh) and `max_reachable_order`.
+- Segment `settings.on_end = {"type":"open_exercise","exercise_id":"<uuid>"}` links a practical video to its exercise explicitly; the manifest exposes it as `next_action`.
+- Checkpoint completion: no `pass_threshold` => any submitted attempt completes it (formative MCQ); with a threshold (exit check = 100) a sufficient score is required and retries are allowed. Exercise completion = a `passed` submission. Infrastructure errors never count toward `max_attempts`.
+- Unknown, malformed or not-owned resource ids return 404 (never 403) to avoid id probing. Teacher/admin access is currently NOT course-scoped because the schema has no teacher-course assignment table (open decision).
+
+## v1.0 requirements update (2026-10-13, aligned to NeuroMind Lab Requirements v1.0)
+Policy decisions taken from the requirements document (which supersedes the earlier pack):
+- **Unlimited practice attempts** (§6.2). `lecture_exercises.max_attempts = null`; a cap is still honoured if a teacher sets one. Abuse protection is separate: max 6 submissions/minute and 2 in flight per learner (`429 RATE_LIMITED`).
+- **Best valid score** = highest `score` among `passed`/`failed` attempts (timeouts and infrastructure errors never count).
+- **Hints** (default formula, open decision §25): each hint revealed during an attempt lowers *that attempt's* score by `hint_penalty_percent` points (floor 0); pass/fail uses the adjusted score; earlier best scores are never lowered.
+- **Appeals are NOT enabled** (eligibility/window/reviewer are undecided, §21).
+- **Teacher scope**: teachers see only learners with an active (`revoked_at is null`) row in `teacher_assignments`; admins see all. Out-of-scope or unknown learners/submissions return 404. No endpoint can change an official score.
+
+New / changed endpoints:
+| Method | Route | Access | Purpose |
+|---|---|---|---|
+| GET | `/ready` | Public minimal | Readiness: `{status, checks:{config,database}}`, 503 when degraded; discloses no values |
+| GET | `/me` | Auth | now also `email`, `display_name` |
+| GET | `/courses/{id}` | Auth | now includes `modules[]` each with its `lectures[]` |
+| GET | `/me/progress` | Auth | own lecture statuses |
+| GET | `/me/feedback` | Auth | own **published** teacher feedback |
+| GET | `/exercises/{id}` | Auth | + `hints_total`, `hints_revealed`, `hint_penalty_percent`, `best_score`, `attempts_used`, `draft`, `unlocked` |
+| POST | `/exercises/{id}/hints` | Auth | reveal hint `hint_index` (ordered, idempotent) |
+| PUT | `/exercises/{id}/draft` | Auth | autosave work in progress (204) |
+| GET | `/exercises/{id}/submissions` | Auth | own attempts + `best_score` |
+| GET | `/submissions/{id}` | Owner / scoped teacher | + `raw_score`, `hints_used`, `hint_penalty`, `criteria[]` (hidden checks labelled generically), `remediation[]` |
+| GET | `/lectures/{id}/session` | Auth | + `progress{media,checkpoints,labs,mastery}` |
+| GET | `/teacher/summary` | Teacher/admin | tiles for assigned learners |
+| GET | `/teacher/learners?q&limit&offset` | Teacher/admin | scoped, searchable, paginated (limit 1-100) |
+| GET | `/teacher/learners/{id}/results` | Scoped teacher/admin | titles, best scores, attempts, submissions, feedback |
+| GET | `/teacher/submissions/{id}` | Scoped teacher/admin | full evidence: code, criteria, grader/test-suite/content versions, correlation id, timings |
+| POST | `/teacher/learners/{id}/feedback` | Scoped teacher/admin | feedback note; never alters scores |
+
+Evidence persisted per official attempt (§6.3, GRD-008): content version, test-suite version, grader version, max score, pass threshold, raw and adjusted score, hint use and penalty, per-criterion results, correlation id, started/finished timestamps. Checkpoint attempts store question and content versions.
+Audit events written (allow-listed metadata only): `auth.denied`, `checkpoint.attempt`, `submission.created`, `submission.finished`, `submission.rate_limited`, `hint.revealed`, `lecture.completed`, `teacher.view_learner`, `teacher.view_submission`, `feedback.created`.

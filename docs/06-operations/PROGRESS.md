@@ -39,5 +39,100 @@ Date / Task / Summary / Files changed / Tests run and results / Decisions / Open
 ## Session 2026-10-13
 Task: import pack; T02 skeleton (partial); T04 API shell; T06 migrations/RLS applied to Supabase `neuronetwrks` (ddiwlgbllhwcdykqjfne).
 Tests: backend pytest 2 passed; ruff clean. Supabase security advisors: only intentional INFO (API-only tables) after revoking handle_new_user execute.
-Not done: T03 frontend shell, T05 auth/role guards, seed data, two-learner RLS tests.
-Next: T03 frontend shell, then T05.
+Also done: T03 frontend shell (routes, sign-in page, loading/error/not-found states; vitest 3 passed, eslint+tsc clean, build ok), T05 backend auth (token verification, /me, role guard; pytest 5 passed). Note: installed pnpm is 10.28.0, not the 9.15.4 pin.
+Not done: live sign-in test against Supabase (needs service-role key in .env), seed data, two-learner RLS tests.
+Next: T07 course/lecture APIs, then T06 seed + RLS tests.
+
+## Session 2026-10-13 (b)
+Tasks: T06 (seed + RLS verification), T07 (course/lecture APIs).
+- Seed `database/seed/001_lecture9_sample.sql` (repeatable, `on conflict do nothing`) applied to dev Supabase: 1 course, 1 module, Lecture 9, 3 questions, 3 checkpoints (2 MCQ + exit check), 1 exercise with 3 tests (1 hidden), 7 segments. ALL CONTENT IS PLACEHOLDER; video is a CC0 MDN sample mp4 (external, supports range requests).
+- RLS two-user test `database/tests/rls_two_learners.sql` run on dev DB (rolled back): other learner sees 0 sessions/0 submissions, only own profile, published content visible, mcq_questions and exercise_tests invisible (0 rows), self role-escalation updates 0 rows, direct attempt insert denied. A teacher-scoped RLS case is not yet tested (teacher access is server-side via API).
+- API: GET /courses, /courses/{id}, /lectures/{id} (learner-safe manifest; no answer keys). Practical->exercise link is explicit via segment `settings.on_end` (documented here; schema unchanged). Malformed/unknown ids -> 404; broken content config -> 500 (never silent completion).
+- Tests: backend pytest 10 passed, ruff clean. Not run against live PostgREST (service-role key not available in this environment): PostgrestRepository is unverified.
+- Doc conflict/gap: the pack has no curriculum document, so Lecture 9 learning objectives are placeholders; title comes from API_SPEC. Docs live under docs/ (the prompt's paths omit this prefix); PROGRESS.md is docs/06-operations/PROGRESS.md.
+- Next: T08 lecture session API (create/load/PATCH with state_version), then T09 player.
+
+## Session 2026-10-13 (c) — vertical slice implemented
+Tasks: T08 session API, T10-T13 checkpoint rules/MCQ scoring/results, T14-T15 Monaco + Pyodide worker, T16 grader service, T17-T18 submissions/feedback/retry, T19-T20 practical transition + completion, T23 teacher results (basic), T24 Lecture 9 seed (earlier), E2E specs written.
+### Environment limits in this cloud container (why some items are UNVERIFIED)
+- Egress policy blocks `ddiwlgbllhwcdykqjfne.supabase.co`, so the API could not be run against the live Supabase project from here. `PostgrestRepository` has never executed against real PostgREST.
+- No Docker daemon here, so the Docker sandbox runner, `docker build`, and the real-Docker test were never executed.
+- No localhost access for the user from this container: the app must be run on the user's machine (README).
+### Tests actually run (all in this container)
+- backend: `ruff check` clean; `pytest` 36 passed (in-memory repository + fake grader; covers 401/403/404, checkpoint bypass, seek-ahead, score tampering, answer-key/hidden-test non-disclosure, idempotency 200/409, stale state 409, attempt limits, infra error not a learner failure, cross-user access, teacher scoping, completion rules).
+- grader: `pytest` 12 passed, 1 skipped (real Docker). Harness+evaluation verified via a NON-isolated subprocess test runner (pass, fail, runtime error, syntax error, infinite loop timeout, output truncation). Docker flags are asserted by string (`--network none`, `--read-only`, `--cap-drop=ALL`, `--pids-limit`, memory/cpu, non-root, no mounts/env) but NOT executed.
+- frontend: eslint clean, `tsc` clean, vitest 23 passed (timeline state machine 13, MCQ 4, video fallbacks 2, routing/guards 3, sign-in 1), `vite build` ok, Playwright smoke 3 passed in real Chromium (sign-in redirect, skip link/focus, 404, teacher guard, no overflow at 360px).
+- Real server smoke: uvicorn started; `/health` ok, `/courses` without token -> 401 structured error, CORS allows only the configured origin.
+- NOT run: E2E journeys A-E (`frontend/e2e/lecture.spec.ts`; typechecked only), live Supabase auth/RLS-through-API, Docker grading, Pyodide in a browser (loads from jsDelivr; blocked here), Monaco loading, real video playback, 100-user/grading load tests.
+### Decisions / deviations
+- Python 3.13 and pnpm 10.28 used instead of pinned 3.12 / 9.15.4; frontend pins follow the doc except `@monaco-editor/react 4.7.0` (4.6.0 lacks React 19 peer support), eslint plugins pinned to versions compatible with ESLint 9.19.
+- Grader design: only variable NAMES and student code enter the container; test definitions (incl. hidden) stay on the host and are evaluated against captured stdout/variables. Known limitation: hostile code could try to forge the harness result line (nonce-protected but same process); the container protects the host, not grade integrity. Needs the security review (T27).
+- Additive API endpoints documented in API_SPEC.md (need approval).
+### Outstanding / open
+1. Run the stack locally and fix whatever the first real run reveals (most likely areas: PostgREST filter syntax, Supabase `/auth/v1/user` check, Monaco/Pyodide CDN loading).
+2. Teacher scope (course assignment) and teacher authoring screens (T21-T22) not built.
+3. Audit-log writes for denied actions not implemented; no rate limiting yet; student_progress recompute only on completion.
+4. Replace placeholder content/videos; supply real Lecture 9 objectives.
+5. T26 (E2E fail/retry/resume), T27 security review, T28 preview deployment, T29 demo pack, T32 load tests.
+### Next
+Run `scripts/dev.sh` locally per README, then `pnpm e2e`; report failures back for fixing.
+
+## Session 2026-10-13 (d) — Deployment + audit
+- Deployed to Vercel (projects `neuromind-lab`, `neuromind-lab-api`) from branch commit b533f79 via the Vercel connector; both READY. Not browser-verified (network blocked here).
+- Dev users created in Supabase via SQL (learner1-3, teacher). Public repo + default dev password: see audit F-01.
+- Audit against Requirements v1.0: `docs/09-audit/AUDIT_2026-10-13.md`. No application code changed. Next: rotate credentials, run local E2E, owner decisions F-09/F-10/F-12.
+
+## Session 2026-10-13 (e) — Requirements v1.0 implementation + UI/UX rebuild
+Built (MVP scope §2.1 plus audit gaps; see docs/09-audit/DECISIONS_v1.md):
+- DB migration 0003 applied to dev Supabase + seed 002: evidence/version columns, hints, remediation text, `lab_drafts`, `exercise_hint_reveals`, `teacher_assignments`, `teacher_feedback`, grant hardening (anon has no table access; authenticated is read-only under RLS).
+- API: unlimited attempts + abuse limits (429), best valid score, hints with per-attempt penalty, per-criterion results + remediation, evidence persisted (grader/test-suite/content versions, correlation id, timings), drafts autosave, progress breakdown (media/checkpoints/labs/mastery), course modules, teacher scope via assignments (404 for out of scope), teacher summary/search/pagination/evidence/feedback, audit events (allow-listed metadata), JSON logs, `/ready`, startup config check.
+- Grader: per-criterion results and grader_version.
+- Frontend: full redesign (design tokens, app shell, dashboard, course/module view, my progress, profile, stage stepper, separate progress bars, accessible MCQ, lab with tabs on small screens, hints, reset-with-confirm, autosave + unsaved warning, stdout/stderr panes, result/remediation/attempt history, completion summary, teacher dashboard/learner/submission evidence/feedback, sign-out cache clearing, expired-session redirect, lazy-loaded routes).
+### Tests actually run in this environment
+- backend: ruff clean, pytest 58 passed.  grader: pytest 14 passed, 1 skipped (Docker).
+- frontend: eslint + tsc clean, vitest 29 passed, vite build ok, e2e specs typecheck.
+- `pnpm test:ui` (real Chromium, built app, NETWORK MOCKED): 23 passed — overflow check on 9 screens at 360/390/768/1366/1440, full learner journey, fail/hint/retry, refresh/resume + seek refusal, draft persistence, reset confirm, grader outage, media failure, keyboard, non-colour status, expired session, sign-out isolation, teacher scope UI. These found and fixed two real defects: abs-positioned visually-hidden table text caused page-wide horizontal scroll; one-column grids needed minmax(0,1fr).
+### Still unverified (no network/Docker/CDN here)
+Live Supabase + PostgREST repository, real sign-in of the SQL-created users, hosted API behaviour, Docker sandbox, Pyodide and Monaco CDN loading, real video playback, `pnpm e2e`, load/capacity, accessibility audit with assistive tech.
+### Not built (needs owner approval per requirements §2.2/§10/§21)
+AI Tutor/RAG/agents, authoring/lab-lifecycle UI, multi-file IDE/terminal, appeals, proctoring, password reset, retention/privacy policy, load certification of 200 learners.
+### Open decisions
+Hint formula, teacher cohort rules, retention, appeals eligibility, real Lecture 9 content/objectives, free-tier limits.
+
+## Session 2026-10-13 (f) — Flow spec v1.0 + UX screens spec v1.0
+- Backend (committed earlier): enrolment gating, lecture prerequisites/states, remediation mapping, richer exercise fields, status vocabulary. pytest 97 passed, ruff clean.
+- Frontend: orientation screen, intro section, course map states, flow-spec exercise panel and statuses; plus, from the UX spec, new screens S02 `/recover`, S03 `/welcome`, S15 `/exercises/:id/attempts`, S18 `/help` (guidance only), progress-calculation explanation, skeleton component.
+- Gap analysis against the UX spec: `docs/09-audit/UX_SPEC_CONFORMANCE.md` (what is built, partial, missing, and the five decisions needed).
+- Tests run: eslint + tsc clean, vitest 34 passed, `pnpm test:ui` (Chromium, NETWORK MOCKED) 35 passed (34 in the full run + the one selector fix re-run singly).
+- NOT yet applied to Supabase: migration 0005, seeds 003 and 004 (enrolments are now required, so learners see no course until they are applied). Vercel still serves the older commit until redeployed.
+- Not built / unverified: see the conformance doc (authoring, cohorts, queue/outbox/leases, admin screens, load and latency measurement).
+
+## Session 2026-10-13 (g) — Applied DB changes + redeploy
+- Supabase (project `neuronetwrks`): applied migration `flow_v1_b` (0005) and the statements of seeds 003 and 004. Checked afterwards: 3 enrolments, Lecture 9 sections are intro, video, checkpoint, video, checkpoint, video, exercise, exit check; 3 tests carry objectives.
+- Vercel: frontend `dpl_3nvm4toE…` and API `dpl_2UfvMwsr…` both READY at commit 1c97cec. The first API attempt failed with FASTAPI_ENTRYPOINT_NOT_FOUND until the root directory was set to `backend`.
+- NOT verified: no request was made to either deployment (the fetch tool was denied and Bash cannot reach Vercel), so sign-in and the new screens on the live site are untested.
+
+## Session 2026-10-13 (h) — Production-readiness pass (see docs/09-audit/PRODUCTION_READINESS_REPORT.md)
+- Decision: **NO-GO** (Docker sandbox, real E2E, key rotation, content, load, a11y not done).
+- Code: required-env dev password; secret scan + CI workflow; split-process grader harness + adversarial tests; DB-backed grading queue (migration 0006 **applied to the dev Supabase project and verified in a rolled-back transaction**), worker API (`/api/v1/internal/grader/*`), pull worker `grader/worker.py`, polling back-off.
+- Tests: backend 109 passed; grader 31 passed, 1 skipped; frontend lint/tsc/vitest clean. UI suite not re-run after the polling edit.
+- AWS (measured): Free plan, $100 credit, expires 2027-04-13, SCP denies EC2/ECS/SQS/Lambda/etc. Nothing provisioned. See AWS_COST_AND_RESOURCE_PLAN.md.
+- Capacity claims (100/200 learners) remain **unmeasured**; do not quote either.
+- New docs: ADR_HOSTED_GRADING, AWS_COST_AND_RESOURCE_PLAN, GRADER_THREAT_MODEL, E2E_LEARNER_JOURNEY, PRODUCTION_RELEASE_CHECKLIST, PRODUCTION_READINESS_REPORT.
+
+## Session 2026-10-13 (i) — AWS worker deployed and drilled
+- Owner approved AWS; budget $15/month created; EC2 worker (Sydney) running `grader/worker.py` via systemd; Vercel API now `GRADER_MODE=queue` (deployment `dpl_7gXhcdnb…`, commit b34d710).
+- Real Docker sandbox tests 9/9 and adversarial 13/13 passed on the worker host; staging drills (auth, journey, restart, dead-letter) all passed. Details and caveats: PRODUCTION_READINESS_REPORT.md (update section).
+- Owner decision: Supabase key and dev passwords are NOT being rotated (risk stays open).
+- Created data: synthetic learner3 now has attempts/progress in the dev database.
+- Resource inventory and cleanup: see AWS_COST_AND_RESOURCE_PLAN.md and the readiness report.
+
+## Session 2026-10-13 (j) — Real content, UI v2, live E2E
+- Placeholders removed (seed 005 applied via REST because large SQL calls timed out in the Supabase tool). UI v2 deployed. Frontend project fixed (root directory). Live browser E2E A/B/C and smoke passed.
+- Fixed leaked sandbox processes (container deadline, die-with-parent, start-up sweep). Worker host updated and re-tested: 25 passed.
+- Decision unchanged: NO-GO for real learners; see the update section at the end of PRODUCTION_READINESS_REPORT.md.
+
+## Session 2026-10-13 (production push)
+Done: load test (objectives fixed first, baseline 3 to 5 s, fixes: pooled upstream client, token cache, hnd1 region, concurrent reads, 15 s published-content cache, audit off request path; final run server p95 at most 473 ms, two client-side objectives narrowly missed, results in LOAD_TEST_PLAN); worker idle poll 5 s and concurrency 2 (burst grading p95 10.4 s); CloudWatch metrics, 4 alarms, SNS topic; backup/restore scripts, local DR rehearsal (19/19 tables), runbook; retention proposals; Lectures 10 to 12 applied to dev DB; live Monaco/Pyodide E2E passed; privacy/terms in axe scan; readiness report final update (CONDITIONAL GO, supervised pilot).
+Tests run: backend 112 passed + ruff; grader worker tests passed; frontend lint/tsc/vitest 37; test:ui 38/38 (+ legal pages a11y re-run); live practice E2E and smoke passed. Not run: CI on GitHub (no main branch), 100-user load, screen reader audit.
+Open: owner decisions on credentials (not rotated by choice), staging project, legal review, SNS e-mail confirmation, merging the working branch to `main`, more lectures.

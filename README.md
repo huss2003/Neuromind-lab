@@ -21,3 +21,55 @@ Learner can sign in; play segments; answer two MCQs and see server-calculated re
 
 ## Change control
 For any scope/schema/API/security/cost decision: update the relevant spec, tests, ADR if needed, and PROGRESS.md before or with implementation. Do not silently infer major requirements.
+
+---
+# Running locally (verified steps are marked; see PROGRESS.md for what has NOT been verified)
+
+## Prerequisites
+Node 22, pnpm (10.x tested), Python 3.12+ (3.13 tested), Docker (only for official grading), a Supabase DEV project.
+
+## One-time setup
+```bash
+cp .env.example .env            # then fill SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
+                                # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, GRADER_SHARED_SECRET
+python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.txt
+(cd frontend && pnpm install --frozen-lockfile)
+# Database: apply database/migrations/*.sql in order, then database/seed/001_lecture9_sample.sql (SQL editor or Supabase CLI)
+CONFIRM_DEV_PROJECT=yes backend/.venv/bin/python scripts/create_dev_users.py   # learner1/2/3 + teacher @neuromind.test
+docker build -t neuromind-grader-sandbox grader/                               # official-grading sandbox image
+```
+Never commit `.env`. The service-role key is server-only (API); the browser only gets the anon/publishable key.
+
+## Run
+```bash
+scripts/dev.sh      # API :8000, grader 127.0.0.1:8010 (needs Docker), frontend http://127.0.0.1:5173
+```
+Sign in as `learner1@neuromind.test` (password printed by the user script; **change or delete these dev accounts before real use**) and open Lecture 9. Teacher: `teacher@neuromind.test` -> Results.
+
+## Checks
+```bash
+cd backend && .venv/bin/ruff check . && .venv/bin/pytest -q          # API + business rules (in-memory repo)
+cd grader  && ../backend/.venv/bin/pytest -q                          # grader logic (Docker test auto-skips without Docker)
+cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+cd frontend && pnpm exec playwright test smoke                        # boots the app in a real browser (no backend needed)
+cd frontend && pnpm e2e                                               # full journeys A-E: needs the whole stack + users + Docker
+```
+
+## Deploying the frontend to Vercel (not yet done)
+1. Vercel -> Add New Project -> import this repo, set **Root Directory = `frontend`** (config in `frontend/vercel.json`).
+2. Environment variables (public values only): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_BASE_URL` (URL of the hosted API).
+3. The API (`backend/`) is a separate FastAPI service (docs plan Render Free); set its `CORS_ALLOWED_ORIGINS` to the Vercel URL and keep `SUPABASE_SERVICE_ROLE_KEY` only there. In Supabase Auth settings add the Vercel URL to allowed redirect URLs.
+4. The Docker grader stays local/private: a hosted preview will show "grader unavailable" for official grading (never a learner failure).
+
+
+## Test suites (what each one proves)
+| Command | Proves | Does not prove |
+|---|---|---|
+| `cd backend && pytest` | API rules against an in-memory repository: gating, scoring, hints/best score, evidence, scope, audit, rate limits | live Supabase queries |
+| `cd grader && pytest` | harness + evaluation (non-isolated subprocess), docker flags (string-level) | real sandbox isolation (needs Docker; auto-skipped) |
+| `cd frontend && pnpm test` | state machine and components | real browser layout |
+| `cd frontend && pnpm test:ui` | the built UI in Chromium with the **network mocked**: layout at 360/390/768/1366/1440, keyboard, journeys, failure states | real backend, Monaco/Pyodide (CDN), Docker |
+| `cd frontend && pnpm e2e` | full stack journeys A-E (needs everything running + seeded users) | load/capacity |
+
+## Database
+Apply `database/migrations/*.sql` in order (0001 schema, 0002 trigger grant, 0003 requirements v1.0), then `database/seed/001_*.sql`, `002_*.sql`. Run `database/tests/rls_two_learners.sql` against a DEV project to re-check isolation.

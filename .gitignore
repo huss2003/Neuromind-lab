@@ -16,3 +16,5 @@ Thumbs.db
 *.log
 .ruff_cache/
 .mypy_cache/
+frontend/dist/
+private/
