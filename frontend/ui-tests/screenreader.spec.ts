@@ -72,3 +72,11 @@ test('checkpoint options are a named group and the result is announced through a
   const status = page.getByRole('status').filter({ hasText: /Correct|Not quite/ });
   await expect(status).toBeVisible(); // announced politely: role=status is a live region
 });
+
+test('a signed-out visit to the home page is redirected to sign-in with the skip link still the first thing Tab reaches', async ({ page }) => {
+  await installMocks(page, newState({}));
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/sign-in$/);
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+});
