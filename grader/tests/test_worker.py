@@ -57,7 +57,7 @@ def test_worker_releases_the_job_when_the_runner_blows_up():
 
 def test_infrastructure_failure_is_never_posted_as_a_learner_result():
     class Down:
-        async def run(self, code, names, timeout):
+        async def run(self, code, names, timeout, **kwargs):
             from grader_service.evaluate import RunResult
             return RunResult("infra_error", detail="docker unavailable")
     client, seen = api([job("x = 1")])

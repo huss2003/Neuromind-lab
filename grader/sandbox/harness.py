@@ -30,6 +30,13 @@ CHILD_SOURCE = r'''
 import json, os, sys, traceback
 req = json.loads(sys.stdin.read())
 sys.stdin = open(os.devnull)
+if os.environ.get("NM_LAB_API") == "1":  # the simulated practice API: mounted on `requests` before any learner code runs
+    try:
+        import labmock
+    except ImportError:
+        sys.path.insert(0, os.environ.get("NM_LABMOCK_DIR", ""))
+        import labmock
+    labmock.install()
 ns = {"__name__": "__main__"}
 error = None
 try:
@@ -42,10 +49,74 @@ for n in req["capture_vars"]:
     if n in ns:
         v = ns[n]
         vars_[n] = {"type": type(v).__name__, "value": v if isinstance(v, (str, int, float, bool)) else repr(v)[:200]}
+def _plain(v, depth=0):
+    if v is None or isinstance(v, (bool, int)):
+        return v
+    if isinstance(v, float):
+        return v if v == v and v not in (float("inf"), float("-inf")) else repr(v)
+    if isinstance(v, str):
+        return v[:500]
+    if depth < 3 and isinstance(v, (list, tuple, set, frozenset)):
+        return [_plain(x, depth + 1) for x in list(v)[:50]]
+    if depth < 3 and isinstance(v, dict):
+        return {str(k)[:80]: _plain(x, depth + 1) for k, x in list(v.items())[:50]}
+    try:
+        import numbers
+        if isinstance(v, numbers.Number):
+            return _plain(float(v), depth)
+        if hasattr(v, "tolist") and not isinstance(v, str):
+            return _plain(v.tolist(), depth)
+    except Exception:
+        pass
+    return repr(v)[:200]
+probes = []
+for expr in (req.get("probes") or [])[:50]:
+    if error is not None:
+        probes.append({"ok": False, "error": "not evaluated: the program raised an error"})
+        continue
+    try:
+        probes.append({"ok": True, "value": _plain(eval(expr, dict(ns)))})  # noqa: S307 - expressions written by the lab author
+    except BaseException as exc:
+        probes.append({"ok": False, "error": (type(exc).__name__ + ": " + str(exc))[:200]})
 sys.stdout.flush()
 with os.fdopen(int(sys.argv[1]), "w") as report:
-    report.write(json.dumps({"error": error, "vars": vars_}))
+    report.write(json.dumps({"error": error, "vars": vars_, "probes": probes}))
 '''
+
+
+# Environment handed to the learner process: no inherited variables (nothing secret in the parent either), only what the
+# scientific libraries need to work in a read-only container. NM_LAB_API switches on the simulated practice API (labmock).
+CHILD_ENV_KEYS = ("NM_LAB_API", "NM_LABMOCK_DIR")
+CHILD_ENV_BASE = {"HOME": "/tmp", "MPLBACKEND": "Agg", "MPLCONFIGDIR": "/tmp/mpl", "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1",
+                  "MKL_NUM_THREADS": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+MAX_FILES_BYTES = 2_000_000
+
+
+def child_env() -> dict:
+    env = dict(CHILD_ENV_BASE)
+    for k in CHILD_ENV_KEYS:
+        if os.environ.get(k):
+            env[k] = os.environ[k]
+    env.setdefault("NM_LABMOCK_DIR", os.path.dirname(os.path.abspath(__file__)))  # where labmock.py lives next to this file
+    return env
+
+
+def write_files(files: dict, workdir: str) -> None:
+    """Lab-provided data files (CSV, text, small images as base64) go into the learner's working directory."""
+    total = 0
+    for name, spec in list(files.items())[:40]:
+        if not isinstance(name, str) or not name or "/" in name or name.startswith(".") or ".." in name:
+            continue
+        if isinstance(spec, dict) and spec.get("encoding") == "base64":
+            import base64
+            data = base64.b64decode(str(spec.get("content", "")), validate=False)
+        else:
+            data = (spec if isinstance(spec, str) else str(spec.get("content", ""))).encode("utf-8")
+        total += len(data)
+        if total > MAX_FILES_BYTES:
+            break
+        with open(os.path.join(workdir, name), "wb") as fh:
+            fh.write(data)
 
 
 def _die_with_parent() -> None:
@@ -72,7 +143,7 @@ def validate_report(raw: bytes, names: list[str]) -> dict | None:
         data = json.loads(raw.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
         return None
-    if not isinstance(data, dict) or set(data) != {"error", "vars"}:
+    if not isinstance(data, dict) or set(data) not in ({"error", "vars"}, {"error", "vars", "probes"}):
         return None
     err, variables = data["error"], data["vars"]
     if err is not None:
@@ -93,19 +164,42 @@ def validate_report(raw: bytes, names: list[str]) -> dict | None:
         if not isinstance(value, SCALARS):
             return None
         clean[name] = {"type": entry["type"][:40], "value": value[:200] if isinstance(value, str) else value}
-    return {"error": err, "vars": clean}
+    probes = []
+    for entry in (data.get("probes") or [])[:50]:
+        if not isinstance(entry, dict) or not isinstance(entry.get("ok"), bool):
+            return None
+        if entry["ok"]:
+            probes.append({"ok": True, "value": _clean_value(entry.get("value"))})
+        else:
+            probes.append({"ok": False, "error": str(entry.get("error", ""))[:200]})
+    return {"error": err, "vars": clean, "probes": probes}
 
 
-def run_child(code: str, names: list[str], max_out: int) -> tuple[bytes, bool, bytes | None, int | None]:
+def _clean_value(v, depth: int = 0):
+    """Bound the shape of a probe value coming from the untrusted child: scalars, short strings, small lists/dicts."""
+    if v is None or isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return v
+    if isinstance(v, str):
+        return v[:500]
+    if depth < 3 and isinstance(v, list):
+        return [_clean_value(x, depth + 1) for x in v[:50]]
+    if depth < 3 and isinstance(v, dict):
+        return {str(k)[:80]: _clean_value(x, depth + 1) for k, x in list(v.items())[:50]}
+    return repr(v)[:200]
+
+
+def run_child(code: str, names: list[str], max_out: int, probes: list | None = None, workdir: str | None = None) -> tuple[bytes, bool, bytes | None, int | None]:
     """Run learner code. Returns (stdout, truncated, report_bytes, exit_code)."""
     r_fd, w_fd = os.pipe()
     child = subprocess.Popen(  # noqa: S603 - fixed argv, learner code travels over stdin only
         [sys.executable, "-I", "-c", CHILD_SOURCE, str(w_fd)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL, pass_fds=(w_fd,), env={}, close_fds=True, preexec_fn=_die_with_parent)  # noqa: PLW1509
+        stderr=subprocess.DEVNULL, pass_fds=(w_fd,), env=child_env(), cwd=workdir, close_fds=True, preexec_fn=_die_with_parent)  # noqa: PLW1509
     os.close(w_fd)
     assert child.stdin is not None and child.stdout is not None
     try:
-        child.stdin.write(json.dumps({"code": code, "capture_vars": names}).encode())
+        child.stdin.write(json.dumps({"code": code, "capture_vars": names, "probes": probes or []}).encode())
         child.stdin.close()
     except BrokenPipeError:
         pass
@@ -139,13 +233,20 @@ def main() -> None:
     payload = json.loads(sys.stdin.read())
     nonce, max_out = payload["nonce"], int(payload.get("max_output", 20000))
     names = [n for n in payload.get("capture_vars", []) if isinstance(n, str)]
-    out, truncated, report_raw, _exit_code = run_child(payload["code"], names, max_out)
+    probes = [p for p in (payload.get("probes") or []) if isinstance(p, str)][:50]
+    import tempfile
+    workdir = tempfile.mkdtemp(prefix="nm-lab-")
+    files = payload.get("files") or {}
+    if isinstance(files, dict):
+        write_files(files, workdir)
+    out, truncated, report_raw, _exit_code = run_child(payload["code"], names, max_out, probes, workdir)
     report = validate_report(report_raw, names) if report_raw is not None else None
     if report is None:
         # Missing/forged/malformed report: fail safe. The host maps a missing result line to "crashed".
         sys.stdout.write("\n")
         sys.exit(3)
-    result = {"stdout": out.decode("utf-8", "replace"), "truncated": truncated, "error": report["error"], "vars": report["vars"]}
+    result = {"stdout": out.decode("utf-8", "replace"), "truncated": truncated, "error": report["error"], "vars": report["vars"],
+              "probes": report.get("probes", [])}
     sys.stdout.write(f"\nNMRESULT:{nonce}:{json.dumps(result)}\n")
     sys.stdout.flush()
 

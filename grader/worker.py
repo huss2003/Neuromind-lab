@@ -16,7 +16,7 @@ from typing import Any
 
 import httpx
 
-from grader_service.evaluate import GRADER_VERSION, evaluate, required_vars
+from grader_service.evaluate import GRADER_VERSION, evaluate, probe_exprs, required_vars
 from grader_service.runner import DockerRunner
 
 FAST_POLL, BUSY_WINDOW = 1.0, 60.0  # seconds; adaptive polling keeps idle API traffic low
@@ -45,7 +45,10 @@ class Worker:
         beat = asyncio.create_task(self._heartbeat(sub_id, max(5.0, job["lease_seconds"] / 3)))
         try:
             tests = job["tests"]
-            run = await self.runner.run(job["source_code"], required_vars(tests), float(job["timeout_seconds"]))
+            limits = job.get("limits") or {}
+            run = await self.runner.run(job["source_code"], required_vars(tests), float(limits.get("timeout_seconds") or job["timeout_seconds"]),
+                                        files=job.get("files") or {}, probes=probe_exprs(tests), memory_mb=limits.get("memory_mb"),
+                                        lab_api="requests" in (job.get("packages") or []))
             result = evaluate(tests, run, float(job["pass_threshold"]))
             result.setdefault("criteria", [])
             result.setdefault("grader_version", GRADER_VERSION)
