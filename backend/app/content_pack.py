@@ -276,8 +276,9 @@ def check_collection(packs: list[LecturePack]) -> list[str]:
 
 def build_rows(pack: LecturePack, tests: dict[str, dict], *, course_id: str, module_id: str,
                prerequisite_ids: dict[int, str] | None = None, publish: bool = False,
-               published_at: str = "2026-10-13T00:00:00Z", content_version: int = 1) -> dict[str, list[dict]]:
-    """Deterministic table rows for one lecture, in dependency order. Ids come from the lecture number and positions."""
+               published_at: str = "2026-10-13T00:00:00Z", content_version: int = 1, lecture_id: str | None = None) -> dict[str, list[dict]]:
+    """Deterministic table rows for one lecture, in dependency order. Ids come from the lecture number and positions.
+    `lecture_id` keeps an existing lecture's id (prerequisite links from later lectures stay valid)."""
     n = pack.lecture_number
     prereq_ids = prerequisite_ids or {}
     prereqs = []
@@ -288,7 +289,7 @@ def build_rows(pack: LecturePack, tests: dict[str, dict], *, course_id: str, mod
     if missing:
         raise PackError(f"missing hidden test definitions for: {', '.join(missing)}")
     status = "published" if publish else "draft"
-    lid, ex = uid(f"lecture{n}"), uid(f"l{n}-ex")
+    lid, ex = lecture_id or uid(f"lecture{n}"), uid(f"l{n}-ex")
     seg_id = {s.key: uid(f"l{n}-seg{k}") for k, s in enumerate(pack.segments, start=1)}
     cp_index = {c.key: i for i, c in enumerate(pack.checkpoints, start=1)}
 
