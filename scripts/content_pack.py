@@ -20,9 +20,71 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.content_pack import WRITE_ORDER, PackError, build_rows, check_collection, check_pack  # noqa: E402
+from app.content_pack import WRITE_ORDER, PackError, build_rows, check_collection, check_pack, uid  # noqa: E402
 
 DEFAULT_COURSE, DEFAULT_MODULE = "00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"
+COURSE_FILE = ROOT / "content" / "course.json"
+
+
+def course_spec() -> dict:
+    return json.loads(COURSE_FILE.read_text())
+
+
+def module_for(spec: dict, lecture_number: int) -> str:
+    """The month-module a lecture belongs to, from content/course.json (falls back to the default module)."""
+    for m in spec.get("modules", []):
+        if lecture_number in m.get("lectures", []):
+            return m["id"]
+    return DEFAULT_MODULE
+
+
+def _client_and_base():
+    import httpx
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env")
+    base, key = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1", os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    headers = {"apikey": key, **({} if key.startswith("sb_secret_") else {"Authorization": f"Bearer {key}"}), "Content-Type": "application/json"}
+    return httpx.Client(timeout=40), base, headers
+
+
+def cmd_course(args: argparse.Namespace) -> int:
+    """Create/update the course, its month-modules and a DRAFT stub for every lecture that has no record yet (titles from the document).
+    Packs imported later replace the stubs. Never unpublishes anything."""
+    spec = course_spec()
+    c, base, headers = _client_and_base()
+    write = {**headers, "Prefer": "resolution=merge-duplicates,return=minimal"}
+    with c:
+        existing = c.get(f"{base}/lectures", headers=headers, params={"select": "id,lecture_number,status,title", "course_id": f"eq.{spec['id']}"})
+        existing.raise_for_status()
+        have = {r["lecture_number"]: r for r in existing.json()}
+        course = {"id": spec["id"], "slug": spec["slug"], "title": spec["title"], "description": spec["description"], "status": "published"}
+        modules = [{"id": m["id"], "course_id": spec["id"], "module_number": m["module_number"], "title": m["title"], "description": m.get("description", ""),
+                    "sort_order": m["module_number"], "status": "published"} for m in spec["modules"]]
+        stubs = []
+        for lec in spec["lectures"]:
+            n = lec["number"]
+            if n in have:
+                continue
+            stubs.append({"id": uid(f"lecture{n}"), "course_id": spec["id"], "module_id": module_for(spec, n), "lecture_number": n, "title": lec["title"],
+                          "summary": lec["summary"], "learning_objectives": [], "duration_seconds": 3600, "status": "draft", "content_version": 1,
+                          "prerequisites": [], "published_at": None})
+        print(f"{'WRITE' if args.yes else 'plan '} course '{spec['title']}', {len(modules)} modules, {len(stubs)} new draft lecture stubs "
+              f"({len(have)} lectures already exist and are left as they are)")
+        if not args.yes:
+            return 0
+        for table, rows in (("courses", [course]), ("modules", modules), ("lectures", stubs)):
+            if not rows:
+                continue
+            r = c.post(f"{base}/{table}", headers=write, json=rows)
+            if r.status_code >= 300:
+                print(f"FAIL {table}: HTTP {r.status_code} {r.text[:300]}")
+                return 1
+        # existing lectures move to their month-module
+        for n, row in have.items():
+            c.patch(f"{base}/lectures", headers=write, params={"id": f"eq.{row['id']}"}, json={"module_id": module_for(spec, n)}).raise_for_status()
+    print("course records written")
+    return 0
 
 
 def collect(paths: list[str]) -> list[Path]:
@@ -92,7 +154,8 @@ def cmd_import(args: argparse.Namespace) -> int:
         wrote = 0
         for f, pack in sorted(packs, key=lambda x: x[1].lecture_number):
             try:
-                rows = build_rows(pack, tests, course_id=args.course, module_id=args.module, prerequisite_ids=ids, publish=args.publish)
+                module_id = args.module or (module_for(course_spec(), pack.lecture_number) if COURSE_FILE.exists() else DEFAULT_MODULE)
+                rows = build_rows(pack, tests, course_id=args.course, module_id=module_id, prerequisite_ids=ids, publish=args.publish)
             except PackError as exc:
                 print(f"FAIL {f.name}: {exc}")
                 return 1
@@ -129,8 +192,11 @@ def main() -> int:
     i.add_argument("--publish", action="store_true", help="mark the lecture, questions and exercise as published (default: draft)")
     i.add_argument("--force", action="store_true", help="allow importing a draft over a published lecture")
     i.add_argument("--course", default=DEFAULT_COURSE)
-    i.add_argument("--module", default=DEFAULT_MODULE)
+    i.add_argument("--module", default=None, help="module id (default: the month-module from content/course.json)")
     i.set_defaults(fn=cmd_import)
+    co = sub.add_parser("course", help="write the course, month-modules and draft lecture stubs from content/course.json (dry run unless --yes)")
+    co.add_argument("--yes", action="store_true")
+    co.set_defaults(fn=cmd_course)
     args = ap.parse_args()
     return args.fn(args)
 

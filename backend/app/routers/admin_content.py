@@ -61,9 +61,11 @@ async def import_pack(body: ImportBody, request: Request, admin: CurrentUser = D
     if not courses:
         raise ApiError(404, "NOT_FOUND")
     course_id = courses[0]["id"]
-    modules, _m = await repo.tbl_select("modules", [("course_id", "eq", course_id)], columns="id", order="sort_order.asc", limit=1)
+    modules, _m = await repo.tbl_select("modules", [("course_id", "eq", course_id)], columns="id,module_number", order="sort_order.asc")
     if not modules:
         raise ApiError(422, "VALIDATION_ERROR", "The course has no module to put the lecture in")
+    month = (pack.lecture_number - 1) // 8 + 1  # the course has eight lectures a month
+    modules = [m for m in modules if m.get("module_number") == month] or modules
     lectures, _l = await repo.tbl_select("lectures", [("course_id", "eq", course_id)], columns="id,lecture_number,status")
     existing = {r["lecture_number"]: r for r in lectures}
     current = existing.get(pack.lecture_number)
