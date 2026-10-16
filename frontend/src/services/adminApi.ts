@@ -40,10 +40,15 @@ const auditEvent = z.object({ id: z.string(), actor_id: z.string().nullable(), e
 export const listAudit = async (p: { event_type?: string; limit: number; offset: number }) =>
   z.object({ events: z.array(auditEvent), total: z.number() }).parse(await apiFetch(`/admin/audit${q(p)}`));
 
-const exerciseRow = z.object({ id: z.string(), title: z.string(), status: z.string(), test_suite_version: z.number().nullable().optional(), pass_threshold: z.number().nullable().optional(), max_attempts: z.number().nullable().optional() });
+const exerciseRow = z.object({ lab_kind: z.string().default('code'), scoring: z.string().default('score'), id: z.string(), title: z.string(), status: z.string(), test_suite_version: z.number().nullable().optional(), pass_threshold: z.number().nullable().optional(), max_attempts: z.number().nullable().optional() });
 const lectureRow = z.object({ id: z.string(), lecture_number: z.number(), title: z.string(), status: z.enum(['draft', 'published', 'archived']), content_version: z.number().nullable().optional(), exercises: z.array(exerciseRow) });
 const courseRow = z.object({ id: z.string(), title: z.string(), status: z.string(), learners_enrolled: z.number(), lectures: z.array(lectureRow) });
 export const getAdminCourses = async () => z.object({ courses: z.array(courseRow), note: z.string() }).parse(await apiFetch('/admin/courses'));
+const exerciseTests = z.object({ id: z.string(), title: z.string(), lab_kind: z.string().default('code'), scoring: z.string().default('score'), packages: z.array(z.string()).default([]), hints: z.array(z.string()).default([]), hints_max: z.number().default(3),
+  tests: z.array(z.object({ test_order: z.number(), hidden: z.boolean(), label: z.string().nullable(), definition: z.record(z.string(), z.unknown()), points: z.number(), remediation: z.string().nullable(), objective: z.string().nullable() })),
+  questions: z.array(z.object({ question_order: z.number(), prompt: z.string(), options: z.array(z.object({ id: z.string(), text: z.string() })), correct_option_id: z.string(), explanation: z.string().nullable() })) });
+export type ExerciseTests = z.infer<typeof exerciseTests>;
+export const getExerciseTests = async (id: string) => exerciseTests.parse(await apiFetch(`/admin/exercises/${id}/tests`));
 export const setLectureStatus = (id: string, status: string) => apiFetch(`/admin/lectures/${id}/status`, { method: 'PATCH', ...json({ status }) });
 
 const packReport = z.object({ valid: z.boolean(), problems: z.array(z.string()), missing_tests: z.array(z.string()),

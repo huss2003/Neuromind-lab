@@ -3,8 +3,46 @@ import { useState } from 'react';
 import { Badge } from '../../components/Badge';
 import { ErrorMessage, Loading } from '../../components/States';
 import { errorMessage } from '../../services/api';
-import { getAdminCourses, setLectureStatus } from '../../services/adminApi';
+import { getAdminCourses, getExerciseTests, setLectureStatus, type ExerciseTests } from '../../services/adminApi';
 import { PackImport } from './PackImport';
+
+/** Every check of a lab, hidden ones included: the administrator can always see the test definitions. */
+function TestsToggle({ exerciseId, title }: { exerciseId: string; title: string }) {
+  const [open, setOpen] = useState(false);
+  const q = useQuery({ queryKey: ['a-tests', exerciseId], queryFn: () => getExerciseTests(exerciseId), enabled: open });
+  return (
+    <>
+      <button className="btn btn-tertiary" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{open ? 'Hide checks' : 'Show checks'}</button>
+      {open && (
+        <div aria-label={`Checks for ${title}`} role="region" style={{ marginTop: 6 }}>
+          {q.isPending && <Loading label="Loading checks…" />}
+          {q.isError && <ErrorMessage message={errorMessage(q.error)} />}
+          {q.data && <TestList t={q.data} />}
+        </div>
+      )}
+    </>
+  );
+}
+
+function TestList({ t }: { t: ExerciseTests }) {
+  return (
+    <div>
+      {t.packages.length > 0 && <p className="muted" style={{ margin: 0 }}>Libraries: {t.packages.join(', ')}</p>}
+      {t.tests.length > 0 && (
+        <ol>{t.tests.map((x) => (
+          <li key={x.test_order}><strong>{x.label ?? `Check ${x.test_order}`}</strong> {x.hidden && <Badge kind="neutral">hidden</Badge>}<br />
+            <code style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(x.definition)}</code>{x.remediation && <><br /><span className="muted">Fix: {x.remediation}</span></>}</li>
+        ))}</ol>
+      )}
+      {t.questions.length > 0 && (
+        <ol>{t.questions.map((qq) => (
+          <li key={qq.question_order}>{qq.prompt} — <strong>answer {qq.correct_option_id}</strong>: {qq.options.find((o) => o.id === qq.correct_option_id)?.text}</li>
+        ))}</ol>
+      )}
+      {t.hints.length > 0 && <p className="muted" style={{ margin: 0 }}>Hints ({t.hints_max} allowed): {t.hints.join(' · ')}</p>}
+    </div>
+  );
+}
 
 export function AdminContent() {
   const qc = useQueryClient();
@@ -34,7 +72,7 @@ export function AdminContent() {
                   <tr key={l.id}>
                     <th scope="row">Lecture {l.lecture_number}: {l.title}</th>
                     <td>{l.status}</td><td>{l.content_version ? `v${l.content_version}` : '—'}</td>
-                    <td>{l.exercises.length === 0 ? '—' : l.exercises.map((e) => <div key={e.id}>{e.title} (suite v{e.test_suite_version ?? '—'}, {e.pass_threshold ?? '—'}%)</div>)}</td>
+                    <td>{l.exercises.length === 0 ? '—' : l.exercises.map((e) => <div key={e.id}>{e.title} <span className="muted">({e.lab_kind}{e.scoring === 'pass_fail' ? ', pass/fail' : `, pass mark ${e.pass_threshold ?? '—'}%`}, suite v{e.test_suite_version ?? '—'})</span> <TestsToggle exerciseId={e.id} title={e.title} /></div>)}</td>
                     <td>
                       <label htmlFor={`st-${l.id}`} className="visually-hidden">Status of lecture {l.lecture_number}</label>
                       <select id={`st-${l.id}`} value={l.status} onChange={(e) => change.mutate({ id: l.id, status: e.target.value, title: `Lecture ${l.lecture_number}` })} disabled={change.isPending} style={{ minHeight: 38, padding: '4px 8px' }}>

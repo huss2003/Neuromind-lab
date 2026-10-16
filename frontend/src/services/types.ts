@@ -66,10 +66,12 @@ export const sessionSchema = z.object({
   state_version: z.number(),
 });
 export const criterionSchema = z.object({ label: z.string(), hidden: z.boolean(), passed: z.boolean(), remediation: z.string().nullable().optional() });
+export const reviewSchema = z.object({ passed: z.boolean(), feedback: z.string(), scores: z.array(z.object({ criterion: z.string(), points: z.number(), max_points: z.number().nullable().optional() })).default([]), reviewed_at: z.string().nullable().optional() });
+export type Review = z.infer<typeof reviewSchema>;
 export const submissionSchema = z.object({
   submission_id: z.string(),
   submission_number: z.number(),
-  status: z.enum(['queued', 'running', 'passed', 'failed', 'runtime_error', 'timeout', 'error', 'expired', 'cancelled']),
+  status: z.enum(['queued', 'running', 'passed', 'failed', 'runtime_error', 'timeout', 'error', 'expired', 'cancelled', 'submitted']),
   score: z.number().nullable(),
   raw_score: z.number().nullable().optional(),
   max_score: z.number().optional(),
@@ -86,7 +88,17 @@ export const submissionSchema = z.object({
   created_at: z.string(),
   content_version: z.number().nullable().optional(),
   test_suite_version: z.number().nullable().optional(),
+  awaiting_review: z.boolean().optional(),
+  quiz_results: z.array(z.object({ question_id: z.string(), question_order: z.number(), selected_option_id: z.string().nullable(), correct: z.boolean(), explanation: z.string() })).nullable().optional(),
+  answers: z.object({ link: z.string().optional(), notes: z.string().optional(), checklist: z.array(z.boolean()).optional() }).nullable().optional(),
+  review: reviewSchema.nullable().optional(),
 });
+export const labKindSchema = z.enum(['code', 'quiz', 'written', 'upload']);
+export type LabKind = z.infer<typeof labKindSchema>;
+export const visibleCheckSchema = z.object({ test_order: z.number(), label: z.string(), definition: z.record(z.string(), z.unknown()), remediation: z.string().nullable().optional(), objective: z.string().nullable().optional() });
+export type VisibleCheck = z.infer<typeof visibleCheckSchema>;
+export const assetSchema = z.object({ name: z.string(), encoding: z.enum(['text', 'base64']).default('text'), content: z.string(), description: z.string().default('') });
+export type LabAsset = z.infer<typeof assetSchema>;
 export const exerciseSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -110,6 +122,23 @@ export const exerciseSchema = z.object({
   best_score: z.number().nullable(),
   attempts_used: z.number(),
   draft: z.string().nullable(),
+  // practical labs
+  lab_kind: labKindSchema.default('code'),
+  scoring: z.enum(['score', 'pass_fail']).default('score'),
+  packages: z.array(z.string()).default([]),
+  assets: z.array(assetSchema).default([]),
+  limits: z.object({ memory_mb: z.number().optional(), timeout_seconds: z.number().optional() }).default({}),
+  visible_checks: z.array(visibleCheckSchema).default([]),
+  hints_max: z.number().default(3),
+  hints_used: z.number().default(0),
+  cycle: z.number().default(1),
+  redo_count: z.number().default(0),
+  redo_available: z.boolean().default(false),
+  questions: z.array(z.object({ id: z.string(), question_order: z.number(), prompt: z.string(), options: z.array(z.object({ id: z.string(), text: z.string() })) })).default([]),
+  rubric: z.array(z.object({ criterion: z.string(), description: z.string().default(''), max_points: z.number().default(1) })).default([]),
+  checklist: z.array(z.string()).default([]),
+  lecture: z.object({ id: z.string(), lecture_number: z.number().nullable().optional(), title: z.string().nullable().optional() }).nullable().optional(),
+  review: reviewSchema.nullable().optional(),
   unlocked: z.boolean(),
 });
 
@@ -121,6 +150,6 @@ export type Session = z.infer<typeof sessionSchema>;
 export type CheckpointResult = z.infer<typeof checkpointResultSchema>;
 export type Submission = z.infer<typeof submissionSchema>;
 export type Exercise = z.infer<typeof exerciseSchema>;
-export const FINAL_STATUSES: Submission['status'][] = ['passed', 'failed', 'runtime_error', 'timeout', 'error', 'expired', 'cancelled'];
+export const FINAL_STATUSES: Submission['status'][] = ['passed', 'failed', 'runtime_error', 'timeout', 'error', 'expired', 'cancelled', 'submitted'];
 /** Statuses where the platform (not the learner) is at fault: no score penalty, retry freely. */
 export const PLATFORM_FAULT: Submission['status'][] = ['error', 'expired', 'cancelled'];

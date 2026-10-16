@@ -1,6 +1,7 @@
 """Probes, lab data files, the new check kinds and the in-process practice API (labmock) through the real harness (local subprocess)."""
 import asyncio
 import base64
+import json
 
 import pytest
 
@@ -151,3 +152,36 @@ def test_without_the_flag_requests_never_reaches_the_simulator():
     pytest.importorskip("requests")
     r = run("import requests\ntry:\n    requests.get('https://api.neuromind.lab/v1/weather?city=Pune', timeout=2)\n    print('served')\nexcept Exception as e:\n    print(type(e).__name__)\n", timeout=30, lab_api=False)
     assert r.stdout.strip() != "served"
+
+
+def test_browser_runtime_ships_the_same_evaluator_and_simulator():
+    """The page's quick check must agree with the server: the copied modules are byte-identical."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    assert (root / "frontend/public/py/nm_evaluate.py").read_text() == (root / "grader/grader_service/evaluate.py").read_text()
+    assert (root / "frontend/public/py/labmock.py").read_text() == (root / "grader/sandbox/labmock.py").read_text()
+
+
+def test_quickcheck_shim_matches_the_server_evaluation():
+    """nm_quickcheck runs in CPython too: same verdicts as the harness path for a visible check set."""
+    import importlib.util
+    import sys
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2] / "frontend" / "public" / "py"
+    sys.path.insert(0, str(root))
+    try:
+        spec = importlib.util.spec_from_file_location("nm_quickcheck", root / "nm_quickcheck.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        cwd = __import__("os").getcwd()
+        try:
+            tests = [{"test_order": 1, "label": "Prints", "definition": {"match": "non_empty"}}, {"test_order": 2, "label": "total", "definition": {"expr": "total", "expected": 60}},
+                     {"test_order": 3, "label": "file", "definition": {"expr": "open('m.csv').read().count(',')", "expected": 1}}]
+            res = json.loads(mod.quick_check("total = 12 * 5\nprint(total)\n", json.dumps(tests), json.dumps({"m.csv": "a,b\n"})))
+            assert res["status"] == "passed" and [c["passed"] for c in res["criteria"]] == [True, True, True] and res["stdout"].strip() == "60"
+            res = json.loads(mod.quick_check("total = 1\nprint(1/0)\n", json.dumps(tests), "{}"))
+            assert res["status"] == "failed" and res["error"]["type"] == "ZeroDivisionError" and res["error"]["line"] == 2
+        finally:
+            __import__("os").chdir(cwd)
+    finally:
+        sys.path.remove(str(root))

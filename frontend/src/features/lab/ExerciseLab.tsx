@@ -9,7 +9,8 @@ import { ErrorMessage, Loading } from '../../components/States';
 import { STATUS_HELP, STATUS_LABEL } from '../../components/SubmissionStatus';
 import { ApiError, errorMessage } from '../../services/api';
 import { addPortfolio } from '../../services/adminApi';
-import { getExercise, getSubmission, listSubmissions, revealHint, saveDraft, submitCode } from '../../services/lectureApi';
+import { getExercise, getSubmission, listSubmissions, redoLab, revealHint, saveDraft, submitCode } from '../../services/lectureApi';
+import { CheckDialog, type CheckOutcome } from './CheckDialog';
 import { FINAL_STATUSES, PLATFORM_FAULT, type Exercise, type Segment, type Submission } from '../../services/types';
 import { usePyodide, type PracticeResult } from './usePyodide';
 
@@ -20,6 +21,8 @@ interface Props {
   onGradingStart: () => void;
   onGradingEnd: (s: Submission) => void;
   onContinue: () => void;
+  /** 'lab' = opened from Practical Labs: Save & check popup, bulb hints with a cap, Redo. 'lecture' = inside the lecture flow. */
+  mode?: 'lecture' | 'lab';
 }
 
 type Tab = 'task' | 'code' | 'output' | 'result';
@@ -36,7 +39,7 @@ function writeLocal(key: string, code: string, unsynced: boolean) {
   try { localStorage.setItem(key, JSON.stringify({ code, unsynced })); } catch { /* storage unavailable: server draft still applies */ }
 }
 
-export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStart, onGradingEnd, onContinue }: Props) {
+export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStart, onGradingEnd, onContinue, mode = 'lecture' }: Props) {
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [code, setCode] = useState('');
@@ -56,10 +59,16 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
   const [resetOpen, setResetOpen] = useState(false);
   const [review, setReview] = useState<Segment | null>(null);
   const [restoredLocal, setRestoredLocal] = useState(false);
+  const [check, setCheck] = useState<CheckOutcome | null>(null);
+  const [checkOpen, setCheckOpen] = useState(false);
+  const [showFix, setShowFix] = useState(false);
+  const [redoBusy, setRedoBusy] = useState(false);
   const keyRef = useRef<string | null>(null);
   const codeRef = useRef('');
-  const runtime = usePyodide();
+  const runtime = usePyodide({ packages: exercise?.packages, assets: exercise?.assets, labApi: exercise?.packages.includes('requests') });
   codeRef.current = code;
+  const labMode = mode === 'lab';
+  const passFail = exercise?.scoring === 'pass_fail';
 
   const load = useCallback(async (initial: boolean) => {
     setLoadError(null);
@@ -140,7 +149,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
 
   async function submit() {
     if (!exercise || grading) return;
-    setSubmitError(null); setGrading(true); setLive(null); setTab('result'); onGradingStart();
+    setSubmitError(null); setGrading(true); setLive(null); if (!labMode) setTab('result'); onGradingStart();
     keyRef.current ??= crypto.randomUUID(); // reused if this exact click is retried after a network error
     let outcome: Submission | null = null;
     try {
@@ -155,14 +164,44 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
       }
       if (!FINAL_STATUSES.includes(sub.status)) throw new ApiError(0, 'TIMEOUT', 'Grading is taking longer than expected. Your submission is saved — check back in a moment.');
       outcome = sub;
+      if (labMode) setCheck((c) => ({ phase: 'official', quick: c?.quick ?? null, official: sub }));
       if (!PLATFORM_FAULT.includes(sub.status)) void persistDraft(code);
       await load(false); // refresh history, best score and (reset) hints for the next attempt
       setLive(null);
     } catch (e) {
       setSubmitError(errorMessage(e));
+      if (labMode) setCheck((c) => ({ phase: 'failed-to-send', quick: c?.quick ?? null, official: null, sendError: errorMessage(e) }));
     } finally {
       setGrading(false);
       onGradingEnd(outcome ?? ({ status: 'error' } as Submission)); // never a pass unless the server said so
+    }
+  }
+
+  /** Lab mode: Save & check = instant browser check of the visible criteria + the official server check, in one popup. */
+  async function saveAndCheck() {
+    if (!exercise || grading) return;
+    setShowFix(false);
+    setCheck({ phase: 'quick', quick: null, official: null });
+    setCheckOpen(true);
+    const official = submit();
+    if (runtime.status === 'ready' || runtime.status === 'idle') {
+      const quick = await runtime.check(code, exercise.visible_checks);
+      setCheck((c) => (c && c.phase !== 'official' && c.phase !== 'failed-to-send' ? { ...c, quick } : c ? { ...c, quick } : c));
+    }
+    await official;
+  }
+
+  async function redo() {
+    if (!exercise) return;
+    setRedoBusy(true);
+    try {
+      const r = await redoLab(exercise.id);
+      setCode(r.starter_code); setPractice(null); setCheck(null); setCheckOpen(false); setHintError(null);
+      await load(false);
+    } catch (e) {
+      setHintError(errorMessage(e));
+    } finally {
+      setRedoBusy(false);
     }
   }
 
@@ -203,7 +242,9 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
         </div>
         <div>
           <Link to={`/exercises/${exercise.id}/attempts`} className="muted" style={{ display: 'block', marginBottom: 4 }}>Attempt history</Link>
-          {bestScore != null ? <Badge kind={bestScore >= exercise.pass_threshold ? 'success' : 'info'}>{`Best score ${bestScore}% · pass mark ${exercise.pass_threshold}%`}</Badge> : <Badge kind="neutral">{`Pass mark ${exercise.pass_threshold}%`}</Badge>}
+          {passFail
+            ? <Badge kind={passed ? 'success' : 'neutral'}>{passed ? 'Passed' : `Not passed yet · ${exercise.hints_used} of ${exercise.hints_max} hints used`}</Badge>
+            : bestScore != null ? <Badge kind={bestScore >= exercise.pass_threshold ? 'success' : 'info'}>{`Best score ${bestScore}% · pass mark ${exercise.pass_threshold}%`}</Badge> : <Badge kind="neutral">{`Pass mark ${exercise.pass_threshold}%`}</Badge>}
         </div>
       </div>
       {exercise.draft_stale && <div role="status" className="notice notice-info">This exercise was updated, so your older saved draft was not loaded. You are starting from the new starter code.</div>}
@@ -226,7 +267,15 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
             {exercise.success_criteria.length > 0 && (
               <><h3>You will pass when</h3><ul>{exercise.success_criteria.map((c) => <li key={c}>{c}</li>)}</ul></>
             )}
-            <p className="muted">Runtime: {exercise.runtime || exercise.language}. Starter code is already in the editor.</p>
+            <p className="muted">Runtime: {exercise.runtime || exercise.language}{exercise.packages.length > 0 ? ` with ${exercise.packages.join(', ')}` : ''}. Starter code is already in the editor.</p>
+            {exercise.assets.length > 0 && (
+              <section aria-label="Files provided">
+                <h3>Files provided</h3>
+                <ul className="lab-files">{exercise.assets.map((a) => <li key={a.name}><code>{a.name}</code> <span className="muted">{a.description || `${a.encoding === 'base64' ? 'binary file' : `${a.content.split('\n').length} lines`}`}</span></li>)}</ul>
+                <p className="muted">They are in the same folder as your program, so <code>open('{exercise.assets[0].name}')</code> works.</p>
+              </section>
+            )}
+            {exercise.packages.includes('requests') && <p className="muted">This lab talks to the NeuroMind practice API at <code>https://api.neuromind.lab/v1</code> (test key <code>nm-test-key-123</code>). No other website can be reached from lab code.</p>}
             {exercise.visible_examples.length > 0 && (
               <section aria-label="Visible examples">
                 <h3>Examples you can run</h3>
@@ -253,10 +302,13 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
               <div>
                 <h3>Hints</h3>
                 {exercise.hints_revealed.map((h, i) => <p key={i} className="hint"><Icon name="bulb" size={16} /> <strong>Hint {i + 1}:</strong> {h}</p>)}
-                {nextHint < exercise.hints_total && (
+                {nextHint < (passFail ? Math.min(exercise.hints_total, exercise.hints_max) : exercise.hints_total) && (
                   <button className="btn btn-tertiary" onClick={() => void showHint()} disabled={hintBusy}>
-                    <Icon name="bulb" size={16} /> Show hint {nextHint + 1} of {exercise.hints_total}
+                    <Icon name="bulb" size={16} /> Show hint {nextHint + 1} of {passFail ? exercise.hints_max : exercise.hints_total}
                   </button>
+                )}
+                {passFail && exercise.redo_available && !passed && (
+                  <p><button className="btn btn-secondary" onClick={() => void redo()} disabled={redoBusy}><Icon name="reset" size={16} /> {redoBusy ? 'Starting again…' : 'Redo the lab (fresh hints, your history is kept)'}</button></p>
                 )}
                 <p className="muted">{exercise.hints_policy}</p>
                 {hintError && <p role="alert" className="field-error">{hintError}</p>}
@@ -287,19 +339,33 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
             <div className="statusbar">
               <span role="status">{saveText}</span>
               <span>
+                {labMode && exercise.hints_total > 0 && (
+                  <button className="btn btn-tertiary bulb-button" onClick={() => { setTab('task'); void showHint(); }} disabled={hintBusy || nextHint >= Math.min(exercise.hints_total, exercise.hints_max)}
+                    aria-label={`Hint: ${nextHint} of ${exercise.hints_max} used`} title="Show a hint">
+                    <Icon name="bulb" size={16} /> Hint {nextHint}/{exercise.hints_max}
+                  </button>
+                )}
                 <button className="btn btn-tertiary" onClick={() => setSimpleEditor((v) => !v)}>{simpleEditor ? 'Use code editor' : 'Use simple text editor'}</button>
                 <button className="btn btn-tertiary" onClick={() => setResetOpen(true)}><Icon name="reset" size={16} /> Reset to starter</button>
               </span>
             </div>
             <div className="actions">
               <button className="btn btn-secondary" onClick={() => void runPractice()} disabled={runtime.status !== 'ready'}>
-                <Icon name="play" size={16} /> {runtime.status === 'running' ? 'Running…' : 'Run practice'}
+                <Icon name="play" size={16} /> {runtime.status === 'running' ? 'Running…' : labMode ? 'Run' : 'Run practice'}
               </button>
-              <button className="btn btn-primary" onClick={() => void submit()} disabled={grading || exhausted || !code.trim()}>
-                <Icon name="flag" size={16} /> {grading ? 'Grading…' : 'Submit for grading'}
-              </button>
+              {labMode ? (
+                <button className="btn btn-primary" onClick={() => void saveAndCheck()} disabled={grading || exhausted || !code.trim()}>
+                  <Icon name="check" size={16} /> {grading ? 'Checking…' : 'Save & check'}
+                </button>
+              ) : (
+                <button className="btn btn-primary" onClick={() => void submit()} disabled={grading || exhausted || !code.trim()}>
+                  <Icon name="flag" size={16} /> {grading ? 'Grading…' : 'Submit for grading'}
+                </button>
+              )}
             </div>
-            <p className="muted"><strong>Practice</strong> runs in your browser and never counts. <strong>Submit for grading</strong> sends a snapshot of your code to the official grader, which keeps a record.</p>
+            {labMode
+              ? <p className="muted"><strong>Run</strong> shows your program's output. <strong>Save &amp; check</strong> checks your work: instantly in the browser, then officially on the server, which keeps the record.</p>
+              : <p className="muted"><strong>Practice</strong> runs in your browser and never counts. <strong>Submit for grading</strong> sends a snapshot of your code to the official grader, which keeps a record.</p>}
             {runtime.status === 'loading' && <Loading label="Loading Python in your browser… (first run takes a few seconds)" />}
             {runtime.status === 'error' && (
               <div>
@@ -340,10 +406,11 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
             )}
             {!grading && !latest && <p>Not submitted yet. When you're ready, choose “Submit for grading”.</p>}
             <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="result-announcement">{announcement}</div>
-            {!grading && latest && <ResultPanel sub={latest} passMark={exercise.pass_threshold} sections={sections} onReview={setReview} onShowHint={nextHint < exercise.hints_total ? () => { setTab('task'); void showHint(); } : undefined} />}
+            {!grading && latest && <ResultPanel sub={latest} passMark={exercise.pass_threshold} passFail={passFail} sections={sections} onReview={setReview} onShowHint={nextHint < (passFail ? Math.min(exercise.hints_total, exercise.hints_max) : exercise.hints_total) ? () => { setTab('task'); void showHint(); } : undefined} />}
             {submitError && <ErrorMessage message={submitError} />}
             {exhausted && <p role="alert">You have used all {exercise.max_attempts} attempts. Ask your teacher for help.</p>}
-            {passed && !grading && <button className="btn btn-primary" onClick={onContinue}>Continue to exit check</button>}
+            {passed && !grading && !labMode && <button className="btn btn-primary" onClick={onContinue}>Continue to exit check</button>}
+            {passed && !grading && labMode && <p role="status"><Link to="/labs">Back to practical labs</Link></p>}
             {history.length > 0 && (
               <details>
                 <summary>Attempt history ({history.length})</summary>
@@ -355,7 +422,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
                         <tr key={h.submission_id}>
                           <td>{h.submission_number}</td>
                           <td>{STATUS_LABEL[h.status][1]}</td>
-                          <td>{h.score != null ? `${h.score}%${h.hints_used ? ` (${h.hints_used} hint${h.hints_used > 1 ? 's' : ''})` : ''}` : '—'}</td>
+                          <td>{passFail ? `${h.passed_tests}/${h.total_tests} checks${h.hints_used ? ` (${h.hints_used} hint${h.hints_used > 1 ? 's' : ''})` : ''}` : h.score != null ? `${h.score}%${h.hints_used ? ` (${h.hints_used} hint${h.hints_used > 1 ? 's' : ''})` : ''}` : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -371,6 +438,12 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
         <p>This replaces what you've written with the starter code. Your past submissions are kept.</p>
       </ConfirmDialog>
       <ReviewDialog segment={review} onClose={() => setReview(null)} />
+      {labMode && (
+        <CheckDialog open={checkOpen} outcome={check} showFix={showFix} hintsLeft={Math.max(0, Math.min(exercise.hints_total, exercise.hints_max) - nextHint)}
+          redoAvailable={exercise.redo_available || (exercise.hints_total > 0 && nextHint >= Math.min(exercise.hints_total, exercise.hints_max))}
+          onDismiss={() => setCheckOpen(false)} onShowHint={() => setShowFix(true)}
+          onBulbHint={() => { setCheckOpen(false); setTab('task'); void showHint(); }} onRedo={() => void redo()} />
+      )}
     </section>
   );
 }
@@ -391,8 +464,8 @@ function AddToPortfolio({ sub }: { sub: Submission }) {
   );
 }
 
-export function ResultPanel({ sub, passMark, sections = [], onReview, onShowHint }: {
-  sub: Submission; passMark: number; sections?: Segment[]; onReview?: (s: Segment) => void; onShowHint?: () => void;
+export function ResultPanel({ sub, passMark, passFail = false, sections = [], onReview, onShowHint }: {
+  sub: Submission; passMark: number; passFail?: boolean; sections?: Segment[]; onReview?: (s: Segment) => void; onShowHint?: () => void;
 }) {
   const [kind, label] = STATUS_LABEL[sub.status];
   const fault = PLATFORM_FAULT.includes(sub.status);
@@ -403,10 +476,14 @@ export function ResultPanel({ sub, passMark, sections = [], onReview, onShowHint
       {help && <p style={{ marginTop: 8 }}>{help}</p>}
       {fault ? null : (
         <>
-          <p style={{ marginTop: 8 }}>
-            <strong>Score: {sub.score ?? 0}%</strong> (pass mark {passMark}%) — {sub.passed_tests}/{sub.total_tests} checks passed
-            {sub.hints_used ? <><br /><span className="muted">Raw score {sub.raw_score}% − {sub.hint_penalty} points for {sub.hints_used} hint{sub.hints_used > 1 ? 's' : ''}. Your best earlier score is unchanged.</span></> : null}
-          </p>
+          {passFail ? (
+            <p style={{ marginTop: 8 }}><strong>{sub.passed_tests}/{sub.total_tests} checks passed.</strong> {sub.status === 'passed' ? 'Every check passed.' : 'Every check must pass.'}{sub.hints_used ? <span className="muted"> {sub.hints_used} hint{sub.hints_used > 1 ? 's' : ''} used.</span> : null}</p>
+          ) : (
+            <p style={{ marginTop: 8 }}>
+              <strong>Score: {sub.score ?? 0}%</strong> (pass mark {passMark}%) — {sub.passed_tests}/{sub.total_tests} checks passed
+              {sub.hints_used ? <><br /><span className="muted">Raw score {sub.raw_score}% − {sub.hint_penalty} points for {sub.hints_used} hint{sub.hints_used > 1 ? 's' : ''}. Your best earlier score is unchanged.</span></> : null}
+            </p>
+          )}
           {sub.criteria && sub.criteria.length > 0 && (
             <ul className="criteria" aria-label="Checks">
               {sub.criteria.map((c, i) => (

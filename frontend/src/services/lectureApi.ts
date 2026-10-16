@@ -47,6 +47,25 @@ export const getSubmission = async (id: string): Promise<Submission> => submissi
 export const listSubmissions = async (exerciseId: string): Promise<{ submissions: Submission[]; best_score: number | null }> =>
   z.object({ submissions: z.array(submissionSchema), best_score: z.number().nullable() }).parse(await apiFetch(`/exercises/${exerciseId}/submissions`));
 
+export const redoLab = async (exerciseId: string) =>
+  z.object({ cycle: z.number(), redo_count: z.number(), hints_used: z.number(), hints_max: z.number(), starter_code: z.string() })
+    .parse(await apiFetch(`/exercises/${exerciseId}/redo`, { method: 'POST' }));
+
+/** Quiz, written and upload labs: one request, marked (quiz) or queued for the teacher (written/upload) by the server. */
+export const submitAnswers = async (exerciseId: string, key: string, body: { source_code?: string; answers?: Record<string, unknown> }, contentVersion?: number | null) =>
+  z.object({ submission_id: z.string(), status: z.string() }).parse(await apiFetch(`/exercises/${exerciseId}/submissions`, {
+    method: 'POST', headers: { 'Idempotency-Key': key }, ...json({ source_code: body.source_code ?? '', answers: body.answers ?? null, content_version: contentVersion ?? null }),
+  }));
+
+const labRow = z.object({ lecture_id: z.string(), lecture_number: z.number(), lecture_title: z.string(), module_id: z.string().nullable().optional(), exercise_id: z.string(), title: z.string(),
+  lab_kind: z.enum(['code', 'quiz', 'written', 'upload']).default('code'), packages: z.array(z.string()).default([]),
+  state: z.enum(['locked', 'not_started', 'in_progress', 'awaiting_review', 'needs_retry', 'passed']), lecture_state: z.string(), attempts: z.number(), last_status: z.string().nullable() });
+export type LabRow = z.infer<typeof labRow>;
+const labsSchema = z.object({ courses: z.array(z.object({ id: z.string(), title: z.string(), description: z.string().default(''), total: z.number(), passed: z.number(),
+  modules: z.array(z.object({ id: z.string(), module_number: z.number(), title: z.string(), labs: z.array(labRow) })) })) });
+export type LabsCatalogue = z.infer<typeof labsSchema>;
+export const getLabs = async (): Promise<LabsCatalogue> => labsSchema.parse(await apiFetch('/labs'));
+
 export const revealHint = async (exerciseId: string, index: number) =>
   z.object({ hint_index: z.number(), text: z.string(), hints_revealed: z.number(), hints_total: z.number(), penalty_percent: z.number() })
     .parse(await apiFetch(`/exercises/${exerciseId}/hints`, { method: 'POST', ...json({ hint_index: index }) }));
@@ -108,9 +127,20 @@ const detailSchema = z.object({
   source_code: z.string(), criteria: z.array(z.object({ label: z.string(), hidden: z.boolean(), passed: z.boolean() })),
   feedback_messages: z.array(z.object({ kind: z.string(), message: z.string() })), execution_ms: z.number().nullable(), created_at: z.string(),
   infrastructure_failure: z.boolean(),
+  lab_kind: z.enum(['code', 'quiz', 'written', 'upload']).default('code'),
+  rubric: z.array(z.object({ criterion: z.string(), description: z.string().default(''), max_points: z.number().default(1) })).default([]),
+  checklist: z.array(z.string()).default([]),
+  answers: z.record(z.string(), z.unknown()).nullable().optional(),
+  review: z.object({ passed: z.boolean(), feedback: z.string(), scores: z.array(z.object({ criterion: z.string(), points: z.number(), max_points: z.number().nullable().optional() })).default([]), reviewed_at: z.string().nullable().optional() }).nullable().optional(),
   evidence: z.object({ grader_version: z.string().nullable(), test_suite_version: z.number().nullable(), content_version: z.number().nullable(), correlation_id: z.string().nullable(), started_at: z.string().nullable(), finished_at: z.string().nullable() }),
 });
 export type SubmissionDetail = z.infer<typeof detailSchema>;
 export const getSubmissionDetail = async (id: string): Promise<SubmissionDetail> => detailSchema.parse(await apiFetch(`/teacher/submissions/${id}`));
+const pendingReview = z.object({ submission_id: z.string(), learner_id: z.string(), learner: z.string().nullable(), exercise_id: z.string(), exercise: z.string().nullable(), lecture: z.string().nullable(), number: z.number(), created_at: z.string() });
+export type PendingReview = z.infer<typeof pendingReview>;
+export const getPendingReviews = async () => z.object({ pending: z.array(pendingReview), total: z.number() }).parse(await apiFetch('/teacher/reviews'));
+export const reviewSubmission = async (id: string, body: { passed: boolean; feedback: string; scores: { criterion: string; points: number }[] }) =>
+  z.object({ submission_id: z.string(), status: z.string(), score: z.number() }).parse(await apiFetch(`/teacher/submissions/${id}/review`, { method: 'POST', ...json(body) }));
+
 export const addFeedback = async (learnerId: string, body: string, publish: boolean, submissionId?: string) =>
   apiFetch(`/teacher/learners/${learnerId}/feedback`, { method: 'POST', ...json({ body, publish, submission_id: submissionId ?? null }) });
