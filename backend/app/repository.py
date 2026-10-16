@@ -107,15 +107,25 @@ class Repository(Protocol):
     async def upsert_content(self, table: str, rows: list[Row]) -> None: ...
     async def set_content_status(self, lecture_id: str, status: str) -> None: ...
     async def list_teacher_ids_for_learner(self, learner_id: str) -> list[str]: ...
+    # --- practical labs ---
+    async def list_hint_reveals_cycle(self, learner_id: str, exercise_id: str, cycle: int) -> list[Row]: ...
+    async def get_hint_state(self, learner_id: str, exercise_id: str) -> Row | None: ...
+    async def upsert_hint_state(self, learner_id: str, exercise_id: str, cycle: int, redo_count: int) -> None: ...
+    async def delete_draft(self, learner_id: str, exercise_id: str) -> None: ...
+    async def list_lab_questions(self, exercise_id: str) -> list[Row]: ...
+    async def list_published_exercises(self, lecture_ids: list[str]) -> list[Row]: ...
+    async def get_review(self, submission_id: str) -> Row | None: ...
+    async def upsert_review(self, row: Row) -> Row: ...
+    async def list_submitted(self, learner_ids: list[str] | None) -> list[Row]: ...
 
 
 Filter = tuple[str, str, Any]  # (column, op, value); ops: eq, neq, in, gte, lt, is_null, ilike (substring)
 FILTER_OPS = {"eq", "neq", "in", "gte", "lt", "is_null", "ilike"}
 # Tables an administrator content import may write (never learner data). Writes are upserts keyed by id.
-CONTENT_TABLES = ("lectures", "mcq_questions", "lecture_checkpoints", "lecture_exercises", "lecture_segments", "exercise_tests")
+CONTENT_TABLES = ("courses", "modules", "lectures", "mcq_questions", "lecture_checkpoints", "lecture_exercises", "lecture_segments", "exercise_tests", "lab_questions")
 SAFE_TABLES = {"audit_logs", "certificates", "portfolio_items", "announcements", "cohorts", "cohort_members", "cohort_teachers",
                "issue_reports", "profiles", "enrollments", "teacher_assignments", "lectures", "lecture_exercises", "lab_submissions",
-               "lecture_sessions", "courses", "modules"}
+               "lecture_sessions", "courses", "modules", "lab_reviews", "lab_hint_state"}
 
 
 def _pg_params(filters: list[Filter] | None) -> list[tuple[str, str]]:
@@ -471,6 +481,52 @@ class PostgrestRepository:
         r = await self._req("GET", "teacher_feedback", params)
         r.raise_for_status()
         return r.json()
+
+    # practical labs
+    async def list_hint_reveals_cycle(self, learner_id, exercise_id, cycle):
+        return await self._get("exercise_hint_reveals", learner_id=f"eq.{learner_id}", exercise_id=f"eq.{exercise_id}",
+                               cycle=f"eq.{cycle}", select="*", order="revealed_at")
+
+    async def get_hint_state(self, learner_id, exercise_id):
+        return await self._one("lab_hint_state", learner_id=f"eq.{learner_id}", exercise_id=f"eq.{exercise_id}", select="*")
+
+    async def upsert_hint_state(self, learner_id, exercise_id, cycle, redo_count):
+        from datetime import UTC, datetime
+        r = await self._req("POST", "lab_hint_state", {"on_conflict": "learner_id,exercise_id"}, json={
+            "learner_id": learner_id, "exercise_id": exercise_id, "cycle": cycle, "redo_count": redo_count,
+            "updated_at": datetime.now(UTC).isoformat()}, prefer="resolution=merge-duplicates")
+        r.raise_for_status()
+
+    async def delete_draft(self, learner_id, exercise_id):
+        r = await self._req("DELETE", "lab_drafts", {"learner_id": f"eq.{learner_id}", "exercise_id": f"eq.{exercise_id}"})
+        r.raise_for_status()
+
+    async def list_lab_questions(self, exercise_id):
+        return await self._get("lab_questions", exercise_id=f"eq.{exercise_id}", select="*", order="question_order")
+
+    async def list_published_exercises(self, lecture_ids):
+        if not lecture_ids:
+            return []
+        return await self._get("lecture_exercises", lecture_id=_in(lecture_ids), status="eq.published",
+                               select="id,lecture_id,title,lab_kind,scoring,hints_max,packages", order="lecture_id")
+
+    async def get_review(self, submission_id):
+        return await self._one("lab_reviews", submission_id=f"eq.{submission_id}", select="*")
+
+    async def upsert_review(self, row):
+        from datetime import UTC, datetime
+        r = await self._req("POST", "lab_reviews", {"on_conflict": "submission_id"}, json={**row, "updated_at": datetime.now(UTC).isoformat()},
+                            prefer="resolution=merge-duplicates,return=representation")
+        r.raise_for_status()
+        return r.json()[0]
+
+    async def list_submitted(self, learner_ids):
+        params = {"status": "eq.submitted", "select": "*", "order": "created_at"}
+        if learner_ids is not None:
+            if not learner_ids:
+                return []
+            params["learner_id"] = _in(learner_ids)
+        return await self._get("lab_submissions", **params)
 
     # generic table access
     async def tbl_select(self, table, filters=None, *, columns="*", order=None, limit=None, offset=0):

@@ -13,8 +13,7 @@ from app.errors import ApiError
 from app.grader_client import GradeResult, InvalidGraderResult, validate_payload
 from app.repository import Repository, get_repository
 from app.routers.deps import path_uuid
-from app.services import metrics
-from app.services import audit
+from app.services import audit, labs, metrics
 from app.services.finalize import finalize_submission
 
 router = APIRouter(prefix="/api/v1/internal/grader")
@@ -49,10 +48,12 @@ async def claim(body: ClaimBody, repo: Repository = Depends(get_repository)):
         await repo.update_submission(sub["id"], {"status": "error", "claimed_by": None, "lease_expires_at": None, "safe_feedback": [
             {"kind": "infrastructure", "message": "This exercise is no longer available. Your code was not judged."}]})
         return Response(status_code=204)
+    limits = labs.limits_for(ex)
     return {
         "submission_id": sub["id"], "claim_count": sub["claim_count"], "lease_seconds": LEASE_SECONDS,
         "source_code": sub["source_code"], "pass_threshold": float(ex["pass_threshold"]),
-        "timeout_seconds": float(os.getenv("GRADING_TIMEOUT_SECONDS", "5")),
+        "timeout_seconds": float(os.getenv("GRADING_TIMEOUT_SECONDS", "5")) if not ex.get("packages") else limits["timeout_seconds"],
+        "limits": limits, "packages": ex.get("packages") or [], "files": labs.files_for_sandbox(ex.get("assets") or []),
         "tests": [{"test_order": t["test_order"], "definition": t["definition"], "points": float(t["points"]),
                    "is_hidden": t["is_hidden"]} for t in tests]}
 

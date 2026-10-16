@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import os
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
 from pydantic import BaseModel, Field
@@ -11,7 +12,7 @@ from app.errors import ApiError
 from app.grader_client import GradeResult, Grader, get_grader
 from app.repository import Repository, get_repository
 from app.routers.deps import idempotency_key, path_uuid
-from app.services import audit
+from app.services import audit, labs
 from app.services.context import load_context
 from app.services.finalize import finalize_submission
 from app.services.grading import best_valid_score
@@ -77,6 +78,10 @@ def _view(sub: dict) -> dict:
         "infrastructure_error": status in ("error", "expired", "cancelled"), "created_at": sub["created_at"],
         "content_version": sub.get("content_version"), "test_suite_version": sub.get("test_suite_version"),
         "started_at": sub.get("started_at"), "finished_at": sub.get("finished_at"),
+        "awaiting_review": status == "submitted",
+        "quiz_results": (sub.get("answers") or {}).get("results") if isinstance(sub.get("answers"), dict) else None,
+        "answers": {k: v for k, v in (sub.get("answers") or {}).items() if k in ("link", "notes", "checklist")} if isinstance(sub.get("answers"), dict) else None,
+        "review": sub.get("_review"),
     }
 
 
@@ -84,9 +89,17 @@ def _view(sub: dict) -> dict:
 async def get_exercise(exercise_id: str, user: CurrentUser = Depends(current_user), repo: Repository = Depends(get_repository)):
     ex, ctx, segment = await _exercise_ctx(repo, user.id, path_uuid(exercise_id))
     number = _attempt_number(ctx, ex["id"])
-    reveals = await repo.list_hint_reveals(user.id, ex["id"], number)
+    cycle, redo_count = await labs.hint_cycle(repo, user.id, ex)
+    reveals = await labs.hints_revealed(repo, user.id, ex, number, cycle)
     hints = ex.get("hints") or []
     draft = await repo.get_draft(user.id, ex["id"])
+    kind = ex.get("lab_kind") or "code"
+    pass_fail = labs.is_pass_fail(ex)
+    tests = await repo.list_exercise_tests(ex["id"]) if kind == "code" else []
+    questions = [{"id": q["id"], "question_order": q["question_order"], "prompt": q["prompt"], "options": q["options"]}
+                 for q in await repo.list_lab_questions(ex["id"])] if kind == "quiz" else []
+    last = next((x for x in reversed([s for s in ctx.submissions if s["exercise_id"] == ex["id"]])), None)
+    review = await repo.get_review(last["id"]) if last and kind in labs.REVIEWED_KINDS and last["status"] in ("passed", "failed") else None
     version = ctx.lecture.get("content_version")
     draft_stale = bool(draft and draft.get("content_version") is not None and draft["content_version"] != version)
     mine = [s for s in ctx.submissions if s["exercise_id"] == ex["id"]]
@@ -101,9 +114,19 @@ async def get_exercise(exercise_id: str, user: CurrentUser = Depends(current_use
         "content_version": version, "runtime": "Python 3 — practice runs in your browser; official grading runs on the server",
         "objective": ex.get("objective") or "", "constraints": ex.get("constraints") or "",
         "visible_examples": ex.get("visible_examples") or [], "success_criteria": ex.get("success_criteria") or [],
-        "hints_policy": (f"Hints are optional. Each one lowers that attempt's score by {float(ex.get('hint_penalty_percent') or 0):g} points; "
-                         "it never lowers a score you already earned.") if hints else "No hints are available for this exercise.",
+        "hints_policy": ("No hints are available for this exercise." if not hints else
+                         f"You can take up to {labs.hints_max(ex)} hints for this lab. After the last hint you can start the lab again (Redo)." if pass_fail else
+                         f"Hints are optional. Each one lowers that attempt's score by {float(ex.get('hint_penalty_percent') or 0):g} points; "
+                         "it never lowers a score you already earned."),
         "unlocked": segment["segment_order"] <= max_reachable_order(ctx.segments, ctx.checkpoints, ctx.progress),
+        # practical labs
+        "lab_kind": kind, "scoring": "pass_fail" if pass_fail else "score",
+        "packages": ex.get("packages") or [], "assets": labs.public_assets(ex.get("assets") or []), "limits": labs.limits_for(ex),
+        "visible_checks": labs.visible_checks(tests), "hints_max": labs.hints_max(ex), "hints_used": len(reveals),
+        "cycle": cycle, "redo_count": redo_count, "redo_available": pass_fail and bool(hints) and len(reveals) >= labs.hints_max(ex),
+        "questions": questions, "rubric": ex.get("rubric") or [], "checklist": ex.get("checklist") or [],
+        "lecture": {"id": ctx.lecture["id"], "lecture_number": ctx.lecture.get("lecture_number"), "title": ctx.lecture.get("title")},
+        "review": {"passed": review["passed"], "feedback": review["feedback"], "scores": review.get("scores") or [], "reviewed_at": review.get("updated_at") or review.get("created_at")} if review else None,
     }
 
 
@@ -119,20 +142,40 @@ async def reveal_hint(exercise_id: str, body: HintBody, request: Request, user: 
     _require_reachable(ctx, segment)
     hints = ex.get("hints") or []
     number = _attempt_number(ctx, ex["id"])
-    reveals = await repo.list_hint_reveals(user.id, ex["id"], number)
+    cycle, _redo = await labs.hint_cycle(repo, user.id, ex)
+    reveals = await labs.hints_revealed(repo, user.id, ex, number, cycle)
     already = {r["hint_index"] for r in reveals}
     if body.hint_index >= len(hints):
         raise ApiError(409, "NO_MORE_HINTS", "There are no more hints for this exercise")
     if body.hint_index not in already:
         if body.hint_index != len(already):
             raise ApiError(409, "HINT_ORDER", "Reveal hints in order")
+        if labs.is_pass_fail(ex) and len(already) >= labs.hints_max(ex):
+            raise ApiError(409, "HINTS_EXHAUSTED", f"You have used all {labs.hints_max(ex)} hints for this lab. Start again with Redo to get fresh hints.")
         await repo.insert_hint_reveal({"learner_id": user.id, "exercise_id": ex["id"], "hint_index": body.hint_index,
-                                       "attempt_number": number})
+                                       "attempt_number": number, "cycle": cycle})
         await audit.record(repo, request, user.id, "hint.revealed", "exercise", ex["id"],
                            {"exercise_id": ex["id"], "hint_index": body.hint_index})
         already.add(body.hint_index)
     return {"hint_index": body.hint_index, "text": hints[body.hint_index], "hints_revealed": len(already),
             "hints_total": len(hints), "penalty_percent": len(already) * float(ex.get("hint_penalty_percent") or 0)}
+
+
+@router.post("/exercises/{exercise_id}/redo")
+async def redo_lab(exercise_id: str, request: Request, user: CurrentUser = Depends(current_user), repo: Repository = Depends(get_repository)):
+    """Start the lab again after the hints are used up: fresh hints and starter code; the attempt history is kept."""
+    ex, ctx, segment = await _exercise_ctx(repo, user.id, path_uuid(exercise_id))
+    _require_reachable(ctx, segment)
+    if not labs.is_pass_fail(ex):
+        raise ApiError(409, "REDO_NOT_AVAILABLE", "This exercise does not use Redo")
+    cycle, redo_count = await labs.hint_cycle(repo, user.id, ex)
+    reveals = await labs.hints_revealed(repo, user.id, ex, _attempt_number(ctx, ex["id"]), cycle)
+    if len(reveals) < labs.hints_max(ex):
+        raise ApiError(409, "REDO_NOT_AVAILABLE", "Redo becomes available once you have used all the hints for this lab")
+    await repo.upsert_hint_state(user.id, ex["id"], cycle + 1, redo_count + 1)
+    await repo.delete_draft(user.id, ex["id"])
+    await audit.record(repo, request, user.id, "lab.redo", "exercise", ex["id"], {"exercise_id": ex["id"], "count": redo_count + 1})
+    return {"cycle": cycle + 1, "redo_count": redo_count + 1, "hints_used": 0, "hints_max": labs.hints_max(ex), "starter_code": ex["starter_code"]}
 
 
 class DraftBody(BaseModel):
@@ -150,9 +193,10 @@ async def save_draft(exercise_id: str, body: DraftBody, user: CurrentUser = Depe
 
 
 class SubmissionBody(BaseModel):
-    source_code: str
+    source_code: str = ""
     language: str | None = None
     content_version: int | None = None
+    answers: dict[str, Any] | None = None  # quiz: {question_id: option_id}; upload: {link, notes, checklist}
 
 
 async def _run_grading(repo: Repository, grader: Grader, sub: dict, ex: dict, lecture: dict, request_id: str | None) -> None:
@@ -182,10 +226,21 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
     if isinstance(ctx_result, BaseException):
         raise ctx_result
     ex, ctx, segment = ctx_result
-    if len(body.source_code.encode()) > _max_bytes() or not body.source_code.strip():
-        raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "source_code", "issue": "Empty or too large"}])
-    if body.language is not None and body.language.lower() != ex["language"]:
+    kind = ex.get("lab_kind") or "code"
+    if len(body.source_code.encode()) > _max_bytes():
+        raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "source_code", "issue": "Too large"}])
+    if kind in ("code", "written") and not body.source_code.strip():
+        raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "source_code", "issue": "Nothing to submit yet" if kind == "written" else "Empty or too large"}])
+    if kind == "code" and body.language is not None and body.language.lower() != ex["language"]:
         raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "language", "issue": f"Only {ex['language']} is supported here"}])
+    if kind == "written" and len(body.source_code) > labs.MAX_TEXT_CHARS:
+        raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "source_code", "issue": f"Answers are limited to {labs.MAX_TEXT_CHARS} characters"}])
+    if kind == "quiz" and (not isinstance(body.answers, dict) or not body.answers):
+        raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "answers", "issue": "Answer the questions first"}])
+    if kind == "upload":
+        problems = labs.validate_upload(body.answers or {}, ex.get("checklist") or [])
+        if problems:
+            raise ApiError(422, "VALIDATION_ERROR", details=problems)
 
     if isinstance(existing_result, BaseException):
         raise existing_result
@@ -210,17 +265,32 @@ async def create_submission(exercise_id: str, body: SubmissionBody, request: Req
                            {"exercise_id": exercise_id, "count": recent})
         raise ApiError(429, "RATE_LIMITED", "You're submitting very quickly. Wait a few seconds, then try again.")
 
-    sub = await repo.insert_submission({
+    row: dict[str, Any] = {
         "learner_id": user.id, "exercise_id": exercise_id, "source_code": body.source_code,
         "idempotency_key": key, "status": "queued", "content_version": ctx.lecture.get("content_version"),
         "snapshot_sha256": hashlib.sha256(body.source_code.encode()).hexdigest(),
         "test_suite_version": ex.get("test_suite_version"), "pass_threshold": ex["pass_threshold"],
-        "correlation_id": getattr(request.state, "request_id", None)})
+        "correlation_id": getattr(request.state, "request_id", None)}
+    if kind == "quiz":  # marked here and now; never trusts the client for correctness
+        questions = await repo.list_lab_questions(ex["id"])
+        marked = labs.mark_quiz(questions, {str(k): str(v) for k, v in (body.answers or {}).items()})
+        row.update({"status": "passed" if marked["passed"] else "failed", "score": marked["score"], "raw_score": marked["score"],
+                    "passed_tests": marked["correct"], "total_tests": marked["total"], "finished_at": datetime.now(UTC).isoformat(),
+                    "answers": {"responses": body.answers, "results": marked["results"]}, "max_score": 100,
+                    "criteria_results": [{"label": f"Question {r['question_order']}", "hidden": False, "passed": r["correct"], "remediation": None if r["correct"] else (r["explanation"] or None)} for r in marked["results"]],
+                    "safe_feedback": [{"kind": "success" if marked["passed"] else "failure",
+                                       "message": f"{marked['correct']} of {marked['total']} answers correct." + ("" if marked["passed"] else " Review the explanations and try again.")}]})
+    elif kind in labs.REVIEWED_KINDS:
+        row.update({"status": "submitted", "answers": body.answers if kind == "upload" else {"kind": "written"},
+                    "safe_feedback": [{"kind": "info", "message": "Sent to your teacher for review."}]})
+    sub = await repo.insert_submission(row)
     background.add_task(audit.record, repo, request, user.id, "submission.created", "submission", sub["id"],
                         {"submission_id": sub["id"], "exercise_id": exercise_id})  # best-effort; off the request path
-    if grading_mode() == "inline":  # queue mode: a private worker claims the job from the database
+    if kind == "quiz":
+        background.add_task(audit.record, repo, None, user.id, "submission.finished", "submission", sub["id"], {"status": sub["status"], "score": sub.get("score"), "submission_id": sub["id"]})
+    elif kind == "code" and grading_mode() == "inline":  # queue mode: a private worker claims the job from the database
         background.add_task(_run_grading, repo, grader, sub, ex, ctx.lecture, getattr(request.state, "request_id", None))
-    return {"submission_id": sub["id"], "status": "queued", "status_url": f"/api/v1/submissions/{sub['id']}"}
+    return {"submission_id": sub["id"], "status": sub["status"], "status_url": f"/api/v1/submissions/{sub['id']}"}
 
 
 @router.get("/submissions/{submission_id}")
@@ -233,6 +303,11 @@ async def get_submission(submission_id: str, user: CurrentUser = Depends(current
         if (datetime.now(UTC) - created).total_seconds() > _stale_after():
             sub = await repo.update_submission(sub["id"], {"status": "expired", "safe_feedback": [
                 {"kind": "infrastructure", "message": "Grading took too long and was stopped. Your code was not judged and your score is unchanged. Please submit again."}]}) or sub
+    if sub["status"] in ("passed", "failed") and sub.get("answers") is not None or sub["status"] == "submitted":
+        review = await repo.get_review(sub["id"])
+        if review:
+            sub = {**sub, "_review": {"passed": review["passed"], "feedback": review["feedback"], "scores": review.get("scores") or [],
+                                      "reviewed_at": review.get("updated_at") or review.get("created_at")}}
     return _view(sub)
 
 

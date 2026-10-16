@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "lecture_number": 10,
   "title": "Numbers, text and f-strings",
   "summary": "Do arithmetic, work with text, and build readable messages from your data with f-strings.",
@@ -190,6 +190,8 @@
         "remediation_segment": "reading-2",
         "hidden": true
       }
-    ]
+    ],
+    "scoring": "score",
+    "solution": "price = 12\nquantity = 5\ntotal = price * quantity\nmessage = f\"Total: {total}\"\nprint(message)\n"
   }
 }

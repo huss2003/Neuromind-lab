@@ -169,7 +169,7 @@ async def audit_log(event_type: str | None = Query(default=None, max_length=60),
 async def courses_overview(_: CurrentUser = Depends(guard), repo: Repository = Depends(get_repository)):
     courses, _c = await repo.tbl_select("courses", columns="id,title,status", order="created_at.asc")
     lectures, _l = await repo.tbl_select("lectures", columns="id,course_id,lecture_number,title,status,content_version,published_at", order="lecture_number.asc")
-    exercises, _e = await repo.tbl_select("lecture_exercises", columns="id,lecture_id,title,status,test_suite_version,pass_threshold,max_attempts")
+    exercises, _e = await repo.tbl_select("lecture_exercises", columns="id,lecture_id,title,status,test_suite_version,pass_threshold,max_attempts,lab_kind,scoring")
     enrolled, _n = await repo.tbl_select("enrollments", [("revoked_at", "is_null", True)], columns="course_id,learner_id")
     out = []
     for c in courses:
@@ -177,6 +177,21 @@ async def courses_overview(_: CurrentUser = Depends(guard), repo: Repository = D
         out.append({**c, "learners_enrolled": sum(e["course_id"] == c["id"] for e in enrolled),
                     "lectures": [{**x, "exercises": [{k: v for k, v in e.items() if k != "lecture_id"} for e in exercises if e["lecture_id"] == x["id"]]} for x in lecs]})
     return {"courses": out, "note": "Published content is cached for up to 15 seconds, so a status change can take that long to appear for learners."}
+
+
+@router.get("/exercises/{exercise_id}/tests")
+async def exercise_tests(exercise_id: str, _: CurrentUser = Depends(guard), repo: Repository = Depends(get_repository)):
+    """Every check of a lab, hidden ones included, for the administrator (owner decision 2026-10-16)."""
+    eid = path_uuid(exercise_id)
+    rows, _t = await repo.tbl_select("lecture_exercises", [("id", "eq", eid)], columns="id,title,lab_kind,scoring,packages,limits,hints,hints_max,rubric,checklist,status", limit=1)
+    if not rows:
+        raise ApiError(404, "NOT_FOUND")
+    tests = await repo.list_exercise_tests(eid)
+    questions = await repo.list_lab_questions(eid)
+    return {**rows[0], "tests": [{"test_order": t["test_order"], "hidden": bool(t["is_hidden"]), "label": t.get("criterion_label"), "definition": t["definition"],
+                                  "points": float(t["points"]), "remediation": t.get("remediation"), "objective": t.get("objective")} for t in tests],
+            "questions": [{"question_order": q["question_order"], "prompt": q["prompt"], "options": q["options"], "correct_option_id": q["correct_option_id"],
+                           "explanation": q.get("explanation")} for q in questions]}
 
 
 class LectureStatus(BaseModel):

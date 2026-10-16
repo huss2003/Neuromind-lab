@@ -16,7 +16,7 @@ from app.errors import ApiError
 from app.logging_setup import setup_logging
 from app.repository import Repository, get_repository
 from app import http
-from app.routers import admin, admin_content, admin_ops, checkpoints, content, dashboard, exercises, learner, sessions, teacher, teacher_tools, worker
+from app.routers import admin, admin_content, admin_ops, checkpoints, content, dashboard, exercises, labs, learner, sessions, teacher, teacher_tools, worker
 from app.auth import CurrentUser, current_user, require_roles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -42,7 +42,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="NeuroMind API", version="0.2.0", lifespan=lifespan)
 
-for _r in (content.router, sessions.router, checkpoints.router, exercises.router, teacher.router, dashboard.router, admin.router, admin_ops.router, admin_content.router, learner.router, teacher_tools.router, worker.router):
+for _r in (content.router, sessions.router, checkpoints.router, exercises.router, teacher.router, dashboard.router, admin.router, admin_ops.router, admin_content.router, labs.router, learner.router, teacher_tools.router, worker.router):
     app.include_router(_r)
 
 origins = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",") if o.strip()]

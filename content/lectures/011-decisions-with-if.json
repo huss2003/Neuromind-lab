@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "lecture_number": 11,
   "title": "Making decisions with if",
   "summary": "Compare values, combine conditions, and make your program choose what to do with if, elif and else.",
@@ -190,6 +190,8 @@
         "remediation_segment": "example",
         "hidden": true
       }
-    ]
+    ],
+    "scoring": "score",
+    "solution": "score = 72\nif score >= 50:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(grade)\n"
   }
 }

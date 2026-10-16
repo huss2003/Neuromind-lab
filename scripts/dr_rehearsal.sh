@@ -33,7 +33,13 @@ chown -R postgres "$DIR" 2>/dev/null || true
 $PSQL -d nm -c "set session_replication_role = replica; insert into auth.users(id) select (j->>'id')::uuid from json_array_elements(pg_read_file('$DIR/profiles.json')::json) j"
 {
   echo "set session_replication_role = replica;"
-  while read -r t; do echo "insert into public.$t select * from json_populate_recordset(null::public.$t, pg_read_file('$DIR/$t.json')::json) on conflict do nothing;"; done < <(cat "$DIR/tables.txt"; echo)
+  # Insert only the columns present in the backup, so columns added by later migrations take their defaults.
+  while read -r t; do
+    [ -n "$t" ] || continue
+    cols=$(python3 -c "import json;r=json.load(open('$DIR/$t.json'));print(','.join('\"%s\"'%c for c in r[0]) if r else '')")
+    [ -n "$cols" ] || continue
+    echo "insert into public.$t ($cols) select $cols from json_populate_recordset(null::public.$t, pg_read_file('$DIR/$t.json')::json) on conflict do nothing;"
+  done < <(cat "$DIR/tables.txt"; echo)
 } > "$DIR/restore.sql"
 $PSQL -d nm -f "$DIR/restore.sql"
 fail=0

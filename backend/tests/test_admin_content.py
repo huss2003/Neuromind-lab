@@ -50,7 +50,7 @@ def test_import_writes_a_draft_and_is_idempotent(env):
     assert r.status_code == 200, r.text
     first = r.json()
     assert first["status"] == "draft" and first["created"] is True
-    assert first["rows"] == {"lectures": 1, "mcq_questions": 3, "lecture_checkpoints": 3, "lecture_exercises": 1, "lecture_segments": 8, "exercise_tests": 3}
+    assert first["rows"] == {"lectures": 1, "mcq_questions": 3, "lecture_checkpoints": 3, "lecture_exercises": 1, "lecture_segments": 8, "exercise_tests": 3, "lab_questions": 0}
     lecture = repo.content["lectures"][0]
     assert lecture["status"] == "draft" and lecture["published_at"] is None
     assert {q["status"] for q in repo.content["mcq_questions"]} == {"draft"}

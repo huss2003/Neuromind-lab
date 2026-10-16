@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "lecture_number": 12,
   "title": "Lists and loops",
   "summary": "Keep several values in a list and use a for loop to work through them one at a time.",
@@ -190,6 +190,8 @@
         "remediation_segment": "example",
         "hidden": true
       }
-    ]
+    ],
+    "scoring": "score",
+    "solution": "numbers = [3, 1, 4, 1, 5]\ntotal = 0\nfor n in numbers:\n    total = total + n\nprint(total)\n"
   }
 }
