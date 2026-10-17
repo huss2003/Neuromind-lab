@@ -199,3 +199,23 @@ neuromind-worker`). Two capable workers can also run at the same time: leases pr
 - A refused worker logs `WARNING: the API refuses to give this worker jobs (...)`: rebuild the image with `update.sh`.
 - Alerts: Administration › Overview shows queue depth and dead letters; DEAD_LETTER_RUNBOOK.md applies unchanged.
 - Token rotation: new value in Vercel and in `/etc/neuromind/worker.env`, then `systemctl restart neuromind-worker`.
+
+## 14. Interim host: GitHub Actions (owner decision 2026-10-17)
+
+The VM on Hussain-PC is postponed: Hyper-V could not be enabled (Windows component store corruption) and the disk was nearly full.
+Until a PC or VPS grader exists, `.github/workflows/grader-worker.yml` runs the same worker on a GitHub-hosted runner.
+
+- **Same sandbox:** Docker with gVisor (`GRADER_RUNTIME=runsc`) and the pinned image, exactly as the CI `grader-gvisor` job tests.
+  Two jobs at a time (`WORKER_CONCURRENCY=2`; the runner has 4 vCPU and 16 GB).
+- **Always on:** each run serves about 5 h 40 min, then stops gracefully. A schedule every 5 h and the `grader-worker`
+  concurrency group keep the next run queued behind the active one. Hand-over gap: the ~3 min set-up; attempts wait in the queue.
+- **Settings:** repository variable `GRADER_API_BASE_URL` (`https://neuromind-lab-api.vercel.app`) and secret
+  `GRADER_WORKER_TOKEN` (same value as in the Vercel API project). Start or restart: Actions › grader-worker › Run workflow.
+- **Cost:** free (public repository, standard runner).
+- **Public logs:** the worker prints only start-up, refusal and stray-container lines: no learner code, no hidden checks, and the
+  token is masked. Hidden checks still reach the worker only through the authenticated claim response.
+- **Risks, accepted by the owner:** GitHub's terms intend Actions for building, testing and deploying the project; running a
+  production service may get Actions disabled for the repository without notice. GitHub also pauses scheduled workflows after 60
+  days without repository activity. If either happens, grading stops (attempts stay queued, then expire, never marked failed):
+  start a run by hand, or move to a VM/VPS with `install.sh` (section 12).
+- **Check it:** the run log shows `sandbox ready: runtime=runsc ...` and no `WARNING: the API refuses ...` line.
