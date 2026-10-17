@@ -124,7 +124,7 @@
       "key": "seg-6",
       "type": "example",
       "title": "Variables and print()",
-      "body": "## Your first program\n\nA program is a list of instructions that Python follows one line at a time. Here is a complete one:\n\n```\nstudent_name = \"Aarav\"\nprint(student_name)\n```\n\nRunning it shows:\n\n```\nAarav\n```\n\n## What each line does\n\n- `student_name = \"Aarav\"` creates a **variable**. The name goes on the left, the value on the right, and `=` stores the value under that name. Text must be wrapped in quotes.\n- `print(student_name)` shows the value on screen. There are no quotes around `student_name`, because you are printing what the variable holds, not the word itself.\n\n## Changing a variable\n\nA variable can be given a new value at any time. Python works out the right-hand side first:\n\n```\nprice = 20\nprice = price + 5\nprint(price)\n```\n\nThis prints `25`. Python reads `price + 5` using the old value (20), then stores the answer back under `price`.\n\n## Common mistakes\n\n- `print(\"student_name\")` with quotes prints the words, not the value.\n- One `=` stores a value. Two, `==`, compare two values; you will use that later.\n- A missing closing quote or bracket causes a `SyntaxError`. Python tells you which line.\n\nYou will practise all of this in the lab next.",
+      "body": "## Your first program\n\nA program is a list of instructions that Python follows one line at a time. Here is a complete one:\n\n```\nstudent_name = \"Aarav\"\nprint(student_name)\n```\n\nRunning it shows:\n\n```\nAarav\n```\n\n## What each line does\n\n- `student_name = \"Aarav\"` creates a **variable**. The name goes on the left, the value on the right, and `=` stores the value under that name. Text must be wrapped in quotes.\n- `print(student_name)` shows the value on screen. There are no quotes around `student_name`, because you are printing what the variable holds, not the word itself.\n\n## Changing a variable\n\nA variable can be given a new value at any time. Python works out the right-hand side first:\n\n```\nprice = 20\nprice = price + 5\nprint(price)\n```\n\nThis prints `25`. Python reads `price + 5` using the old value (20), then stores the answer back under `price`.\n\n## Joining text with +\n\nTwo pieces of text can be joined with `+`:\n\n```\nname = \"Aarav\"\ngreeting = \"Hello, my name is \" + name\nprint(greeting)\n```\n\nThis prints `Hello, my name is Aarav`. Notice the space at the end of `\"Hello, my name is \"`. Without it the words run together.\n\n## Reading an error message\n\nPrograms do not always work the first time. Try this:\n\n```\nname = \"Aarav\"\nprint(nme)\n```\n\nPython stops and shows:\n\n```\nNameError: name 'nme' is not defined\n```\n\nRead it from the end. Python looked for a variable called `nme` and did not find one, because the variable is called `name`. The message also tells you the line number. Fix the spelling, run again, and it works. Reading an error calmly and fixing it is a skill you will use every day.\n\n## Common mistakes\n\n- `print(\"student_name\")` with quotes prints the words, not the value.\n- A misspelled variable name causes a `NameError`. Check the spelling against the line where you created the variable.\n- One `=` stores a value. Two, `==`, compare two values; you will use that later.\n- A missing closing quote or bracket causes a `SyntaxError`. Python tells you which line.\n\nIn the lab you will write hello.py: a greeting with your own name and two facts about you. One line is broken on purpose so that you can read the error and fix it yourself.",
       "opens_exercise": true
     },
     {
@@ -141,74 +141,115 @@
   ],
   "lab": {
     "kind": "code",
-    "scoring": "score",
-    "title": "Print your name",
-    "objective": "Store text in a variable and show it on screen with print().",
-    "instructions": "Create a variable named student_name that holds your name as text. Then print it so your name appears in the output.",
-    "constraints": "Use a variable named student_name. Use print() once. No input() or imports are needed.",
-    "starter_code": "student_name = \"\"\nprint(student_name)\n",
+    "scoring": "pass_fail",
+    "title": "hello.py: a greeting and a fixed typo",
+    "objective": "Write hello.py: a greeting with your own name and two facts, and fix a broken line by reading its error message.",
+    "instructions": "Write your first program, hello.py. Store your name in name and build greeting from the words Hello, my name is and your name. The print line in step 3 has a typo on purpose: press Run, read the NameError, then fix it. Store two facts about yourself in fact_1 and fact_2 and print them, one per line, after the greeting. Finally, store the corrected print line from step 3 as text between quotes in fixed_line.",
+    "constraints": "Keep the variable names name, greeting, fact_1, fact_2 and fixed_line. Print each line with print(). No input() and no imports.",
+    "starter_code": "# hello.py - my first program\n\n# 1. Put your own name between the quotes\nname = \"\"\n\n# 2. Build the greeting: the words \"Hello, my name is \" followed by your name\ngreeting = \"Hello, my name is \" + name\n\n# 3. Print the greeting.\n#    This line has a typo on purpose. Press Run, read the NameError, then fix it.\nprint(greting)\n\n# 4. Store two facts about yourself, in quotes, for example \"I am 13 years old\"\nfact_1 = \"\"\nfact_2 = \"\"\n\n# 5. Print fact_1, then fact_2, each on its own line\n\n\n# 6. Write the corrected line from step 3 as text between the quotes\nfixed_line = \"\"\n",
     "hints": [
-      "Start by creating a variable called student_name and give it a text value in quotes.",
-      "Use print(student_name) on its own line to show the value.",
-      "Make sure the text you print is exactly what student_name holds - print the variable, not a new string."
+      "Press Run first. The NameError tells you the line number and the name Python cannot find. Compare that name with the variable you created in step 2.",
+      "The variable is spelled greeting, so the print line must be print(greeting). Then fill in name, fact_1 and fact_2, and print both facts with print(fact_1) and print(fact_2).",
+      "The last step is text, not code: fixed_line = \"print(greeting)\" is the corrected line written between quotes."
     ],
     "hints_max": 3,
-    "hint_penalty_percent": 10,
-    "pass_threshold": 80,
+    "hint_penalty_percent": 0,
     "practice_mode": "both",
     "packages": [],
     "assets": [],
     "limits": {},
     "visible_examples": [
       {
-        "code": "student_name = \"Aarav\"\nprint(student_name)",
-        "description": "Example",
-        "expected_output": "Aarav"
+        "description": "Joining text with +",
+        "code": "city = \"Pune\"\nmessage = \"I live in \" + city\nprint(message)",
+        "expected_output": "I live in Pune"
+      },
+      {
+        "description": "Several lines, one print() each",
+        "code": "pet = \"a dog\"\nprint(\"I have \" + pet)\nprint(\"It is brown\")",
+        "expected_output": "I have a dog\nIt is brown"
       }
     ],
     "success_criteria": [
-      "Your program prints a line of text",
-      "student_name holds text",
-      "What you print matches student_name"
+      "Your program runs without an error and prints something",
+      "name holds your name (text, not empty)",
+      "A printed line reads Hello, my name is followed by your name",
+      "fact_1 and fact_2 each hold a different fact (text, not empty)",
+      "At least three lines are printed: the greeting and the two facts",
+      "fixed_line holds the corrected print line from step 3, as text"
     ],
-    "rubric": [],
-    "checklist": [],
-    "questions": [],
     "tests": [
       {
         "key": "l9-t1",
-        "label": "Your program prints something",
-        "remediation": "Add a print(...) line so your program shows a result.",
-        "objective": "Print output with print()",
-        "hidden": false,
+        "label": "Your program runs without an error and prints something",
+        "remediation": "If you see NameError: name 'greting' is not defined, the typo is still there: the variable is called greeting, so the line must be print(greeting). Then make sure the program prints at least one line.",
+        "objective": "Run a program and read an error message",
         "remediation_segment": "seg-6",
+        "hidden": false,
         "definition": {
           "match": "non_empty",
-          "description": "Prints a non-empty line"
+          "description": "Runs and prints something"
         }
       },
       {
         "key": "l9-t2",
-        "label": "student_name holds text",
-        "remediation": "Create a variable named student_name and put text in quotes, like student_name = \"Aarav\".",
+        "label": "name holds your name (text, not empty)",
+        "remediation": "Put your name between the quotes in step 1, like name = \"Aarav\".",
         "objective": "Store text in a variable",
-        "hidden": false,
         "remediation_segment": "seg-6",
+        "hidden": false,
         "definition": {
-          "name": "student_name",
-          "check": "variable_is_str",
-          "description": "Defines student_name as a string"
+          "expr": "isinstance(name, str) and name.strip() != \"\"",
+          "truthy": true,
+          "description": "name holds non-empty text"
         }
       },
       {
         "key": "l9-t3",
-        "label": "The printed text matches student_name",
-        "remediation": "Print the variable itself with print(student_name) so the output matches what it stores.",
-        "objective": "Print output with print()",
-        "hidden": true,
-        "remediation_segment": "seg-6"
+        "label": "A printed line reads Hello, my name is followed by your name",
+        "remediation": "Keep greeting = \"Hello, my name is \" + name and print it with print(greeting). The name must not be empty.",
+        "objective": "Join text with + and print it",
+        "remediation_segment": "seg-6",
+        "hidden": false,
+        "definition": {
+          "stdout_regex": "^Hello, my name is \\S",
+          "description": "Prints the greeting with a name"
+        }
+      },
+      {
+        "key": "l9-t4",
+        "label": "fact_1 and fact_2 each hold a different fact (text, not empty)",
+        "remediation": "Write a different fact in each variable, in quotes, like fact_1 = \"I am 13 years old\" and fact_2 = \"I like cricket\".",
+        "objective": "Store text in a variable",
+        "remediation_segment": "seg-6",
+        "hidden": false,
+        "definition": {
+          "expr": "isinstance(fact_1, str) and isinstance(fact_2, str) and fact_1.strip() != \"\" and fact_2.strip() != \"\" and fact_1.strip() != fact_2.strip()",
+          "truthy": true,
+          "description": "fact_1 and fact_2 hold two different non-empty facts"
+        }
+      },
+      {
+        "key": "l9-t5",
+        "label": "At least three lines are printed: the greeting and the two facts",
+        "remediation": "After the greeting, add print(fact_1) and print(fact_2) so each fact is on its own line.",
+        "objective": "Print several lines with print()",
+        "remediation_segment": "seg-6",
+        "hidden": false,
+        "definition": {
+          "stdout_min_lines": 3,
+          "description": "Prints at least three lines"
+        }
+      },
+      {
+        "key": "l9-t6",
+        "label": "fixed_line holds the corrected print line from step 3, as text",
+        "remediation": "fixed_line must hold the corrected line exactly, as text between quotes: fixed_line = \"print(greeting)\".",
+        "objective": "Fix a NameError by correcting a variable name",
+        "remediation_segment": "seg-6",
+        "hidden": true
       }
     ],
-    "solution": "# TODO: add the reference solution before re-importing\n"
+    "solution": "name = \"Aarav\"\ngreeting = \"Hello, my name is \" + name\nprint(greeting)\nfact_1 = \"I am 13 years old\"\nfact_2 = \"I like cricket\"\nprint(fact_1)\nprint(fact_2)\nfixed_line = \"print(greeting)\"\n"
   }
 }

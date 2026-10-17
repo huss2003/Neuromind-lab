@@ -44,8 +44,9 @@ export async function setCode(page: Page, code: string) {
   await area.fill(code);
 }
 
-export const GOOD = "student_name = 'Aarav'\nprint(student_name)\n";
-export const BAD = "student_name = 'Aarav'\nprint('hello')\n";
+// Lecture 9's lab (Block 1): a greeting, two facts and the corrected typo line.
+export const GOOD = 'name = "Aarav"\ngreeting = "Hello, my name is " + name\nprint(greeting)\nfact_1 = "I am 13 years old"\nfact_2 = "I like cricket"\nprint(fact_1)\nprint(fact_2)\nfixed_line = "print(greeting)"\n';
+export const BAD = 'name = "Aarav"\ngreeting = "Hello, my name is " + name\nprint("hello")\nfact_1 = ""\nfact_2 = ""\nfixed_line = ""\n';
 
 export async function accessToken(page: Page): Promise<string> {
   return page.evaluate(() => {
@@ -64,7 +65,7 @@ export const CHECK_2 = 'Each cell can be run on its own, and all cells share the
 export async function toLab(page: Page) {
   await openLecture(page);
   await startLecture(page);
-  const lab = page.getByRole('heading', { name: /Print your name/ });
+  const lab = page.getByRole('heading', { name: /hello\.py/ });
   for (let step = 0; step < 20; step++) {
     if (await lab.isVisible()) return;
     const submit = page.getByRole('button', { name: 'Submit answer' });

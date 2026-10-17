@@ -334,7 +334,7 @@ def build_rows(pack: LecturePack, tests: dict[str, dict], *, course_id: str, mod
     exercise_tests = []
     for i, t in enumerate(lab.tests, start=1):
         exercise_tests.append({"id": uid(f"l{n}-test{i}"), "exercise_id": ex, "test_order": i, "test_type": "stdout",
-                               "definition": tests.get(t.key, t.definition), "points": 1, "is_hidden": t.hidden, "criterion_label": t.label or None,
+                               "definition": t.definition if t.definition is not None else tests[t.key], "points": 1, "is_hidden": t.hidden, "criterion_label": t.label or None,
                                "remediation": t.remediation, "objective": t.objective,
                                "remediation_segment_id": seg_id[t.remediation_segment] if t.remediation_segment else None})
     return {"lectures": [lecture], "mcq_questions": questions, "lecture_checkpoints": checkpoints,

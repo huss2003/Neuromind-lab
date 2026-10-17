@@ -1,0 +1,143 @@
+{
+  "schema_version": 2,
+  "lecture_number": 24,
+  "title": "NumPy fundamentals",
+  "summary": "Create and manipulate NumPy arrays, and explain why NumPy is faster than plain Python lists for numeric work.",
+  "objectives": [
+    "Turn a Python list into a NumPy array with np.array()",
+    "Use array methods such as .mean(), .max(), .min() and .std()",
+    "Apply one operation to every element at once (vectorised arithmetic)",
+    "Explain why NumPy code avoids loops for numeric work"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    23
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nA Python list can hold exam scores, but working out statistics with loops is slow to write and slow to run. NumPy stores numbers in an array and does the arithmetic on all of them at once, which is why data science code uses it everywhere. In this lab you will turn a list of eight exam scores into a NumPy array and compute the mean, the highest and lowest score and the standard deviation with array methods. You will then add a 5-mark curve to every score in one line, with no loop at all, and print the results."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: exam scores with NumPy"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Exam scores with NumPy",
+    "objective": "Turn a list of scores into a NumPy array and compute statistics and a +5 curve with vectorised operations.",
+    "instructions": "The list scores_list holds eight exam scores. Using NumPy (import numpy as np):\n\n1. Make scores = np.array(scores_list).\n2. Compute mean_score = scores.mean(), highest = scores.max(), lowest = scores.min() and spread = scores.std().\n3. Make curved = scores + 5 (every score plus five, in one line, with no loop).\n4. Print five lines:\nMean: 77.75\nHighest: 95\nLowest: 58\nStandard deviation: 11.85\nCurved: [77, 90, 95, 69, 63, 100, 82, 86]\n\nRound the standard deviation only when printing, with round(spread, 2), and print curved with curved.tolist().",
+    "constraints": "Use NumPy array methods and array arithmetic; no for or while loops. Keep the names scores_list, scores, mean_score, highest, lowest, spread and curved. No input().",
+    "starter_code": "import numpy as np\n\nscores_list = [72, 85, 90, 64, 58, 95, 77, 81]\n\n# 1. Turn the list into a NumPy array called scores\n\n\n# 2. Compute mean_score, highest, lowest and spread (standard deviation)\n#    using the array's own methods\n\n\n# 3. Make curved: every score plus 5, in ONE line, without a loop\n\n\n# 4. Print the five lines shown in the instructions\n",
+    "hints": [
+      "np.array(scores_list) gives you an array. Arrays have their own methods: scores.mean(), scores.max(), scores.min() and scores.std().",
+      "Arithmetic on an array applies to every element: scores + 5 is a new array where every score is 5 higher. Store it in curved.",
+      "Print with labels, for example print(\"Mean:\", mean_score) and print(\"Standard deviation:\", round(spread, 2)). For the last line use print(\"Curved:\", curved.tolist())."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "numpy"
+    ],
+    "assets": [],
+    "limits": {
+      "timeout_seconds": 20
+    },
+    "visible_examples": [
+      {
+        "description": "Statistics on a tiny array",
+        "code": "import numpy as np\n\nmarks = np.array([10, 20, 30])\nprint(\"Mean:\", marks.mean())\nprint(\"Highest:\", marks.max())",
+        "expected_output": "Mean: 20.0\nHighest: 30"
+      },
+      {
+        "description": "One operation on every element at once",
+        "code": "import numpy as np\n\nprices = np.array([5, 8, 11])\ndoubled = prices * 2\nprint(doubled.tolist())",
+        "expected_output": "[10, 16, 22]"
+      }
+    ],
+    "success_criteria": [
+      "scores is a NumPy array made from scores_list",
+      "Your output includes the line: Mean: 77.75",
+      "curved holds every score plus 5",
+      "mean_score, highest and lowest hold the right statistics",
+      "spread holds the standard deviation of the scores",
+      "curved is a NumPy array made with one vectorised operation, not a loop"
+    ],
+    "tests": [
+      {
+        "key": "l24-t1",
+        "label": "scores is a NumPy array",
+        "remediation": "Create it with scores = np.array(scores_list).",
+        "objective": "Create a NumPy array from a list",
+        "hidden": false,
+        "definition": {
+          "description": "scores is an ndarray",
+          "expr": "type(scores).__name__",
+          "expected": "ndarray"
+        }
+      },
+      {
+        "key": "l24-t2",
+        "label": "The mean is printed",
+        "remediation": "Compute mean_score = scores.mean() and print it as print(\"Mean:\", mean_score).",
+        "objective": "Use array methods",
+        "hidden": false,
+        "definition": {
+          "description": "mean line",
+          "stdout_contains": "Mean: 77.75"
+        }
+      },
+      {
+        "key": "l24-t3",
+        "label": "curved is every score plus 5",
+        "remediation": "Make curved = scores + 5. NumPy adds 5 to every element for you.",
+        "objective": "Vectorised arithmetic",
+        "hidden": false,
+        "definition": {
+          "description": "curved values",
+          "expr": "curved.tolist()",
+          "expected": [
+            77,
+            90,
+            95,
+            69,
+            63,
+            100,
+            82,
+            86
+          ]
+        }
+      },
+      {
+        "key": "l24-t4",
+        "label": "mean_score, highest and lowest are right",
+        "remediation": "Use the array methods: mean_score = scores.mean(), highest = scores.max(), lowest = scores.min().",
+        "objective": "Use array methods",
+        "hidden": true
+      },
+      {
+        "key": "l24-t5",
+        "label": "spread is the standard deviation",
+        "remediation": "spread = scores.std() gives the standard deviation of the array. Do not round the variable itself; round only when printing.",
+        "objective": "Use array methods",
+        "hidden": true
+      },
+      {
+        "key": "l24-t6",
+        "label": "curved is a NumPy array of 8 values",
+        "remediation": "curved must be a NumPy array made with array arithmetic (scores + 5), not a list built with a loop.",
+        "objective": "Vectorised arithmetic",
+        "hidden": true
+      }
+    ],
+    "solution": "import numpy as np\n\nscores_list = [72, 85, 90, 64, 58, 95, 77, 81]\n\nscores = np.array(scores_list)\n\nmean_score = scores.mean()\nhighest = scores.max()\nlowest = scores.min()\nspread = scores.std()\n\ncurved = scores + 5\n\nprint(\"Mean:\", mean_score)\nprint(\"Highest:\", highest)\nprint(\"Lowest:\", lowest)\nprint(\"Standard deviation:\", round(spread, 2))\nprint(\"Curved:\", curved.tolist())\n"
+  }
+}

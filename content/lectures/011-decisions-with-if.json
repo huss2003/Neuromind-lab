@@ -12,6 +12,7 @@
   "prerequisites": [
     10
   ],
+  "lab_only": false,
   "checkpoints": [
     {
       "key": "cp1",
@@ -124,7 +125,7 @@
       "key": "example",
       "type": "example",
       "title": "Storing a decision",
-      "body": "## A decision you can keep\n\nOften you want to remember the outcome, not just print it. Store it in a variable:\n\n```\nscore = 72\nif score >= 50:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(grade)\n```\n\nOutput:\n\n```\npass\n```\n\n## Reading the program\n\n1. `score` is 72.\n2. `72 >= 50` is True, so the first block runs and `grade` becomes `\"pass\"`.\n3. The `else` block is skipped.\n4. `print(grade)` shows `pass`.\n\n## Common mistakes\n\n- A missing colon causes a `SyntaxError`.\n- Blocks that are not indented cause an `IndentationError`.\n- Writing `if score = 50` (one `=`) is an error. Use `==` to compare.",
+      "body": "## A decision you can keep\n\nOften you want to remember the outcome, not just print it. Store it in a variable:\n\n```\nscore = 72\nif score >= 50:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(grade)\n```\n\nOutput:\n\n```\npass\n```\n\n## Reading the program\n\n1. `score` is 72.\n2. `72 >= 50` is True, so the first block runs and `grade` becomes `\"pass\"`.\n3. The `else` block is skipped.\n4. `print(grade)` shows `pass`.\n\n## A decision without if\n\nA comparison already gives `True` or `False`, so you can store the answer straight into a variable:\n\n```\nage = 20\nis_citizen = True\ncan_vote = age >= 18 and is_citizen\nprint(f\"Can vote: {can_vote}\")\n```\n\nThis prints `Can vote: True`.\n\n## Mixing and with or\n\nWhen one rule uses both `and` and `or`, put brackets around the `or` part so Python checks it first:\n\n```\nhas_ticket = True\nis_member = False\nage = 4\ncan_enter = has_ticket and (is_member or age < 5)\nprint(can_enter)\n```\n\nThis prints `True`: the ticket is there, and the bracket is True because `age < 5`. Without the brackets Python would read `has_ticket and is_member` first, which is a different rule.\n\n## Common mistakes\n\n- A missing colon causes a `SyntaxError`.\n- Blocks that are not indented cause an `IndentationError`.\n- Writing `if score = 50` (one `=`) is an error. Use `==` to compare.\n- `and` needs both sides True; `or` needs only one. Brackets decide which part is checked first.\n\nIn the lab you will write a library rule with and, or and brackets, and test it on three readers.",
       "opens_exercise": true
     },
     {
@@ -140,58 +141,107 @@
     }
   ],
   "lab": {
-    "title": "Pass or fail",
-    "objective": "Use if and else to store a decision in a variable and print it.",
-    "instructions": "The variable score is already set. Create a variable named grade that is \"pass\" when score is 50 or more, and \"fail\" otherwise. Then print grade.",
-    "constraints": "Use if and else. Keep the variable names score and grade. Print only grade.",
-    "starter_code": "score = 72\n\n# Create grade: \"pass\" if score is 50 or more, otherwise \"fail\"\n# Print grade\n",
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Can I borrow this book?",
+    "objective": "Combine conditions with and, or and brackets to decide whether three readers may borrow a library book.",
+    "instructions": "A library lets a reader borrow a book when they have no overdue books and they either hold a library card or are 18 or older. The starter gives three readers, each with an age, a has_card value and a number of overdue books. For each reader, store True or False in can_borrow_1, can_borrow_2 and can_borrow_3 using one expression that combines the conditions with and and or (put brackets around the or part). Then print one line per reader in the shape Reader 1: True, and check that each answer matches the rule.",
+    "constraints": "Keep the reader variables as given and the names can_borrow_1, can_borrow_2 and can_borrow_3. Each can_borrow value must come from a comparison expression with and / or, not a True or False typed in by hand. Print exactly three lines.",
+    "starter_code": "# Library rule: a reader can borrow a book when they have NO overdue books\n# AND they either have a library card OR they are 18 or older.\n\n# Reader 1: Asha, 12 years old, has a card, 0 overdue books\nage_1 = 12\nhas_card_1 = True\noverdue_1 = 0\n\n# Reader 2: Dev, 20 years old, no card, 0 overdue books\nage_2 = 20\nhas_card_2 = False\noverdue_2 = 0\n\n# Reader 3: Meera, 15 years old, has a card, 2 overdue books\nage_3 = 15\nhas_card_3 = True\noverdue_3 = 2\n\n# 1. For each reader, store True or False in can_borrow_1, can_borrow_2 and can_borrow_3.\n#    Use one expression per reader that combines the conditions with and / or.\n#    Put brackets around the or part.\n\n\n# 2. Print one line per reader, in this shape:  Reader 1: True\n\n",
     "hints": [
-      "Start with if score >= 50: and indent the next line by four spaces.",
-      "Inside the if block write grade = \"pass\". Inside else: write grade = \"fail\".",
-      "Print the variable on its own line at the end, with no indentation: print(grade)."
+      "Each can_borrow value is one expression: the overdue count must be 0 AND (the reader has a card OR the age is 18 or more). Write it with and, or and brackets.",
+      "can_borrow_1 = overdue_1 == 0 and (has_card_1 or age_1 >= 18). Write the same rule for readers 2 and 3 with their own variables.",
+      "Print each result with an f-string: print(f\"Reader 1: {can_borrow_1}\"), then the same for readers 2 and 3."
     ],
-    "hint_penalty_percent": 10,
-    "pass_threshold": 80,
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
     "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
     "visible_examples": [
       {
-        "description": "A lower score",
-        "code": "score = 30\nif score >= 50:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(grade)",
-        "expected_output": "fail"
+        "description": "Two conditions joined with or",
+        "code": "age = 16\nwith_adult = False\ncan_watch = age >= 18 or with_adult\nprint(f\"Can watch: {can_watch}\")",
+        "expected_output": "Can watch: False"
+      },
+      {
+        "description": "Two conditions joined with and",
+        "code": "temperature = 24\nraining = False\ngo_out = temperature > 20 and not raining\nprint(f\"Go out: {go_out}\")",
+        "expected_output": "Go out: True"
       }
     ],
     "success_criteria": [
-      "Your program prints a line of text",
-      "grade is the right word for the score",
-      "What you print matches grade"
+      "Your program prints three lines, one per reader",
+      "can_borrow_1 is True: Reader 1 has a card and no overdue books",
+      "can_borrow_2 is True: Reader 2 is 18 or older, so no card is needed",
+      "can_borrow_3 is False: Reader 3 has overdue books",
+      "The lines read Reader 1: True, Reader 2: True and Reader 3: False"
     ],
     "tests": [
       {
         "key": "l11-t1",
-        "label": "Your program prints something",
-        "remediation": "Add a print(...) line so your program shows a result.",
-        "objective": "Print output with print()",
+        "label": "Your program prints three lines, one per reader",
+        "remediation": "Add three print lines, one per reader, like print(f\"Reader 1: {can_borrow_1}\").",
+        "objective": "Print several lines with print()",
         "remediation_segment": "example",
-        "hidden": false
+        "hidden": false,
+        "definition": {
+          "stdout_min_lines": 3,
+          "description": "Prints three lines"
+        }
       },
       {
         "key": "l11-t2",
-        "label": "grade is the right word for the score",
-        "remediation": "Use an if/else so grade is \"pass\" when score >= 50.",
-        "objective": "Choose with if and else",
-        "remediation_segment": "reading-2",
-        "hidden": false
+        "label": "can_borrow_1 is True: Reader 1 has a card and no overdue books",
+        "remediation": "can_borrow_1 = overdue_1 == 0 and (has_card_1 or age_1 >= 18). Reader 1 has 0 overdue books and a card, so this gives True.",
+        "objective": "Combine conditions with and and or",
+        "remediation_segment": "reading-1",
+        "hidden": false,
+        "definition": {
+          "check": "variable_equals",
+          "name": "can_borrow_1",
+          "value": true,
+          "description": "can_borrow_1 is True"
+        }
       },
       {
         "key": "l11-t3",
-        "label": "",
-        "remediation": "Print the variable grade so the output matches what it stores.",
-        "objective": "Print output with print()",
+        "label": "can_borrow_2 is True: Reader 2 is 18 or older, so no card is needed",
+        "remediation": "Use the same rule with the reader 2 variables. The bracket is True because age_2 >= 18, even though has_card_2 is False.",
+        "objective": "Combine conditions with and and or",
+        "remediation_segment": "reading-1",
+        "hidden": false,
+        "definition": {
+          "check": "variable_equals",
+          "name": "can_borrow_2",
+          "value": true,
+          "description": "can_borrow_2 is True"
+        }
+      },
+      {
+        "key": "l11-t4",
+        "label": "can_borrow_3 is False: Reader 3 has overdue books",
+        "remediation": "Use the same rule with the reader 3 variables. overdue_3 is 2, so overdue_3 == 0 is False and the whole and expression is False.",
+        "objective": "Combine conditions with and and or",
+        "remediation_segment": "reading-1",
+        "hidden": false,
+        "definition": {
+          "check": "variable_equals",
+          "name": "can_borrow_3",
+          "value": false,
+          "description": "can_borrow_3 is False"
+        }
+      },
+      {
+        "key": "l11-t5",
+        "label": "The lines read Reader 1: True, Reader 2: True and Reader 3: False",
+        "remediation": "Print exactly three lines in this shape: Reader 1: True (capital R, a space, the number, a colon, a space, then the value) and nothing else.",
+        "objective": "Print a result with an f-string",
         "remediation_segment": "example",
         "hidden": true
       }
     ],
-    "scoring": "score",
-    "solution": "score = 72\nif score >= 50:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(grade)\n"
+    "solution": "age_1 = 12\nhas_card_1 = True\noverdue_1 = 0\n\nage_2 = 20\nhas_card_2 = False\noverdue_2 = 0\n\nage_3 = 15\nhas_card_3 = True\noverdue_3 = 2\n\ncan_borrow_1 = overdue_1 == 0 and (has_card_1 or age_1 >= 18)\ncan_borrow_2 = overdue_2 == 0 and (has_card_2 or age_2 >= 18)\ncan_borrow_3 = overdue_3 == 0 and (has_card_3 or age_3 >= 18)\n\nprint(f\"Reader 1: {can_borrow_1}\")\nprint(f\"Reader 2: {can_borrow_2}\")\nprint(f\"Reader 3: {can_borrow_3}\")\n"
   }
 }

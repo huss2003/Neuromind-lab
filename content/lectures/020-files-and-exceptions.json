@@ -1,0 +1,137 @@
+{
+  "schema_version": 2,
+  "lecture_number": 20,
+  "title": "Files, Paths and Exception Handling",
+  "summary": "Read and write text files safely, and handle predictable errors using try/except instead of letting the program crash.",
+  "objectives": [
+    "Write lines to a text file with with open(..., \"w\")",
+    "Read a text file back line by line",
+    "Catch FileNotFoundError with try/except so a missing file does not crash the program"
+  ],
+  "duration_minutes": 45,
+  "prerequisites": [
+    19
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build today",
+      "body": "## What you will build today\n\nUntil now everything your programs knew was lost the moment they finished. Today you will build a tiny **notes app** that saves its notes to a file called `notes.txt` and reads them back, using `with open(...)` so the file is always closed properly.\n\nFiles can be missing, and a careful program expects that. The second half of the lab tries to read a file that does not exist, `missing.txt`, inside a `try/except` block. Instead of crashing with a red error, your program prints a friendly message and carries on to the end."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: a notes app that does not crash"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "A notes app that does not crash",
+    "objective": "Write notes to a file, read them back, and use try/except so a missing file prints a friendly message instead of crashing.",
+    "instructions": "The list `notes` already holds three notes.\n\n1. Write every note to `notes.txt`, one per line, using `with open(\"notes.txt\", \"w\") as f:` and `f.write(note + \"\\n\")`.\n2. Open `notes.txt` again for reading and print each line as `Note: <text>` (use `line.strip()` to remove the line break).\n3. Try to read `missing.txt` inside a `try:` block. In `except FileNotFoundError:` print `Sorry, missing.txt was not found`. Do not create missing.txt; the point is to handle the error.\n4. Keep `print(\"Done\")` as the last line so you can see the program reached the end.\n\nThe output must be exactly:\n\n```\nNote: Buy milk\nNote: Finish Python lab\nNote: Call grandma\nSorry, missing.txt was not found\nDone\n```",
+    "constraints": "Use with open(...) for every file. Use try/except FileNotFoundError for missing.txt; do not create that file. Keep the file name notes.txt and the list name notes. Print exactly five lines. No input().",
+    "starter_code": "# A tiny notes app. There is no input() here: the notes are already in a list.\n\nnotes = [\"Buy milk\", \"Finish Python lab\", \"Call grandma\"]\n\n# 1. Save every note to notes.txt, one per line, using:  with open(\"notes.txt\", \"w\") as f:\n# 2. Read notes.txt back with another with open(...) and print each line as:  Note: <text>\n# 3. Try to read missing.txt inside try/except FileNotFoundError.\n#    If the file is missing, print:  Sorry, missing.txt was not found\n#    The program must keep going, not crash.\n# 4. Keep the Done line as the last line of output.\n\nprint(\"Done\")\n",
+    "hints": [
+      "Open the file for writing: with open(\"notes.txt\", \"w\") as f: and inside the block loop over notes and write each one followed by \"\\n\".",
+      "Read it back with with open(\"notes.txt\", \"r\") as f: and for line in f: - print(\"Note: \" + line.strip()). Then put the read of missing.txt inside try: and add except FileNotFoundError: underneath.",
+      "The except block prints the friendly message: print(\"Sorry, missing.txt was not found\"). Keep print(\"Done\") as the very last line, outside the try."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Write a file, then read it back",
+        "code": "with open(\"hello.txt\", \"w\") as f:\n    f.write(\"hi there\\n\")\n\nwith open(\"hello.txt\", \"r\") as f:\n    print(f.read().strip())",
+        "expected_output": "hi there"
+      },
+      {
+        "description": "Catching a missing file instead of crashing",
+        "code": "try:\n    with open(\"nothing.txt\", \"r\") as f:\n        print(f.read())\nexcept FileNotFoundError:\n    print(\"That file does not exist\")",
+        "expected_output": "That file does not exist"
+      }
+    ],
+    "success_criteria": [
+      "notes.txt exists and holds the three notes, one per line",
+      "Each note is printed back as Note: <text>",
+      "The friendly message is printed for missing.txt",
+      "Your program reaches the end and prints Done",
+      "The output is exactly the five lines",
+      "missing.txt is still missing (you handled the error, you did not create the file)"
+    ],
+    "tests": [
+      {
+        "key": "l20-t1",
+        "label": "notes.txt exists and holds the three notes, one per line",
+        "remediation": "Use with open(\"notes.txt\", \"w\") as f: and write each note followed by \"\\n\" so every note is on its own line.",
+        "objective": "Write lines to a text file",
+        "hidden": false,
+        "definition": {
+          "description": "notes.txt holds the three notes",
+          "expr": "[ln.strip() for ln in open('notes.txt').read().splitlines() if ln.strip()]",
+          "expected": [
+            "Buy milk",
+            "Finish Python lab",
+            "Call grandma"
+          ]
+        }
+      },
+      {
+        "key": "l20-t2",
+        "label": "Each note is printed back as Note: <text>",
+        "remediation": "Open notes.txt for reading and print \"Note: \" + line.strip() for every line in the file.",
+        "objective": "Read a text file line by line",
+        "hidden": false,
+        "definition": {
+          "description": "A note is printed back",
+          "stdout_contains": "Note: Finish Python lab"
+        }
+      },
+      {
+        "key": "l20-t3",
+        "label": "The friendly message is printed for missing.txt",
+        "remediation": "Put the read of missing.txt inside try: and print \"Sorry, missing.txt was not found\" inside except FileNotFoundError:.",
+        "objective": "Handle FileNotFoundError with try/except",
+        "hidden": false,
+        "definition": {
+          "description": "Friendly message for the missing file",
+          "stdout_contains": "missing.txt was not found",
+          "ignore_case": true
+        }
+      },
+      {
+        "key": "l20-t4",
+        "label": "Your program reaches the end and prints Done",
+        "remediation": "An error must not escape: the read of missing.txt belongs inside try/except, and print(\"Done\") stays as the last line.",
+        "objective": "Keep a program running after a handled error",
+        "hidden": false,
+        "definition": {
+          "description": "Done is printed",
+          "stdout_contains": "Done"
+        }
+      },
+      {
+        "key": "l20-t5",
+        "label": "The output is exactly the five lines",
+        "remediation": "Print the three Note: lines, then the friendly message, then Done, and nothing else. Use line.strip() so there are no blank lines.",
+        "objective": "Read a file and handle a missing one",
+        "hidden": true
+      },
+      {
+        "key": "l20-t6",
+        "label": "missing.txt is still missing (you handled the error, you did not create the file)",
+        "remediation": "Do not open missing.txt for writing. Open it for reading inside try: and let except FileNotFoundError: print the message.",
+        "objective": "Handle FileNotFoundError with try/except",
+        "hidden": true
+      }
+    ],
+    "solution": "notes = [\"Buy milk\", \"Finish Python lab\", \"Call grandma\"]\n\nwith open(\"notes.txt\", \"w\") as f:\n    for note in notes:\n        f.write(note + \"\\n\")\n\nwith open(\"notes.txt\", \"r\") as f:\n    for line in f:\n        print(\"Note: \" + line.strip())\n\ntry:\n    with open(\"missing.txt\", \"r\") as f:\n        print(f.read())\nexcept FileNotFoundError:\n    print(\"Sorry, missing.txt was not found\")\n\nprint(\"Done\")\n"
+  }
+}

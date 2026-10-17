@@ -1,0 +1,125 @@
+{
+  "schema_version": 2,
+  "lecture_number": 22,
+  "title": "Basic object-oriented programming",
+  "summary": "Define a simple class with attributes and methods, and create multiple objects (instances) from it.",
+  "objectives": [
+    "Define a class with the class keyword",
+    "Store values on self inside __init__",
+    "Write a method that uses the object's own attributes",
+    "Create two independent objects from one class"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    21
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nSo far your data has lived in separate variables, lists and dictionaries. A class lets you describe one kind of thing, such as a pet, together with the actions it can do. In this lab you will write a `Pet` class with an `__init__` method that stores a name and an age on `self`, plus an `introduce()` method that returns a sentence about that pet. You will then create two pets and print what each one says. Because each object keeps its own data, the two sentences will be different even though they come from the same class."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: a Pet class that introduces itself"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "A Pet class that introduces itself",
+    "objective": "Write a class with two attributes and a method, then create two objects that each introduce themselves.",
+    "instructions": "Define a class called Pet.\n\n- __init__(self, name, age) stores name and age on self (self.name and self.age).\n- introduce(self) returns (does not print) the text: I am <name> and I am <age> years old.\n\nThen create two pets: rex = Pet(\"Rex\", 3) and misty = Pet(\"Misty\", 5). Print rex.introduce() on the first line and misty.introduce() on the second line.\n\nExpected output:\nI am Rex and I am 3 years old.\nI am Misty and I am 5 years old.",
+    "constraints": "The class must be called Pet, with attributes name and age and a method introduce() that returns a string. Create objects with Pet(name, age). No input().",
+    "starter_code": "# 1. Define the class Pet\n#    - __init__(self, name, age): store name and age on self\n#    - introduce(self): return \"I am <name> and I am <age> years old.\"\n\n\n# 2. Create two pets: rex = Pet(\"Rex\", 3) and misty = Pet(\"Misty\", 5)\n\n\n# 3. Print rex.introduce(), then misty.introduce()\n",
+    "hints": [
+      "Start with class Pet: and indent everything that belongs to it. The first method is def __init__(self, name, age): and inside it write self.name = name and self.age = age.",
+      "introduce is another def inside the class, with self as its only parameter. Build the sentence with an f-string using self.name and self.age, and return it instead of printing it.",
+      "Outside the class (no indentation) write rex = Pet(\"Rex\", 3) and misty = Pet(\"Misty\", 5), then print(rex.introduce()) and print(misty.introduce())."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "A class with one attribute and one method",
+        "code": "class Lamp:\n    def __init__(self, colour):\n        self.colour = colour\n\n    def describe(self):\n        return f\"A {self.colour} lamp\"\n\ndesk = Lamp(\"blue\")\nprint(desk.describe())",
+        "expected_output": "A blue lamp"
+      },
+      {
+        "description": "Two objects keep their own data",
+        "code": "class Counter:\n    def __init__(self, start):\n        self.value = start\n\na = Counter(1)\nb = Counter(10)\nprint(a.value)\nprint(b.value)",
+        "expected_output": "1\n10"
+      }
+    ],
+    "success_criteria": [
+      "There is a class called Pet",
+      "Pet(\"Rex\", 3).introduce() returns: I am Rex and I am 3 years old.",
+      "Your program prints the two introductions, one per line",
+      "A new Pet stores the name and age it was given",
+      "Two different pets introduce themselves differently"
+    ],
+    "tests": [
+      {
+        "key": "l22-t1",
+        "label": "There is a class called Pet",
+        "remediation": "Define the class with class Pet: at the left margin, and put its methods indented underneath.",
+        "objective": "Define a class",
+        "hidden": false,
+        "definition": {
+          "description": "Pet is a class",
+          "expr": "isinstance(Pet, type)",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l22-t2",
+        "label": "Pet(\"Rex\", 3).introduce() returns the right sentence",
+        "remediation": "introduce() must return the text (use return, not print): f\"I am {self.name} and I am {self.age} years old.\"",
+        "objective": "Write a method that uses self",
+        "hidden": false,
+        "definition": {
+          "description": "introduce() for Rex",
+          "expr": "Pet('Rex', 3).introduce()",
+          "expected": "I am Rex and I am 3 years old."
+        }
+      },
+      {
+        "key": "l22-t3",
+        "label": "The two introductions are printed, one per line",
+        "remediation": "Create rex = Pet(\"Rex\", 3) and misty = Pet(\"Misty\", 5), then print(rex.introduce()) and print(misty.introduce()) and nothing else.",
+        "objective": "Create objects from a class",
+        "hidden": false,
+        "definition": {
+          "description": "two printed lines",
+          "expected_stdout_lines": [
+            "I am Rex and I am 3 years old.",
+            "I am Misty and I am 5 years old."
+          ]
+        }
+      },
+      {
+        "key": "l22-t4",
+        "label": "A new Pet stores its name and age",
+        "remediation": "Inside __init__ store both values on the object: self.name = name and self.age = age (keep age as a number).",
+        "objective": "Store values on self",
+        "hidden": true
+      },
+      {
+        "key": "l22-t5",
+        "label": "Different pets give different introductions",
+        "remediation": "introduce() must build its sentence from self.name and self.age, so every pet says its own name and age.",
+        "objective": "Write a method that uses self",
+        "hidden": true
+      }
+    ],
+    "solution": "class Pet:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n    def introduce(self):\n        return f\"I am {self.name} and I am {self.age} years old.\"\n\n\nrex = Pet(\"Rex\", 3)\nmisty = Pet(\"Misty\", 5)\nprint(rex.introduce())\nprint(misty.introduce())\n"
+  }
+}

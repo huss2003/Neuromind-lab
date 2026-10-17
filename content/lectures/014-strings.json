@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "lecture_number": 14,
+  "title": "Strings and string manipulation",
+  "summary": "Clean up messy text with string methods such as strip(), lower() and title(), and build sentences with f-strings.",
+  "objectives": [
+    "Remove unwanted spaces with .strip()",
+    "Fix inconsistent capital letters with .lower() and .title()",
+    "Build a sentence from variables with an f-string"
+  ],
+  "duration_minutes": 35,
+  "prerequisites": [
+    13
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nText typed by people is messy: extra spaces at the ends, capital letters in odd places. In this lab you start with a raw name like `\"   aLiCe joHNson   \"` and clean it into `Alice Johnson` using the string methods `.strip()`, `.lower()` and `.title()`. Then you use the clean name inside an f-string to build a friendly greeting and print it. Cleaning input before you use it is something every real program has to do, from sign-up forms to chatbots."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: clean up a name"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Clean up a name",
+    "objective": "Turn a messy raw string into a tidy name with string methods, then greet the person with an f-string.",
+    "instructions": "The variable raw_name holds a messy name with extra spaces at both ends and letters in the wrong case. Do not change raw_name itself; make a cleaned copy.\n\n1. Remove the spaces at both ends with .strip().\n2. Make all the letters lowercase with .lower(), then give each word a capital first letter with .title(). You can chain the methods one after another on the same line.\n3. Store the result in clean_name. For the given raw_name it should be Alice Johnson.\n4. Build the greeting with an f-string and store it in greeting. It must read exactly:\n\nHello, Alice Johnson! Welcome to NeuroMind.\n\n5. Print greeting.",
+    "constraints": "Keep the variable names raw_name, clean_name and greeting. Do not edit the text inside raw_name and do not type the clean name by hand; let the string methods produce it. Print only the greeting. Do not use input().",
+    "starter_code": "raw_name = \"   aLiCe joHNson   \"\n\n# 1. Remove the spaces at both ends with .strip()\n# 2. Fix the case with .lower() and then .title()\n# 3. Store the cleaned name in clean_name\nclean_name = raw_name\n\n# 4. Build the greeting with an f-string:\n#    Hello, <clean name>! Welcome to NeuroMind.\ngreeting = \"\"\n\n# 5. Print the greeting\nprint(greeting)\n",
+    "hints": [
+      "String methods give back a new string; they do not change the old one. So you need clean_name = raw_name.something(), not raw_name.something() on its own.",
+      "You can chain methods: raw_name.strip().lower().title() does all three steps in one go. Store the result in clean_name.",
+      "An f-string starts with f and puts a variable inside curly braces: greeting = f\"Hello, {clean_name}! Welcome to NeuroMind.\" and then print(greeting)."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "visible_examples": [
+      {
+        "description": "Cleaning a different messy word",
+        "code": "word = \"  pYTHON \"\nclean = word.strip().lower().title()\nprint(clean)",
+        "expected_output": "Python"
+      },
+      {
+        "description": "An f-string with a variable inside",
+        "code": "city = \"Delhi\"\nmessage = f\"Greetings from {city}!\"\nprint(message)",
+        "expected_output": "Greetings from Delhi!"
+      }
+    ],
+    "success_criteria": [
+      "clean_name is Alice Johnson",
+      "greeting is the full sentence Hello, Alice Johnson! Welcome to NeuroMind.",
+      "What you print is the greeting",
+      "The printed line is exactly the greeting sentence",
+      "raw_name is still messy and clean_name was made from it"
+    ],
+    "tests": [
+      {
+        "key": "l14-t1",
+        "label": "clean_name is Alice Johnson",
+        "remediation": "Use clean_name = raw_name.strip().lower().title(). Each method returns a new string, so store the result.",
+        "objective": "Clean text with string methods",
+        "hidden": false,
+        "definition": {
+          "description": "clean_name is Alice Johnson",
+          "check": "variable_equals",
+          "name": "clean_name",
+          "value": "Alice Johnson"
+        }
+      },
+      {
+        "key": "l14-t2",
+        "label": "greeting is the full greeting sentence",
+        "remediation": "Build it with an f-string: greeting = f\"Hello, {clean_name}! Welcome to NeuroMind.\" Check the comma, the exclamation mark and the full stop.",
+        "objective": "Build text with an f-string",
+        "hidden": false,
+        "definition": {
+          "description": "greeting is the full greeting sentence",
+          "check": "variable_equals",
+          "name": "greeting",
+          "value": "Hello, Alice Johnson! Welcome to NeuroMind."
+        }
+      },
+      {
+        "key": "l14-t3",
+        "label": "What you print is the greeting",
+        "remediation": "Print the variable with print(greeting), and print nothing else.",
+        "objective": "Print output with print()",
+        "hidden": false,
+        "definition": {
+          "description": "What you print is the greeting",
+          "check": "stdout_equals_variable",
+          "name": "greeting"
+        }
+      },
+      {
+        "key": "l14-t4",
+        "label": "The printed line is exactly the greeting sentence",
+        "remediation": "Your output must be exactly Hello, Alice Johnson! Welcome to NeuroMind. on one line, with no extra words or lines.",
+        "objective": "Build text with an f-string",
+        "hidden": true
+      },
+      {
+        "key": "l14-t5",
+        "label": "raw_name is still messy and clean_name was made from it",
+        "remediation": "Leave raw_name exactly as given and do not type Alice Johnson yourself. Make clean_name from raw_name with .strip(), .lower() and .title().",
+        "objective": "Clean text with string methods",
+        "hidden": true
+      }
+    ],
+    "solution": "raw_name = \"   aLiCe joHNson   \"\n\nclean_name = raw_name.strip().lower().title()\n\ngreeting = f\"Hello, {clean_name}! Welcome to NeuroMind.\"\n\nprint(greeting)\n"
+  }
+}
