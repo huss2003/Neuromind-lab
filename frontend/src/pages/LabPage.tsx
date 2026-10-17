@@ -19,10 +19,11 @@ export function LabPage() {
   if (q.isError) {
     const e = q.error;
     const locked = e instanceof ApiError && e.status === 400;
+    const checks = locked && e.code === 'CHECKPOINT_REQUIRED';
     const missing = e instanceof ApiError && e.status === 404;
     return (
       <main className="page">
-        <ErrorMessage message={locked ? 'This lab is locked: complete the earlier lecture first.' : missing ? 'This lab was not found or is not published.' : errorMessage(e)} onRetry={locked || missing ? undefined : () => void q.refetch()} />
+        <ErrorMessage message={checks ? 'This lab opens after the knowledge checks in its lecture: open the lecture from your dashboard and continue to the lab.' : locked ? 'This lab is locked: complete the earlier lecture first.' : missing ? 'This lab was not found or is not published.' : errorMessage(e)} onRetry={locked || missing ? undefined : () => void q.refetch()} />
         <Link to="/labs">Back to practical labs</Link>
       </main>
     );
