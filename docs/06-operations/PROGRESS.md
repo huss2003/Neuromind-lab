@@ -175,3 +175,12 @@ Open: owner decisions on credentials (not rotated by choice), staging project, l
 - NOT working: official server grading of the new labs. The EC2 worker still runs the old image: lecture 9 attempts end as "error", lectures 23–24 as "runtime_error" (no numpy/requests). Needs the host update, which needs the AWS connector re-authenticated. The full official journey (pass → lecture complete → next unlocks) is therefore not yet tested live.
 - Temporary accounts learner1–3, teacher, admin @neuromind.test still exist for the remaining live test; delete them when it is done. learner3 has lectures 9–23 marked completed (test setup).
 - Owner declined: deleting test learners' rows and running a worker without Docker from the dev container.
+
+## Session 2026-10-17 (b) — Full test pass
+- Automated suites, all green: secret scan; ruff; 24 packs validated and verified (0 problems; 16 more for lectures 29–36 verified separately); backend 182; grader 56 (11 Docker tests skipped locally, run in CI); frontend lint, typecheck, 41 unit, build; mocked UI + accessibility 69.
+- Live against production: smoke, titles, browser practice, access control (lecture C), practical labs (3), admin workspace, cohorts, issue reports, two-step verification — all passed after fixes.
+- Bug found live and fixed (1dee6bf, deployed): after the 3rd hint the Redo button did not appear until a reload. UI test added (fails without the fix).
+- Test-data fixes: live specs now use unique cohort and account names per run.
+- Still failing, as expected: lecture A and B live tests (they need an official verdict). The EC2 grader still runs the old image: new-lab attempts end as "error" or "runtime_error". AWS connector credentials remain expired.
+- Not run: the extras "journey" test (it archives published lectures 10–12 in production during the run).
+- Temporary accounts still in production: learner1–3, teacher, admin and two zed.* accounts @neuromind.test. Delete them after the official-grading test.
