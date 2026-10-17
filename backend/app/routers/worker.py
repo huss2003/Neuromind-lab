@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Header, Request, Response
 from pydantic import BaseModel, Field
 
+from app.content_pack import PACKAGES
 from app.errors import ApiError
 from app.grader_client import GradeResult, InvalidGraderResult, validate_payload
 from app.repository import Repository, get_repository
@@ -19,6 +20,8 @@ from app.services.finalize import finalize_submission
 router = APIRouter(prefix="/api/v1/internal/grader")
 LEASE_SECONDS = 60
 MAX_CLAIMS = 3
+MIN_HARNESS_VERSION = 2  # probes, lab data files, practice API and lab limits; older workers would fail learners wrongly
+REQUIRED_PACKAGES = PACKAGES  # every package a lab may declare; a worker lacking one would fail learners wrongly
 
 
 def require_worker(x_worker_token: str | None = Header(default=None)) -> None:
@@ -33,12 +36,33 @@ class ClaimBody(BaseModel):
     worker_id: str = Field(min_length=3, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
 
 
+class ClaimRequest(ClaimBody):
+    """What the worker can run, measured inside its sandbox at start-up. Absent fields mean an old worker."""
+    harness_version: int = Field(default=1, ge=1, le=1000)
+    packages: dict[str, str] = Field(default_factory=dict, max_length=50)
+    runtime: str | None = Field(default=None, max_length=20)
+    python: str | None = Field(default=None, max_length=20)
+
+
+def claim_refusal(body: ClaimRequest) -> str | None:
+    """Why this worker must not take jobs, or None. A refused worker gets no job, so nothing is marked failed by it."""
+    if body.harness_version < MIN_HARNESS_VERSION:
+        return "worker-too-old"
+    missing = [p for p in REQUIRED_PACKAGES if p not in body.packages]
+    if missing:
+        return "missing-packages:" + ",".join(missing)
+    return None
+
+
 class ResultBody(ClaimBody):
     result: dict[str, Any]
 
 
 @router.post("/claim", dependencies=[Depends(require_worker)])
-async def claim(body: ClaimBody, repo: Repository = Depends(get_repository)):
+async def claim(body: ClaimRequest, repo: Repository = Depends(get_repository)):
+    refusal = claim_refusal(body)
+    if refusal:  # checked BEFORE claiming: the job stays queued for a capable worker
+        return Response(status_code=204, headers={"X-Claim-Refused": refusal})
     sub = await repo.claim_next_submission(body.worker_id, LEASE_SECONDS, MAX_CLAIMS)
     if not sub:
         return Response(status_code=204)

@@ -184,3 +184,11 @@ Open: owner decisions on credentials (not rotated by choice), staging project, l
 - Still failing, as expected: lecture A and B live tests (they need an official verdict). The EC2 grader still runs the old image: new-lab attempts end as "error" or "runtime_error". AWS connector credentials remain expired.
 - Not run: the extras "journey" test (it archives published lectures 10–12 in production during the run).
 - Temporary accounts still in production: learner1–3, teacher, admin and two zed.* accounts @neuromind.test. Delete them after the official-grading test.
+
+## Session 2026-10-17 (c) — Self-hosted grader (replaces the AWS host)
+- Phase 1 report given to the owner (grading flow traced in code; old AWS image is the cause; the old grader records missing libraries as the learner's runtime_error, which breaks the "infrastructure fault is not a learner failure" rule).
+- Owner's machine: Hussain-PC, Windows, i7-12700F, 16 GB, Wi-Fi, UPS; load about 5 learners at once; must be portable to another server.
+- Built: design doc docs/06-operations/SELF_HOSTED_GRADER.md; capability handshake (worker measures its sandbox at start-up; the API refuses jobs to workers without harness v2 and all six lab packages, before claiming, so the job stays queued); gVisor runtime option (GRADER_RUNTIME=runsc|runc, validated); pinned sandbox runtime (Python 3.13 + requirements-sandbox.lock = the versions all labs were verified with); verify_labs --sandbox; portable installer, verify and update scripts (infra/selfhost), WSL hardening file; CI job grader-gvisor.
+- New isolation tests: home-network/private ranges, Docker host, API and Supabase unreachable; only loopback interface; no files shared between jobs; hidden expected answer never visible; lab libraries work; practice API works while real hosts stay blocked.
+- Tests run here: backend 183 passed; grader 65 passed, 16 skipped (Docker tests need Docker: they run in CI and on the machine); verify_labs 32 labs, 0 problems (full and partial modes). Docker/gVisor tests NOT run in this environment.
+- Not done: the API change is not deployed yet (deploying it stops the old AWS worker from taking jobs); VM not installed (owner); token rotation and cut-over pending.

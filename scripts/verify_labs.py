@@ -2,7 +2,7 @@
 starter code does NOT pass (so the lab cannot be passed by doing nothing). Runs the real harness in a local subprocess
 with the lab's files, packages and the simulated practice API; library labs need grader/requirements-labs.txt installed.
 
-  backend/.venv/bin/python scripts/verify_labs.py content/lectures [--tests private/exercise_tests_block1.json ...] [--numbers 9-24]
+  backend/.venv/bin/python scripts/verify_labs.py content/lectures [--tests private/exercise_tests_block1.json ...] [--numbers 9-24] [--sandbox]
 Hidden definitions come from --tests files (default: every private/exercise_tests*.json that exists). Without them, hidden
 checks are skipped and the run is reported as PARTIAL (CI runs that way; the full run happens locally before an import)."""
 from __future__ import annotations
@@ -21,7 +21,9 @@ sys.path.insert(0, str(ROOT / "grader"))
 from app.content_pack import build_rows, check_pack  # noqa: E402
 from app.services.labs import files_for_sandbox, limits_for  # noqa: E402
 from grader_service.evaluate import evaluate, probe_exprs, required_vars  # noqa: E402
-from grader_service.runner import SubprocessRunner  # noqa: E402
+from grader_service.runner import DockerRunner, SubprocessRunner  # noqa: E402
+
+RUNNER: object = SubprocessRunner()
 
 
 def parse_numbers(spec: str | None) -> set[int] | None:
@@ -36,8 +38,10 @@ def parse_numbers(spec: str | None) -> set[int] | None:
 
 async def grade(code: str, tests: list[dict], ex: dict) -> dict:
     lim = limits_for(ex)
-    run = await SubprocessRunner().run(code, required_vars(tests), lim["timeout_seconds"], files=files_for_sandbox(ex.get("assets") or []),
-                                       probes=probe_exprs(tests), lab_api="requests" in (ex.get("packages") or []))
+    kwargs = {"files": files_for_sandbox(ex.get("assets") or []), "probes": probe_exprs(tests), "lab_api": "requests" in (ex.get("packages") or [])}
+    if isinstance(RUNNER, DockerRunner):
+        kwargs["memory_mb"] = lim["memory_mb"]
+    run = await RUNNER.run(code, required_vars(tests), lim["timeout_seconds"], **kwargs)  # type: ignore[attr-defined]
     return evaluate(tests, run, float(ex["pass_threshold"])) | {"_run_error": run.error, "_stdout": run.stdout[:300]}
 
 
@@ -46,7 +50,12 @@ def main() -> int:
     ap.add_argument("paths", nargs="+")
     ap.add_argument("--tests", action="append", default=None)
     ap.add_argument("--numbers", default=None, help="e.g. 9-24 or 9,12")
+    ap.add_argument("--sandbox", action="store_true", help="grade inside the real sandbox container (Docker; GRADER_RUNTIME selects gVisor) "
+                    "instead of a local process: proves the production runtime grades every lab correctly")
     args = ap.parse_args()
+    global RUNNER
+    if args.sandbox:
+        RUNNER = DockerRunner()
     test_files = args.tests if args.tests is not None else sorted(glob.glob(str(ROOT / "private" / "exercise_tests*.json")))
     hidden: dict[str, dict] = {}
     for f in test_files:
@@ -89,7 +98,7 @@ def main() -> int:
         failed = [c["test_order"] for c in sol.get("criteria", []) if not c["passed"]]
         if sol["status"] != "passed" or failed:
             problems.append(f"{f.name}: the reference solution does not pass (status {sol['status']}, failed checks {failed}, error {sol.get('_run_error')}, feedback {[x['message'] for x in sol['feedback']][:4]})")
-        if start["status"] == "passed":
+        if start["status"] == "passed" and not missing:  # with hidden checks missing, only the visible ones ran
             problems.append(f"{f.name}: the STARTER code already passes every check; the lab asks nothing")
         for t in pack.lab.tests:
             if len(t.remediation) < 5:

@@ -16,17 +16,29 @@ from grader_service.evaluate import RunResult
 
 HARNESS = Path(__file__).resolve().parents[1] / "sandbox" / "harness.py"
 IMAGE = os.getenv("GRADER_IMAGE", "neuromind-grader-sandbox")
+# Container runtime. "runsc" (gVisor) puts a user-space kernel between learner code and the host kernel; "runc" is plain Docker.
+# Only these two values are accepted, so the setting cannot inject other `docker run` options.
+RUNTIMES = ("runc", "runsc")
+LAB_PACKAGES = ("numpy", "pandas", "matplotlib", "scikit-learn", "pillow", "requests")
+
+
+def container_runtime() -> str:
+    value = os.getenv("GRADER_RUNTIME", "runc").strip() or "runc"
+    if value not in RUNTIMES:
+        raise ValueError(f"GRADER_RUNTIME must be one of {RUNTIMES}")
+    return value
 
 
 MIN_MEMORY_MB, MAX_MEMORY_MB = 64, 1024
 
 
-def docker_command(name: str, memory_mb: int, cpus: float, image: str = IMAGE, limit_seconds: int = 10, lab_api: bool = False) -> list[str]:
+def docker_command(name: str, memory_mb: int, cpus: float, image: str = IMAGE, limit_seconds: int = 10, lab_api: bool = False,
+                   runtime: str | None = None) -> list[str]:
     """Strict, secret-free `docker run` invocation. No mounts, no network, no inherited environment.
     /tmp (tmpfs) holds the learner's working directory with the lab's data files and the Matplotlib cache."""
     memory_mb = max(MIN_MEMORY_MB, min(MAX_MEMORY_MB, int(memory_mb)))
     return [
-        "docker", "run", "--rm", "-i", "--name", name,
+        "docker", "run", "--rm", "-i", "--name", name, f"--runtime={runtime or container_runtime()}",
         "--network", "none",
         f"--memory={memory_mb}m", f"--memory-swap={memory_mb}m", f"--cpus={cpus}",
         "--pids-limit=48", "--ulimit", "nofile=128:128", "--ulimit", "fsize=5000000:5000000",
@@ -121,3 +133,27 @@ class SubprocessRunner:
         env = {"PATH": os.environ.get("PATH", ""), "NM_LAB_API": "1" if lab_api else "0"}
         result = await _drive([sys.executable, "-I", str(HARNESS)], payload, timeout, None, env=env)
         return _to_result(*result, nonce, probes)
+
+
+PROBE_SOURCE = ("import importlib.metadata as m, json, sys\n"
+                "pk = {}\n"
+                "for p in %r:\n"
+                "    try:\n        pk[p] = m.version(p)\n    except Exception:\n        pass\n"
+                "print(json.dumps({'python': sys.version.split()[0], 'packages': pk}))\n") % (LAB_PACKAGES,)
+
+
+def probe_image(image: str = IMAGE, timeout: float = 120.0) -> dict:
+    """What the sandbox image can actually run, measured inside a locked-down container (same runtime, no network).
+    Raises RuntimeError if the image or runtime is unusable, so a broken worker refuses to start instead of failing learners."""
+    import subprocess
+    cmd = ["docker", "run", "--rm", f"--runtime={container_runtime()}", "--network", "none", "--read-only", "--cap-drop=ALL",
+           "--security-opt", "no-new-privileges", "--user", "65534:65534", "--memory=256m", image, "python", "-I", "-c", PROBE_SOURCE]
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env={"PATH": os.environ.get("PATH", "")})
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise RuntimeError(f"cannot start the sandbox: {exc}") from exc
+    if out.returncode != 0:
+        raise RuntimeError(f"sandbox probe failed (exit {out.returncode}): {out.stderr.strip()[-300:]}")
+    caps = json.loads(out.stdout.strip().splitlines()[-1])
+    caps["runtime"] = container_runtime()
+    return caps

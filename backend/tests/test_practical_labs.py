@@ -8,6 +8,7 @@ import pytest
 from app.content_pack import build_rows, check_pack
 from tests.conftest import H
 from tests.fakes import CP1, CP2, CP3, EX, LID, Q1, Q2, Q3
+from tests.test_worker_queue import CAPS
 
 L1 = "11111111-1111-4111-8111-111111111111"
 L2 = "22222222-2222-4222-8222-222222222222"
@@ -231,7 +232,7 @@ def test_worker_claim_carries_files_limits_and_packages(env, monkeypatch):
                                "limits": {"timeout_seconds": 12}})
     reach_lab(c)
     submit(c, source_code="import pandas")
-    job = c.post("/api/v1/internal/grader/claim", headers=W, json={"worker_id": "w-1"}).json()
+    job = c.post("/api/v1/internal/grader/claim", headers=W, json={"worker_id": "w-1", **CAPS}).json()
     assert job["packages"] == ["pandas", "requests"] and job["files"] == {"marks.csv": "a,b\n1,2\n", "img.png": {"encoding": "base64", "content": "AAEC"}}
     assert job["limits"] == {"memory_mb": 384, "timeout_seconds": 12.0} and job["timeout_seconds"] == 12.0
 

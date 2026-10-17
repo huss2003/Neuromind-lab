@@ -27,10 +27,57 @@ def run(code: str, timeout: float = 8.0, memory_mb: int = 128):
     return asyncio.run(DockerRunner(memory_mb=memory_mb, cpus=1.0).run(code, [], timeout))
 
 
-def test_network_is_denied_including_cloud_metadata():
-    r = run("import socket\nfor host in ('169.254.169.254', '1.1.1.1', 'example.com'):\n"
-            "    try:\n        s = socket.create_connection((host, 80), 2)\n        print('OPEN', host)\n    except Exception as e:\n        print('DENIED', host)\n")
-    assert r.status == "ok" and "OPEN" not in r.stdout and r.stdout.count("DENIED") == 3
+HOSTS = ("169.254.169.254", "1.1.1.1", "example.com", "192.168.1.1", "192.168.0.1", "10.0.0.1", "172.17.0.1", "host.docker.internal",
+         "neuromind-lab-api.vercel.app", "ddiwlgbllhwcdykqjfne.supabase.co")
+
+
+def test_network_is_denied_including_cloud_metadata_the_home_network_the_host_api_and_database():
+    r = run("import socket\nfor host in %r:\n" % (HOSTS,)
+            + "    try:\n        s = socket.create_connection((host, 443), 2)\n        print('OPEN', host)\n    except Exception as e:\n        print('DENIED', host)\n",
+            timeout=40)
+    assert r.status == "ok" and "OPEN" not in r.stdout and r.stdout.count("DENIED") == len(HOSTS)
+
+
+def test_only_the_loopback_interface_exists():
+    r = run("import socket\nprint(sorted(n for _, n in socket.if_nameindex()))")
+    assert r.status == "ok" and r.stdout.strip() == "['lo']"
+
+
+def test_one_job_cannot_see_files_left_by_another():
+    first = run("open('/tmp/secret_of_job_1.txt', 'w').write('mine')\nprint('written')")
+    second = run("import os\nprint(os.listdir('/tmp'))")
+    assert first.stdout.strip() == "written" and "secret_of_job_1" not in second.stdout
+
+
+def test_hidden_expected_values_never_enter_the_sandbox():
+    """Probe EXPRESSIONS go in; the expected answers stay with the trusted evaluator."""
+    from grader_service.evaluate import evaluate, probe_exprs, required_vars
+    tests = [{"test_order": 1, "points": 1, "is_hidden": True, "definition": {"expr": "total", "expected": 4242}}]
+    # the program computes 4242 without writing it, then prints everything it can see; the answer must not appear
+    code = "import sys, os\ntotal = 4000 + 242\nprint(open('/proc/self/cmdline').read(), sys.argv, list(os.environ.values()), os.listdir('/tmp'), os.listdir('/app'))"
+    r = asyncio.run(DockerRunner().run(code, required_vars(tests), 8, probes=probe_exprs(tests)))
+    assert r.status == "ok" and "4242" not in r.stdout and "expected" not in r.stdout
+    assert evaluate(tests, r, 80)["status"] == "passed"
+
+
+def test_lab_libraries_load_and_compute_inside_the_sandbox():
+    code = ("import numpy as np, pandas as pd, sklearn, matplotlib.pyplot as plt\n"
+            "df = pd.DataFrame({'a': [1, 2, 3]})\nplt.plot([1, 2]); plt.savefig('c.png')\n"
+            "print(int(np.arange(4).sum()), int(df['a'].sum()), sklearn.__version__)")
+    r = run(code, timeout=20, memory_mb=384)
+    assert r.status == "ok" and r.error is None and r.stdout.split()[:2] == ["6", "6"], (r.stdout, r.error)
+
+
+def test_practice_api_works_and_every_real_host_stays_blocked():
+    import json as _json
+    from grader_service.runner import docker_command, parse_output
+    code = ("import requests\nr = requests.get('https://api.neuromind.lab/v1/weather', params={'city': 'Pune'})\nprint(r.status_code)\n"
+            "try:\n    requests.get('https://example.com', timeout=3)\n    print('REAL-OPEN')\nexcept Exception:\n    print('REAL-BLOCKED')")
+    cmd = docker_command("nm-grade-api-test", 384, 1.0, limit_seconds=20, lab_api=True)
+    out = subprocess.run(cmd, input=_json.dumps({"code": code, "capture_vars": [], "nonce": "n1", "max_output": 2000, "files": {}, "probes": []}).encode(),
+                         capture_output=True, timeout=60).stdout
+    parsed = parse_output(out, "n1")
+    assert parsed and parsed["stdout"].split() == ["200", "REAL-BLOCKED"], parsed
 
 
 def test_environment_has_no_secrets():

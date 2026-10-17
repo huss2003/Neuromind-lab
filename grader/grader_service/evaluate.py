@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 GRADER_VERSION = "1.2.0"
+HARNESS_VERSION = 2  # announced on every claim: 2 = probes, lab data files, practice API, lab limits
 
 
 @dataclass

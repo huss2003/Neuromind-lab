@@ -33,6 +33,25 @@ jobs:
       - run: pip install -r grader/requirements.txt
       - run: docker build -t neuromind-grader-sandbox grader/
       - run: cd grader && pytest -q   # includes the Docker-backed tests because Docker exists on this runner
+  grader-gvisor:
+    # The self-hosted grader runs learner code under gVisor (runsc). This proves the isolation tests and every lab's
+    # reference solution pass under that runtime, with the pinned sandbox image (hidden checks are private: PARTIAL run).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install -r grader/requirements.txt -r backend/requirements.txt
+      - name: Install gVisor and register it with Docker
+        run: |
+          curl -fsSL https://gvisor.dev/archive.key | sudo gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | sudo tee /etc/apt/sources.list.d/gvisor.list
+          sudo apt-get update -q && sudo apt-get install -y -q runsc
+          sudo runsc install && sudo systemctl restart docker
+          docker run --rm --runtime=runsc hello-world
+      - run: docker build -t neuromind-grader-sandbox grader/
+      - run: cd grader && GRADER_RUNTIME=runsc pytest -q -rs
+      - run: GRADER_RUNTIME=runsc python scripts/verify_labs.py content/lectures --sandbox
   frontend:
     runs-on: ubuntu-latest
     steps:

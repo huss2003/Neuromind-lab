@@ -68,3 +68,22 @@ def test_infrastructure_failure_is_never_posted_as_a_learner_result():
     asyncio.run(go())
     res = [b for p, b in seen if p.endswith("/result")][0]["result"]
     assert res["status"] == "error" and res["score"] is None
+
+
+def test_worker_announces_its_sandbox_capabilities_and_warns_when_refused(capsys):
+    caps = {"runtime": "runsc", "python": "3.13.16", "packages": {"numpy": "2.5.4"}}
+    seen = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(req.content or b"{}"))
+        return httpx.Response(204, headers={"X-Claim-Refused": "missing-packages:pandas"})
+
+    async def go():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://api.test") as client:
+            w = Worker(client, SubprocessRunner(), "w-1", caps)
+            assert await w.run_once() is False
+            assert await w.run_once() is False
+    asyncio.run(go())
+    from grader_service.evaluate import HARNESS_VERSION
+    assert seen[0] == {"worker_id": "w-1", "harness_version": HARNESS_VERSION, "packages": {"numpy": "2.5.4"}, "runtime": "runsc", "python": "3.13.16"}
+    assert capsys.readouterr().out.count("refuses to give this worker jobs (missing-packages:pandas)") == 1  # warned once, not every poll
