@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "lecture_number": 27,
+  "title": "What Is Machine Learning?",
+  "summary": "Compare a hand-written rule list with learning from labelled examples for the same prediction problem, and explain why machine learning learns patterns instead of following hand-coded rules.",
+  "objectives": [
+    "Explain machine learning as learning patterns from labelled examples",
+    "Contrast a hand-written rule list with learning from examples for the same problem",
+    "Give pros and cons of each approach",
+    "Preview the supervised-learning steps the next lectures build"
+  ],
+  "duration_minutes": 45,
+  "prerequisites": [
+    26
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will write",
+      "body": "## What you will write\n\nIn Lecture 1 we said AI is software that learns from data. Machine learning makes that exact: instead of a programmer writing `if price > 500: expensive`, you show the computer thousands of examples with the right answer attached and let an algorithm find the pattern itself. In this lab there is no code to run. You will take one problem, spotting spam email, and compare the two approaches side by side: a rule list you would write by hand, and showing the computer 1,000 emails that people have already marked *spam* or *not spam*. You will list the pros and cons of each and end with a clear conclusion about why learning from examples wins when the real world keeps changing. Your teacher reads and marks this with the rubric shown below."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: rules versus learning from examples"
+    }
+  ],
+  "lab": {
+    "kind": "written",
+    "scoring": "pass_fail",
+    "title": "Rules versus learning from examples",
+    "objective": "Compare a hand-written rule list with learning from 1,000 labelled examples for spam detection and explain why ML learns patterns rather than following hand-coded rules.",
+    "instructions": "Write 150-250 words comparing two ways to build a spam filter. Use these four headings, in this order:\n\n1. Approach A - a rule list. Write three rules you would hand-write to catch spam, one per line, in if-then form (for example: if the subject line contains \"free prize\", mark it as spam).\n\n2. Approach B - learning from examples. In 2-3 sentences describe what the 1,000 examples look like (an email plus its label, spam or not spam) and what the computer does with them. Use the words features, label and pattern.\n\n3. Pros and cons. Give two pros and two cons for each approach (eight short bullet points in total). Think about: how much work it is to write and maintain, what happens when spammers change their tricks, how easy it is to explain a decision, and what happens when there is very little data.\n\n4. Conclusion. In 2-3 sentences say which approach you would choose for a real email service with millions of users and why. Your reason must explain why learning patterns from examples beats a fixed list of hand-written rules when the world keeps changing.\n\nWrite in your own words. The examples from class (spam) are fine here; the homework asks you for a different task.",
+    "constraints": "150-250 words. Four headings in the given order. Three rules, eight bullet points (two pros and two cons per approach), a conclusion of 2-3 sentences. Your own words; no code needed.",
+    "starter_code": "",
+    "hints": [
+      "Start with the rules: think of three things spam emails often have (certain words, lots of capital letters, an unknown sender) and write each as an if-then sentence.",
+      "For Approach B, picture a table: each row is one email (its features: words, sender, number of links) with a label column that says spam or not spam. The computer looks for the pattern that connects the features to the label.",
+      "A strong conclusion names the key weakness of rules: spammers change their tricks, so the list would need rewriting forever, while a model can be retrained on new examples and learns patterns nobody wrote down."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [],
+    "success_criteria": [
+      "Three hand-written if-then rules and a correct description of learning from labelled examples (features, label, pattern)",
+      "Two pros and two cons for each approach, each a real difference between the two",
+      "A conclusion that chooses an approach and explains why learned patterns beat hand-coded rules when the world keeps changing",
+      "Clear writing within 150-250 words under the four headings"
+    ],
+    "tests": [],
+    "rubric": [
+      {
+        "criterion": "Rules and learning from examples described",
+        "description": "Three sensible if-then spam rules are listed, and Approach B correctly describes labelled examples (features plus a spam/not-spam label) and the computer finding the pattern.",
+        "max_points": 3
+      },
+      {
+        "criterion": "Pros and cons of each approach",
+        "description": "Two pros and two cons for each approach, and each point is a genuine difference (maintenance effort, changing tricks, explainability, data needed).",
+        "max_points": 4
+      },
+      {
+        "criterion": "Conclusion: patterns beat hand-coded rules",
+        "description": "Chooses an approach for a real email service and explains why learning patterns from examples wins when spammers keep changing their tactics.",
+        "max_points": 3
+      },
+      {
+        "criterion": "Clear writing and structure",
+        "description": "Between 150 and 250 words, the four headings in order, short clear sentences in the learner's own words.",
+        "max_points": 2
+      }
+    ],
+    "checklist": []
+  }
+}

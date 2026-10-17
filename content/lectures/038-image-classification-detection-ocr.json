@@ -1,0 +1,142 @@
+{
+  "schema_version": 2,
+  "lecture_number": 38,
+  "title": "Image Classification, Object Detection and OCR",
+  "summary": "Distinguish image classification, object detection and OCR by what each one actually outputs, and try each on a sample image.",
+  "objectives": [
+    "Send a POST request with a JSON body to the practice API",
+    "Read a label, a list of boxes and extracted text out of JSON responses",
+    "Tell classification, detection and OCR apart by their outputs",
+    "Write a short comparison of what each tool returned"
+  ],
+  "duration_minutes": 55,
+  "prerequisites": [
+    37
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nClassification, object detection and OCR are three different tools that answer three different questions. In this lab you send the same photo, `street_sign.png`, to the practice API three times: `POST /vision/classify` gives one label for the whole image, `POST /vision/detect` gives a list of labelled boxes with coordinates, and `POST /ocr` reads the text on the shop sign. The API is simulated inside the lab and answers from a fixed table, so it only needs the image's file name. You print the top label, the number of boxes and the text, then write a comparison of at least 30 words in a variable called `write_up`: what each tool returned and where it was right or wrong."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: One photo, three tools"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "One photo, three tools",
+    "objective": "Run a classifier, an object detector and OCR on the same photo through the practice API, and compare what each one returned.",
+    "instructions": "The photo street_sign.png (a street with a shop sign, a parked car and a person) is in your working directory. The practice API at https://api.neuromind.lab/v1 knows this photo by its file name: every request is a POST with json={\"image\": \"street_sign.png\"}.\n\n1. Print Image file: street_sign.png and its size in bytes with os.path.getsize(IMAGE).\n2. Classification: POST to /vision/classify. The answer is {\"labels\": [{\"label\": ..., \"score\": ...}, ...]}, best first. Store the list in labels, the first label's text in top_label, and print Top label: followed by it.\n3. Detection: POST to /vision/detect. The answer is {\"objects\": [{\"label\": ..., \"box\": [x1, y1, x2, y2], \"score\": ...}, ...]}. Store the list in objects and len(objects) in box_count. Print Boxes: followed by box_count, then one line per object with its label and box.\n4. OCR: POST to /ocr. The answer is {\"text\": ..., \"lines\": [...]}. Store the text in ocr_text, print OCR text: and then the text itself.\n5. Write a comparison of at least 30 words in a string called write_up. Name all three tools (classifier, detector, OCR), say what each one returned (one label, boxes with coordinates, or text) and whether it was right or wrong for this photo. Print it after Write-up:.\n\nExpected lines in your output:\nTop label: street\nBoxes: 3\nOCR text:\nRAO & SONS BAKERY\nOPEN 7 AM - 9 PM",
+    "constraints": "Use requests.post() with json={\"image\": IMAGE} for every call. Only https://api.neuromind.lab/v1 is reachable. Read every value from response.json(); do not type the answers in. Keep the names labels, top_label, objects, box_count, ocr_text and write_up. No input().",
+    "starter_code": "import os\nimport requests\n\nBASE = \"https://api.neuromind.lab/v1\"\nIMAGE = \"street_sign.png\"   # the photo is in your working directory; the API knows it by this name\n\n# 1. Print \"Image file:\", IMAGE and its size in bytes (os.path.getsize(IMAGE)) so you know the file is there.\n\n\n# 2. Classification: POST to BASE + \"/vision/classify\" with json={\"image\": IMAGE}.\n#    labels = response.json()[\"labels\"]  (a list of {\"label\", \"score\"} dicts, best first)\n#    top_label = the \"label\" of the first one. Print \"Top label:\" followed by top_label.\n\n\n# 3. Detection: POST to BASE + \"/vision/detect\" with the same JSON body.\n#    objects = response.json()[\"objects\"]; box_count = len(objects).\n#    Print \"Boxes:\" followed by box_count, then one line per object with its label and box.\n\n\n# 4. OCR: POST to BASE + \"/ocr\" with the same JSON body.\n#    ocr_text = response.json()[\"text\"]. Print \"OCR text:\" and then ocr_text on the next line.\n\n\n# 5. Compare the three results in your own words (at least 30 words) in a string called write_up.\n#    Name all three tools (classifier, detector, OCR) and say what each returned and whether it was right or wrong.\nwrite_up = \"\"\nprint(\"Write-up:\", write_up)\n",
+    "hints": [
+      "All three calls look the same: response = requests.post(BASE + \"/vision/classify\", json={\"image\": IMAGE}) and then data = response.json(). Only the path changes: /vision/classify, /vision/detect, /ocr.",
+      "The classifier's answer is data[\"labels\"], a list of dictionaries, so the best label is data[\"labels\"][0][\"label\"]. The detector's answer is data[\"objects\"]; its length is the number of boxes. OCR gives data[\"text\"].",
+      "For write_up, use three sentences: 'The classifier returned ...', 'The detector returned ... boxes ...', 'OCR read the text ...'. Say whether each one was right. Count the words: you need at least 30."
+    ],
+    "packages": [
+      "requests"
+    ],
+    "assets": [
+      {
+        "name": "street_sign.png",
+        "content": "iVBORw0KGgoAAAANSUhEUgAAAEAAAAAoCAIAAADBrGu+AAAAsklEQVR42mNcdekDw1AGTAxDHIx6YKABC/FKz4Xp0dNlRqsuUdkDDAwMTWdP0Mf1dcYWo3lg1AOjHhj1wKgHRj1A9YqM+PqFboBxqDenWQaDI+rCfFAaLKu2jGbiUQ8MTB6QSyC5kHm04MRoDIx6YNQDox6gpCkRFRUP5+TdOEmq/kka5pQ74ty5u8hcIyPl0SQ0RCsyqqSH0RgYgs1pknLtaCYe9cCoB0Y9MOqBUQ8gAQB7iRqo1ZE1+QAAAABJRU5ErkJggg==",
+        "encoding": "base64",
+        "description": "The sample photo: a street with a shop sign, a car and a person (small placeholder picture; the API answers by file name)"
+      }
+    ],
+    "visible_examples": [
+      {
+        "description": "Classifying another image the API knows",
+        "code": "import requests\n\nresponse = requests.post(\"https://api.neuromind.lab/v1/vision/classify\", json={\"image\": \"cat.jpg\"})\ndata = response.json()\nprint(data[\"labels\"][0][\"label\"])\nprint(len(data[\"labels\"]))",
+        "expected_output": "cat\n2"
+      },
+      {
+        "description": "OCR gives the text line by line too",
+        "code": "import requests\n\nresponse = requests.post(\"https://api.neuromind.lab/v1/ocr\", json={\"image\": \"receipt.png\"})\nlines = response.json()[\"lines\"]\nprint(lines[0])\nprint(len(lines))",
+        "expected_output": "NEUROMART\n5"
+      }
+    ],
+    "success_criteria": [
+      "Your output includes the line: Top label: street",
+      "Your output includes the line: Boxes: 3",
+      "Your output includes the sign's text: RAO & SONS BAKERY",
+      "write_up is a string of at least 30 words",
+      "top_label, box_count, ocr_text and labels hold what the API returned",
+      "write_up names the classifier, the detector and OCR"
+    ],
+    "tests": [
+      {
+        "key": "l38-t1",
+        "label": "The top label is printed",
+        "remediation": "POST to /vision/classify with json={\"image\": IMAGE}, take response.json()[\"labels\"][0][\"label\"] and print it after Top label:.",
+        "objective": "Call a classification endpoint",
+        "hidden": false,
+        "definition": {
+          "description": "Top label line",
+          "stdout_contains": "Top label: street"
+        }
+      },
+      {
+        "key": "l38-t2",
+        "label": "The number of boxes is printed",
+        "remediation": "POST to /vision/detect, store response.json()[\"objects\"] in objects and print Boxes: followed by len(objects).",
+        "objective": "Call an object-detection endpoint",
+        "hidden": false,
+        "definition": {
+          "description": "Boxes line",
+          "stdout_contains": "Boxes: 3"
+        }
+      },
+      {
+        "key": "l38-t3",
+        "label": "The OCR text is printed",
+        "remediation": "POST to /ocr, store response.json()[\"text\"] in ocr_text and print it on its own line after OCR text:.",
+        "objective": "Call an OCR endpoint",
+        "hidden": false,
+        "definition": {
+          "description": "OCR text printed",
+          "stdout_contains": "RAO & SONS BAKERY"
+        }
+      },
+      {
+        "key": "l38-t4",
+        "label": "write_up has at least 30 words",
+        "remediation": "write_up must be a string with at least 30 words. Write one sentence per tool and say whether it was right or wrong.",
+        "objective": "Compare tool outputs in writing",
+        "hidden": false,
+        "definition": {
+          "description": "write_up length",
+          "expr": "isinstance(write_up, str) and len(write_up.split()) >= 30",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l38-t5",
+        "label": "The variables hold the API's answers",
+        "remediation": "top_label, box_count, ocr_text and labels must come from response.json() of the three calls, not from typed-in values.",
+        "objective": "Read values out of a JSON response",
+        "hidden": true
+      },
+      {
+        "key": "l38-t6",
+        "label": "write_up names all three tools",
+        "remediation": "Mention the classifier, the detector and OCR by name in write_up (the words classifier, detector and OCR), and keep it at 30 words or more.",
+        "objective": "Compare tool outputs in writing",
+        "hidden": true
+      }
+    ],
+    "solution": "import os\nimport requests\n\nBASE = \"https://api.neuromind.lab/v1\"\nIMAGE = \"street_sign.png\"\n\nprint(\"Image file:\", IMAGE, \"(\" + str(os.path.getsize(IMAGE)) + \" bytes)\")\n\nresponse = requests.post(BASE + \"/vision/classify\", json={\"image\": IMAGE})\nlabels = response.json()[\"labels\"]\ntop_label = labels[0][\"label\"]\nprint(\"Top label:\", top_label)\n\nresponse = requests.post(BASE + \"/vision/detect\", json={\"image\": IMAGE})\nobjects = response.json()[\"objects\"]\nbox_count = len(objects)\nprint(\"Boxes:\", box_count)\nfor obj in objects:\n    print(\" -\", obj[\"label\"], obj[\"box\"])\n\nresponse = requests.post(BASE + \"/ocr\", json={\"image\": IMAGE})\nocr_text = response.json()[\"text\"]\nprint(\"OCR text:\")\nprint(ocr_text)\n\nwrite_up = (\n    \"The classifier returned one label for the whole photo, street, which is right but says nothing about where things are. \"\n    \"The detector returned three boxes for a car, a person and a sign with coordinates, so it is the right tool for finding objects. \"\n    \"OCR ignored the objects and read the text on the sign, RAO & SONS BAKERY and the opening hours, which neither of the other tools could do.\"\n)\nprint(\"Write-up:\", write_up)\n",
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "limits": {}
+  }
+}

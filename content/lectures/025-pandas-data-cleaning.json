@@ -1,0 +1,151 @@
+{
+  "schema_version": 2,
+  "lecture_number": 25,
+  "title": "Pandas and Data Cleaning",
+  "summary": "Load a messy CSV of students' marks into a pandas DataFrame, diagnose its problems with .info() and .describe(), and clean them with astype, fillna and drop_duplicates.",
+  "objectives": [
+    "Load a CSV file into a DataFrame with pd.read_csv()",
+    "Diagnose missing values, a wrong-type column and duplicate rows with .info(), .describe(), .isna() and .duplicated()",
+    "Fix each problem with .astype(), .fillna() and .drop_duplicates()",
+    "Document what was found and what was fixed"
+  ],
+  "duration_minutes": 60,
+  "prerequisites": [
+    24
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nReal data is rarely tidy. In this lab you get `marks.csv`, a fictional file of marks for 8 students in 5 subjects, and it has three problems hidden inside: three marks are blank, one mark was typed as `85 ` with a stray space after it (so pandas treats the whole column as text), and one row was pasted twice. You will load the file with `pd.read_csv()`, use `.info()` and `.describe()` to find the problems, and then fix them one by one: `.astype(float)` to turn the text back into numbers, `.fillna()` to fill the blanks with the column average, and `.drop_duplicates()` to remove the extra row. Finally you will write down what you found and fixed, the way a careful data scientist does. Filling blanks with 0 would drag the average down, so use the mean instead."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: clean the messy marks file"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Clean the messy marks file",
+    "objective": "Load marks.csv, diagnose a text column, missing marks and a duplicate row, fix all three with pandas and document the fixes.",
+    "instructions": "The file marks.csv (columns student, subject, marks) is in your working directory. Write a program that:\n\n1. Loads it with df = pd.read_csv(\"marks.csv\").\n2. Diagnoses it. Print these four lines, then call df.info() and print(df.describe()):\nRows before: 41\nMarks dtype before: object\nMissing marks before: 3\nDuplicate rows before: 1\n(use len(df), df[\"marks\"].dtype, df[\"marks\"].isna().sum() and df.duplicated().sum()).\n3. Cleans a copy called clean (clean = df.copy()), in this order:\n   a) clean[\"marks\"] = clean[\"marks\"].astype(float)  - the column becomes numbers again\n   b) fill the missing marks with the column mean: clean[\"marks\"].fillna(clean[\"marks\"].mean())\n   c) clean = clean.drop_duplicates()\n4. Prints the same four lines for clean with the word after (Rows after: 40, Marks dtype after: float64, Missing marks after: 0, Duplicate rows after: 0) and then Average mark: 72.0 (round the mean to 1 decimal).\n5. Documents the work: make fixes, a list of three sentences in your own words, one per problem (the missing marks, the text column, the duplicate row), each saying what you found and how you fixed it. Print each one as Fixed: <sentence>.",
+    "constraints": "Use pandas. Keep the names df, clean and fixes. Fill missing marks with the column mean, not 0, and do not drop those rows. Keep the four lines in the exact format shown. No input().",
+    "starter_code": "import pandas as pd\n\n# 1. Load marks.csv into a DataFrame called df\n\n\n# 2. Diagnose: print the four \"before\" lines (rows, marks dtype, missing marks, duplicate rows),\n#    then call df.info() and print(df.describe())\n\n\n# 3. Clean a copy: clean = df.copy()\n#    a) fix the marks column type with .astype(float)\n#    b) fill the missing marks with the column mean using .fillna(...)\n#    c) remove the duplicate row with .drop_duplicates()\n\n\n# 4. Print the four \"after\" lines and the average mark (rounded to 1 decimal)\n\n\n# 5. Document: fixes = a list of three sentences (missing marks, text column, duplicate row)\n#    and print each one as \"Fixed: <sentence>\"\n",
+    "hints": [
+      "After df = pd.read_csv(\"marks.csv\"), df[\"marks\"].dtype tells you the column type, df[\"marks\"].isna().sum() counts blanks and df.duplicated().sum() counts repeated rows. df.info() shows all of this at once.",
+      "Clean a copy: clean = df.copy(). Convert first, because you cannot take the mean of text: clean[\"marks\"] = clean[\"marks\"].astype(float). Then clean[\"marks\"] = clean[\"marks\"].fillna(clean[\"marks\"].mean()) and finally clean = clean.drop_duplicates().",
+      "Print the after lines the same way as the before lines but using clean, then print(\"Average mark:\", round(clean[\"marks\"].mean(), 1)). Put your three sentences in fixes = [\"...\", \"...\", \"...\"] and loop: for fix in fixes: print(\"Fixed:\", fix)."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas"
+    ],
+    "assets": [
+      {
+        "name": "marks.csv",
+        "content": "student,subject,marks\nAsha,Math,78\nAsha,Science,85\u00a0\nAsha,English,70\nAsha,History,66\nAsha,Computer,74\nBen,Math,84\nBen,Science,91\nBen,English,77\nBen,History,59\nBen,Computer,61\nChen,Math,69\nChen,Science,74\nChen,English,82\nChen,History,71\nChen,Computer,\nDev,Math,92\nDev,Science,80\nDev,English,72\nDev,History,63\nDev,Computer,79\nEsha,Math,75\nEsha,Science,\nEsha,English,68\nEsha,History,68\nEsha,Computer,58\nFarah,Math,\nFarah,Science,88\nFarah,English,79\nFarah,History,55\nFarah,Computer,70\nGita,Math,81\nGita,Science,66\nGita,English,64\nGita,History,72\nGita,Computer,66\nHari,Math,65\nHari,Science,72\nDev,English,72\nHari,English,64\nHari,History,60\nHari,Computer,66\n",
+        "encoding": "text",
+        "description": "Messy fictional marks: 8 students x 5 subjects plus one duplicated row (41 rows). Three marks are blank and one mark is '85' followed by a stray non-breaking space, which makes the column text."
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Spotting missing values and duplicates in a tiny table",
+        "code": "import pandas as pd\n\ndf = pd.DataFrame({\"name\": [\"Asha\", \"Ben\", \"Asha\"], \"marks\": [70.0, None, 70.0]})\nprint(\"Missing:\", df[\"marks\"].isna().sum())\nprint(\"Duplicates:\", df.duplicated().sum())\nclean = df.drop_duplicates()\nprint(\"Rows after:\", len(clean))",
+        "expected_output": "Missing: 1\nDuplicates: 1\nRows after: 2"
+      },
+      {
+        "description": "Fixing a text column and filling the gap with the mean",
+        "code": "import pandas as pd\n\ndf = pd.DataFrame({\"marks\": [\"60\", \"80\", None]})\nprint(\"Before:\", df[\"marks\"].dtype)\ndf[\"marks\"] = df[\"marks\"].astype(float)\ndf[\"marks\"] = df[\"marks\"].fillna(df[\"marks\"].mean())\nprint(\"After:\", df[\"marks\"].dtype)\nprint(df[\"marks\"].tolist())",
+        "expected_output": "Before: object\nAfter: float64\n[60.0, 80.0, 70.0]"
+      }
+    ],
+    "success_criteria": [
+      "Your output includes the line: Marks dtype before: object",
+      "df holds the raw file: 41 rows and 3 columns",
+      "The marks column of clean is float64",
+      "clean has 40 rows, no missing marks and no duplicate rows",
+      "The missing marks were filled with the column mean (the average mark is 72.0)",
+      "fixes holds three sentences that describe the missing marks, the text column and the duplicate row"
+    ],
+    "tests": [
+      {
+        "key": "l25-t1",
+        "label": "The marks column is diagnosed as text before cleaning",
+        "remediation": "Print the column type with print(\"Marks dtype before:\", df[\"marks\"].dtype) right after loading the file, before you change anything.",
+        "objective": "Diagnose a wrong-type column with .dtype and .info()",
+        "hidden": false,
+        "definition": {
+          "description": "Marks dtype before: object is printed",
+          "stdout_contains": "Marks dtype before: object"
+        }
+      },
+      {
+        "key": "l25-t2",
+        "label": "df holds the raw file (41 rows, 3 columns)",
+        "remediation": "Load the file with df = pd.read_csv(\"marks.csv\") and keep df unchanged; do your cleaning on clean = df.copy().",
+        "objective": "Load a CSV with pd.read_csv()",
+        "hidden": false,
+        "definition": {
+          "description": "df.shape is (41, 3)",
+          "expr": "list(df.shape)",
+          "expected": [
+            41,
+            3
+          ]
+        }
+      },
+      {
+        "key": "l25-t3",
+        "label": "The marks column of clean is float64",
+        "remediation": "Convert the column with clean[\"marks\"] = clean[\"marks\"].astype(float). Do this before fillna, because the mean of a text column cannot be calculated.",
+        "objective": "Fix a column type with .astype()",
+        "hidden": false,
+        "definition": {
+          "description": "clean marks dtype is float64",
+          "expr": "str(clean['marks'].dtype)",
+          "expected": "float64"
+        }
+      },
+      {
+        "key": "l25-t4",
+        "label": "clean has 40 rows, no missing marks and no duplicate rows",
+        "remediation": "Fill the blanks with clean[\"marks\"].fillna(clean[\"marks\"].mean()) (do not drop those rows) and remove the repeated row with clean = clean.drop_duplicates().",
+        "objective": "Handle missing values and duplicates",
+        "hidden": false,
+        "definition": {
+          "description": "40 rows, 0 missing, 0 duplicates",
+          "expr": "[len(clean), int(clean['marks'].isna().sum()), int(clean.duplicated().sum())]",
+          "expected": [
+            40,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "key": "l25-t5",
+        "label": "The missing marks were filled with the column mean",
+        "remediation": "Fill with the mean of the column, not with 0: clean[\"marks\"] = clean[\"marks\"].fillna(clean[\"marks\"].mean()). The average mark of the cleaned data is then 72.0.",
+        "objective": "Choose a sensible missing-value strategy",
+        "hidden": true
+      },
+      {
+        "key": "l25-t6",
+        "label": "fixes documents the three problems",
+        "remediation": "Make fixes a list of exactly three sentences (at least 6 words each). One must mention the missing marks, one the duplicate row and one that the column was text and is now numbers.",
+        "objective": "Document what was found and fixed",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\n\n# 1. Load the messy file\ndf = pd.read_csv(\"marks.csv\")\n\n# 2. Diagnose before cleaning\nprint(\"Rows before:\", len(df))\nprint(\"Marks dtype before:\", df[\"marks\"].dtype)\nprint(\"Missing marks before:\", df[\"marks\"].isna().sum())\nprint(\"Duplicate rows before:\", df.duplicated().sum())\ndf.info()\nprint(df.describe())\n\n# 3. Clean a copy\nclean = df.copy()\nclean[\"marks\"] = clean[\"marks\"].astype(float)\nclean[\"marks\"] = clean[\"marks\"].fillna(clean[\"marks\"].mean())\nclean = clean.drop_duplicates()\n\n# 4. Check after cleaning\nprint(\"Rows after:\", len(clean))\nprint(\"Marks dtype after:\", clean[\"marks\"].dtype)\nprint(\"Missing marks after:\", clean[\"marks\"].isna().sum())\nprint(\"Duplicate rows after:\", clean.duplicated().sum())\nprint(\"Average mark:\", round(clean[\"marks\"].mean(), 1))\n\n# 5. Document what was found and fixed\nfixes = [\n    \"Found 3 missing marks and filled them with the average mark of the column.\",\n    \"The marks column was text (object) because one mark had a stray space, so I converted it to numbers with astype(float).\",\n    \"Found 1 duplicated row and removed it with drop_duplicates().\",\n]\nfor fix in fixes:\n    print(\"Fixed:\", fix)\n"
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "schema_version": 2,
+  "lecture_number": 37,
+  "title": "Computer Vision Fundamentals",
+  "summary": "Explain how a digital image is represented as numeric pixel data, and why that representation is what a CV model actually learns from.",
+  "objectives": [
+    "Open an image with Pillow and turn it into a NumPy array",
+    "Read a shape tuple as height x width x colour channels",
+    "Print a slice of raw pixel values",
+    "Convert an image to grayscale and compare the array shapes"
+  ],
+  "duration_minutes": 50,
+  "prerequisites": [
+    36
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nA computer does not see a picture; it sees a grid of numbers. In this lab you load a small colour image, `sample.png`, with Pillow and turn it into a NumPy array. You print its shape, `(32, 48, 3)`: 32 rows, 48 columns and 3 colour channels (red, green, blue), plus a slice of raw pixel values. Then you convert the image to grayscale and print the new shape, `(32, 48)`, and the mean brightness. Comparing the two shapes shows what a vision model actually 'sees': only numbers, 4608 of them for this tiny picture."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: What a model sees: an image as numbers"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "What a model sees: an image as numbers",
+    "objective": "Load a small image as a NumPy array, print its shape and a slice of pixel values, then convert it to grayscale and compare the shapes.",
+    "instructions": "The file sample.png is a tiny colour picture (48 pixels wide, 32 pixels tall): sky, grass, a sun and a house. Using Pillow (from PIL import Image) and NumPy (import numpy as np):\n\n1. Open the file with img = Image.open(\"sample.png\") and make pixels = np.array(img). Print Shape: followed by pixels.shape and Total numbers: followed by pixels.size.\n2. Take a slice of raw values: top_row = pixels[0, 0:4].tolist() (the first four pixels of the top row). Print Top row slice: followed by top_row, and Centre pixel: followed by pixels[16, 24].tolist().\n3. Convert to grayscale: gray = img.convert(\"L\") and gray_pixels = np.array(gray). Print Gray shape: followed by gray_pixels.shape.\n4. Compute gray_mean = round(float(gray_pixels.mean()), 2) and print Gray mean: followed by gray_mean.\n\nYour first and fourth printed lines look like this (the slice and the mean come from the real file):\nShape: (32, 48, 3)\nGray shape: (32, 48)\n\nNotice: the colour array has 3 numbers per pixel (red, green, blue); the grayscale array has 1. That grid of numbers is all a vision model ever receives.",
+    "constraints": "Keep the names img, pixels, top_row, gray_pixels and gray_mean. Read the real file; do not type the numbers in by hand. No input().",
+    "starter_code": "from PIL import Image\nimport numpy as np\n\n# The file sample.png (48 pixels wide, 32 pixels tall, colour) is in your working directory.\n\n# 1. Open it with Image.open(\"sample.png\") and turn it into a NumPy array called pixels.\n#    Print \"Shape:\" followed by pixels.shape, and \"Total numbers:\" followed by pixels.size.\n\n\n# 2. Print a slice of raw pixel values: top_row = pixels[0, 0:4].tolist()\n#    (the first four pixels of the top row). Print \"Top row slice:\" followed by top_row.\n#    Also print \"Centre pixel:\" followed by pixels[16, 24].tolist().\n\n\n# 3. Convert the image to grayscale with img.convert(\"L\") and turn THAT into a NumPy\n#    array called gray_pixels. Print \"Gray shape:\" followed by gray_pixels.shape.\n\n\n# 4. gray_mean = the mean of gray_pixels, rounded to 2 decimals (use float() before round()).\n#    Print \"Gray mean:\" followed by gray_mean.\n",
+    "hints": [
+      "Image.open(\"sample.png\") gives a Pillow image; np.array(img) turns it into a NumPy array. Print its .shape and .size.",
+      "pixels[0, 0:4] is row 0, columns 0 to 3: four pixels, each a list of three numbers. Add .tolist() to print plain Python lists. img.convert(\"L\") makes the grayscale version; wrap it in np.array() too.",
+      "gray_pixels.mean() is a NumPy number; write gray_mean = round(float(gray_pixels.mean()), 2). Print every line with a label, for example print(\"Gray shape:\", gray_pixels.shape)."
+    ],
+    "packages": [
+      "pillow",
+      "numpy"
+    ],
+    "assets": [
+      {
+        "name": "sample.png",
+        "content": "iVBORw0KGgoAAAANSUhEUgAAADAAAAAgCAIAAADbtmxLAAAAdElEQVR42mNsP/eaYTABJoZBBgadg1iQOcV8tpgqej8dHo2yUQeNOmjYZns65/AhGELUArp57sQrvjxp52iiHtppaOudaOqnIVIUozlgZOQyNFDy6A0yt0dOZDRRjzpo1EGjDkIARptVbqMhNOqgUQfREgAACD4S/F7Q1hgAAAAASUVORK5CYII=",
+        "encoding": "base64",
+        "description": "A 48x32 colour picture: sky, grass, a sun and a house"
+      }
+    ],
+    "visible_examples": [
+      {
+        "description": "A brand-new red image is just an array",
+        "code": "from PIL import Image\nimport numpy as np\n\nimg = Image.new(\"RGB\", (4, 2), (255, 0, 0))\npixels = np.array(img)\nprint(\"Shape:\", pixels.shape)\nprint(\"One pixel:\", pixels[0, 0].tolist())",
+        "expected_output": "Shape: (2, 4, 3)\nOne pixel: [255, 0, 0]"
+      },
+      {
+        "description": "Grayscale drops the colour channels",
+        "code": "from PIL import Image\nimport numpy as np\n\nimg = Image.new(\"RGB\", (3, 2), (255, 0, 0))\ngray = np.array(img.convert(\"L\"))\nprint(\"Gray shape:\", gray.shape)\nprint(\"Gray value:\", gray[0, 0])",
+        "expected_output": "Gray shape: (2, 3)\nGray value: 76"
+      }
+    ],
+    "success_criteria": [
+      "Your output includes the line: Shape: (32, 48, 3)",
+      "Your output includes the line: Gray shape: (32, 48)",
+      "pixels is a NumPy array of shape (32, 48, 3)",
+      "gray_pixels is a 2-D array of whole numbers (one value per pixel)",
+      "top_row holds the first four pixels of the top row and pixels.size is the total number of values",
+      "gray_mean is the mean of the grayscale array, rounded to 2 decimals"
+    ],
+    "tests": [
+      {
+        "key": "l37-t1",
+        "label": "The colour shape is printed",
+        "remediation": "Print pixels.shape with a label: print(\"Shape:\", pixels.shape). It must show (32, 48, 3).",
+        "objective": "Read an image's shape tuple",
+        "hidden": false,
+        "definition": {
+          "description": "Shape line",
+          "stdout_contains": "Shape: (32, 48, 3)"
+        }
+      },
+      {
+        "key": "l37-t2",
+        "label": "The grayscale shape is printed",
+        "remediation": "After gray = img.convert(\"L\") and gray_pixels = np.array(gray), print(\"Gray shape:\", gray_pixels.shape). It must show (32, 48).",
+        "objective": "Convert an image to grayscale",
+        "hidden": false,
+        "definition": {
+          "description": "Gray shape line",
+          "stdout_contains": "Gray shape: (32, 48)"
+        }
+      },
+      {
+        "key": "l37-t3",
+        "label": "pixels is a NumPy array of shape (32, 48, 3)",
+        "remediation": "Make pixels = np.array(img) from the opened image, not a list and not the grayscale version.",
+        "objective": "Turn an image into a NumPy array",
+        "hidden": false,
+        "definition": {
+          "description": "pixels is a 32x48x3 ndarray",
+          "expr": "[type(pixels).__name__, list(pixels.shape)]",
+          "expected": [
+            "ndarray",
+            [
+              32,
+              48,
+              3
+            ]
+          ]
+        }
+      },
+      {
+        "key": "l37-t4",
+        "label": "gray_pixels is a 2-D array of whole numbers",
+        "remediation": "gray_pixels must come from np.array(img.convert(\"L\")): two dimensions (32, 48) and whole-number values.",
+        "objective": "Convert an image to grayscale",
+        "hidden": true
+      },
+      {
+        "key": "l37-t5",
+        "label": "top_row and the total count come from the real file",
+        "remediation": "top_row = pixels[0, 0:4].tolist() must hold four [r, g, b] lists read from sample.png, and pixels.size is 32 * 48 * 3.",
+        "objective": "Slice raw pixel values",
+        "hidden": true
+      },
+      {
+        "key": "l37-t6",
+        "label": "gray_mean is the rounded mean of the grayscale array",
+        "remediation": "gray_mean = round(float(gray_pixels.mean()), 2). Compute it from gray_pixels; do not type a number in.",
+        "objective": "Summarise an array with .mean()",
+        "hidden": true
+      }
+    ],
+    "solution": "from PIL import Image\nimport numpy as np\n\nimg = Image.open(\"sample.png\")\n\npixels = np.array(img)\nprint(\"Shape:\", pixels.shape)\nprint(\"Total numbers:\", pixels.size)\n\ntop_row = pixels[0, 0:4].tolist()\nprint(\"Top row slice:\", top_row)\nprint(\"Centre pixel:\", pixels[16, 24].tolist())\n\ngray = img.convert(\"L\")\ngray_pixels = np.array(gray)\nprint(\"Gray shape:\", gray_pixels.shape)\n\ngray_mean = round(float(gray_pixels.mean()), 2)\nprint(\"Gray mean:\", gray_mean)\n",
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "limits": {}
+  }
+}

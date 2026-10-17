@@ -1,0 +1,151 @@
+{
+  "schema_version": 2,
+  "lecture_number": 26,
+  "title": "Matplotlib, Data Interpretation and Git/GitHub",
+  "summary": "Build a bar chart of average marks per subject from the cleaned marks data, write a genuine interpretation of it, and generate the README a GitHub project needs.",
+  "objectives": [
+    "Compute the average per category with groupby() and mean()",
+    "Draw a bar chart with plt.bar() and save it with plt.savefig()",
+    "Write an interpretation that states a real finding, not a description of the picture",
+    "Write a README that covers purpose, data source and limitations"
+  ],
+  "duration_minutes": 60,
+  "prerequisites": [
+    25
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nIn the last lab you cleaned the marks file. Today you use the clean version, `marks_clean.csv`, to answer a real question: which subject has the highest average mark, and by how much? You will compute the average per subject with `groupby()`, draw a **bar chart** with Matplotlib (bars suit a comparison between categories; a line chart would wrongly suggest the subjects are connected in order) and save it as `chart.png`, because the lab has no screen to show it on. Then you will write two or three sentences of genuine interpretation: a claim about the data such as *Science is highest, but only just*, not *the bars are blue*. Your program also writes the `README.md` every GitHub project needs, with its purpose, data source and limitations. Pushing the project to GitHub with `git init`, `git add .`, `git commit` and `git push` is your homework; this lab checks the chart, the interpretation and the README."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: chart, interpret and write the README"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Chart the averages and write the README",
+    "objective": "Compute the average mark per subject, save a bar chart, write a real interpretation and generate a README with purpose, data source and limitations.",
+    "instructions": "The clean file marks_clean.csv (columns student, subject, marks; 40 rows) is in your working directory. Write a program that:\n\n1. Loads it with pd.read_csv() into df.\n2. Computes averages = df.groupby(\"subject\")[\"marks\"].mean().sort_values(ascending=False) and prints one line per subject, highest first, in the form Subject: average, for example:\nScience: 78.5\n3. Draws a bar chart of averages with plt.bar(averages.index, averages.values), gives it a title and axis labels, and saves it with plt.savefig(\"chart.png\"). Then prints: Chart saved to chart.png\n4. Stores interpretation, a string of 2-3 sentences (at least 20 words) that makes a real claim: name the subject with the highest average, the subject just behind it and how big the gap between them is. Print it as Interpretation: <text>.\n5. Writes a file README.md with these Markdown headings, each followed by one or two sentences: a title line starting with #, then ## Purpose, ## Data source (name the file marks_clean.csv) and ## Limitations (for example: only 8 students, three marks were filled with the average, the data is fictional). Then prints: README.md written",
+    "constraints": "Use pandas and matplotlib. Keep the names df, averages and interpretation. Save the chart to chart.png (there is no screen, so plt.show() does nothing). The README must be written by your program to README.md. No input().",
+    "starter_code": "import pandas as pd\nimport matplotlib.pyplot as plt\n\n# 1. Load marks_clean.csv into df\n\n\n# 2. averages = the mean mark per subject (groupby), sorted from highest to lowest.\n#    Print one line per subject in the form  Subject: average\n\n\n# 3. Draw a bar chart of averages (subjects on the x axis) with a title and axis labels,\n#    and save it with plt.savefig(\"chart.png\"). Print: Chart saved to chart.png\n\n\n# 4. interpretation = 2-3 sentences (at least 20 words) that make a real claim about the data:\n#    name the highest subject, the one just behind it and how big the gap is. Print it.\n\n\n# 5. Write README.md with the headings # (title), ## Purpose, ## Data source and ## Limitations,\n#    name the data file in the Data source section, and print: README.md written\n",
+    "hints": [
+      "df.groupby(\"subject\")[\"marks\"].mean() gives one average per subject as a Series. Add .sort_values(ascending=False) to put the highest first, then loop with for subject, avg in averages.items(): print(f\"{subject}: {avg}\").",
+      "plt.bar(averages.index, averages.values) draws the bars. Add plt.title(...), plt.xlabel(\"Subject\"), plt.ylabel(\"Average mark\") and then plt.savefig(\"chart.png\"). For the README, build one string with the headings and write it with open(\"README.md\", \"w\") as f: f.write(readme).",
+      "Read your own printed averages: the top subject is Science and Math is just behind it. Write interpretation like: \"Science has the highest average at 78.5, but it is only 1.5 marks ahead of Math. History is far behind at 64.25, so that is where the class needs help.\""
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas",
+      "matplotlib"
+    ],
+    "assets": [
+      {
+        "name": "marks_clean.csv",
+        "content": "student,subject,marks\nAsha,Math,78\nAsha,Science,85\nAsha,English,70\nAsha,History,66\nAsha,Computer,74\nBen,Math,84\nBen,Science,91\nBen,English,77\nBen,History,59\nBen,Computer,61\nChen,Math,69\nChen,Science,74\nChen,English,82\nChen,History,71\nChen,Computer,72\nDev,Math,92\nDev,Science,80\nDev,English,72\nDev,History,63\nDev,Computer,79\nEsha,Math,75\nEsha,Science,72\nEsha,English,68\nEsha,History,68\nEsha,Computer,58\nFarah,Math,72\nFarah,Science,88\nFarah,English,79\nFarah,History,55\nFarah,Computer,70\nGita,Math,81\nGita,Science,66\nGita,English,64\nGita,History,72\nGita,Computer,66\nHari,Math,65\nHari,Science,72\nHari,English,64\nHari,History,60\nHari,Computer,66\n",
+        "encoding": "text",
+        "description": "The cleaned marks from Lecture 25: 8 students x 5 subjects, 40 rows, no blanks, no duplicates."
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Average per group with groupby",
+        "code": "import pandas as pd\n\ndf = pd.DataFrame({\"subject\": [\"Art\", \"Art\", \"Music\"], \"marks\": [60, 70, 90]})\naverages = df.groupby(\"subject\")[\"marks\"].mean()\nfor subject, avg in averages.items():\n    print(f\"{subject}: {avg}\")",
+        "expected_output": "Art: 65.0\nMusic: 90.0"
+      },
+      {
+        "description": "Saving a bar chart to a file",
+        "code": "import os\nimport matplotlib.pyplot as plt\n\nplt.bar([\"A\", \"B\"], [3, 5])\nplt.title(\"Tiny chart\")\nplt.savefig(\"tiny.png\")\nprint(\"Saved:\", os.path.exists(\"tiny.png\"))",
+        "expected_output": "Saved: True"
+      }
+    ],
+    "success_criteria": [
+      "averages holds one average for each of the five subjects",
+      "Your output includes the line: Science: 78.5",
+      "chart.png is saved and is a real image (more than 1000 bytes)",
+      "README.md has the headings ## Purpose, ## Data source and ## Limitations and names marks_clean.csv",
+      "averages has the right values, highest first",
+      "interpretation is at least 20 words and names the top subject and the one just behind it"
+    ],
+    "tests": [
+      {
+        "key": "l26-t1",
+        "label": "averages holds one average per subject",
+        "remediation": "Make averages = df.groupby(\"subject\")[\"marks\"].mean().sort_values(ascending=False); it must be the groupby result, one value per subject.",
+        "objective": "Compute averages per category with groupby",
+        "hidden": false,
+        "definition": {
+          "description": "averages has the five subjects",
+          "expr": "sorted(averages.index.tolist())",
+          "expected": [
+            "Computer",
+            "English",
+            "History",
+            "Math",
+            "Science"
+          ]
+        }
+      },
+      {
+        "key": "l26-t2",
+        "label": "The top subject line is printed",
+        "remediation": "Print one line per subject with print(f\"{subject}: {avg}\"); the first line must be exactly Science: 78.5.",
+        "objective": "Print computed results in a readable form",
+        "hidden": false,
+        "definition": {
+          "description": "Science: 78.5 is printed",
+          "stdout_contains": "Science: 78.5"
+        }
+      },
+      {
+        "key": "l26-t3",
+        "label": "chart.png is saved",
+        "remediation": "Draw the bars with plt.bar(averages.index, averages.values) and save with plt.savefig(\"chart.png\"). plt.show() does not save anything here.",
+        "objective": "Save a Matplotlib chart to a file",
+        "hidden": false,
+        "definition": {
+          "description": "chart.png exists and is bigger than 1000 bytes",
+          "expr": "__import__('os').path.getsize('chart.png') > 1000",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l26-t4",
+        "label": "README.md has the three headings and names the data file",
+        "remediation": "Write README.md from your program with the exact headings ## Purpose, ## Data source and ## Limitations, and mention marks_clean.csv under Data source.",
+        "objective": "Write a README with purpose, data source and limitations",
+        "hidden": false,
+        "definition": {
+          "description": "README headings and data file name",
+          "expr": "all(h in open('README.md').read() for h in ['## Purpose', '## Data source', '## Limitations', 'marks_clean.csv'])",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l26-t5",
+        "label": "averages has the right values, highest first",
+        "remediation": "averages must come from df.groupby(\"subject\")[\"marks\"].mean() on the whole file, sorted with .sort_values(ascending=False). Do not type the numbers in by hand.",
+        "objective": "Compute averages per category with groupby",
+        "hidden": true
+      },
+      {
+        "key": "l26-t6",
+        "label": "interpretation makes a real claim",
+        "remediation": "interpretation must be one string of at least 20 words that names the subject with the highest average (Science) and the subject just behind it (Math) and says how big the gap is.",
+        "objective": "Interpret a chart with a real claim about the data",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\nimport matplotlib.pyplot as plt\n\n# 1. Load the cleaned data\ndf = pd.read_csv(\"marks_clean.csv\")\n\n# 2. Average mark per subject, highest first\naverages = df.groupby(\"subject\")[\"marks\"].mean().sort_values(ascending=False)\nfor subject, avg in averages.items():\n    print(f\"{subject}: {avg}\")\n\n# 3. Bar chart saved to a file\nplt.figure(figsize=(6, 4))\nplt.bar(averages.index, averages.values)\nplt.title(\"Average marks per subject\")\nplt.xlabel(\"Subject\")\nplt.ylabel(\"Average mark\")\nplt.savefig(\"chart.png\")\nprint(\"Chart saved to chart.png\")\n\n# 4. Interpretation: a real claim about the data\ninterpretation = (\n    \"Science has the highest average mark at 78.5, but it is only 1.5 marks ahead of Math at 77.0, \"\n    \"so the two subjects are almost level. History is clearly the weakest subject at 64.25, more than \"\n    \"14 marks behind Science, and that is the real gap the class should work on.\"\n)\nprint(\"Interpretation:\", interpretation)\n\n# 5. README written by the program\nreadme = \"\"\"# Class marks mini-project\n\n## Purpose\nClean a class marks file and draw a bar chart of the average mark per subject.\n\n## Data source\nmarks_clean.csv: fictional marks for 8 students in 5 subjects (40 rows), the cleaned output of the Lecture 25 lab.\n\n## Limitations\nOnly 8 students, so one very high or very low mark moves a subject average a lot. Three missing marks were filled with the class average. The data is invented for practice.\n\"\"\"\nwith open(\"README.md\", \"w\") as f:\n    f.write(readme)\nprint(\"README.md written\")\n"
+  }
+}

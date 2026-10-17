@@ -1,0 +1,132 @@
+{
+  "schema_version": 2,
+  "lecture_number": 40,
+  "title": "Text Classification, Sentiment and Information Extraction",
+  "summary": "Build and evaluate a basic sentiment classifier, and extract specific entities from text.",
+  "objectives": [
+    "Send text to a sentiment endpoint and read the label and score",
+    "Store results as a list of dictionaries",
+    "Spot a review the tool misreads and explain why",
+    "Extract people and places from a sentence with an entities endpoint"
+  ],
+  "duration_minutes": 60,
+  "prerequisites": [
+    39
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nSentiment analysis is classification with text: a review goes in, and a label such as positive or negative comes out. In this lab you send five short fictional reviews to the practice API's `POST /sentiment` endpoint and print the label and score for each. One review is sarcastic, and the tool gets it wrong because it only counts positive and negative words. You store the results in a list of dictionaries, explain the mistake in a variable called `misread`, and finally use `POST /entities` to pull the people and places out of one sentence. The practice API finds people, places and organisations; it does not find dates."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: Sentiment, sarcasm and entities"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Sentiment, sarcasm and entities",
+    "objective": "Classify five reviews with the practice API's sentiment endpoint, explain the one it gets wrong, and extract the people and places from a sentence.",
+    "instructions": "The list reviews holds five short fictional reviews. Review 5 is sarcastic: it uses words like great and amazing but is really a complaint.\n\n1. For each review, numbered 1 to 5, POST to https://api.neuromind.lab/v1/sentiment with json={\"text\": review}. The answer looks like {\"label\": \"positive\", \"score\": 0.67, ...}. Append a dictionary {\"review\": review, \"label\": ..., \"score\": ...} to the list results and print Review <n>: <label> (<score>), for example Review 1: positive (1.0).\n2. Decide which review the tool labelled wrongly. Store it in the dictionary misread: \"review\" is the exact text of that review (take it from the list, for example reviews[1]) and \"reason\" is your explanation in at least 10 words. Say which surface words the tool probably counted. Print Misread: and Reason: lines.\n3. POST the sentence in the variable sentence to https://api.neuromind.lab/v1/entities with json={\"text\": sentence}. Store response.json()[\"entities\"] in entities and print one line per entity as <type>: <text>, for example PLACE: Mumbai. The practice API finds people, places and organisations; it does not find dates, so Tuesday will not appear.\n\nExpected lines in your output:\nReview 2: negative (1.0)\nPERSON: Priya Sharma",
+    "constraints": "Use requests.post() with a json body for every call; only https://api.neuromind.lab/v1 is reachable. Keep the five reviews exactly as given and keep the names reviews, results, misread, sentence and entities. Labels and scores must come from the API, never typed in. No input().",
+    "starter_code": "import requests\n\nBASE = \"https://api.neuromind.lab/v1\"\n\n# Five short fictional reviews. Review 5 is sarcastic: it sounds positive but is a complaint.\nreviews = [\n    \"The food was delicious and the staff were friendly. I loved it.\",\n    \"Terrible experience. The room was cold and the service was slow.\",\n    \"The course was helpful and the teacher was great, though the videos were a bit boring.\",\n    \"The delivery was late and the box arrived broken. Very disappointing.\",\n    \"Oh great, my order arrived a week late. Amazing service, really.\",\n]\n\n# 1. For each review (numbered 1 to 5): POST to BASE + \"/sentiment\" with json={\"text\": review}.\n#    data = response.json() has \"label\" (positive / negative / neutral) and \"score\".\n#    Append {\"review\": review, \"label\": data[\"label\"], \"score\": data[\"score\"]} to results and\n#    print \"Review <n>: <label> (<score>)\".\nresults = []\n\n\n# 2. Which review did the tool get wrong, and why? Fill in the dictionary: \"review\" is the exact\n#    text of that review (use reviews[...]), \"reason\" is your explanation in at least 10 words.\n#    Say which words the tool probably counted. Print both.\nmisread = {\"review\": \"\", \"reason\": \"\"}\n\n\n# 3. Entity extraction: POST to BASE + \"/entities\" with json={\"text\": sentence}.\n#    entities = response.json()[\"entities\"] is a list of {\"text\", \"type\"} dicts.\n#    Print one line per entity as \"<type>: <text>\", for example \"PLACE: Mumbai\".\nsentence = \"Priya Sharma met Bilal Khan in Mumbai on Tuesday.\"\n",
+    "hints": [
+      "Loop with for i, review in enumerate(reviews, start=1): and inside it send response = requests.post(BASE + \"/sentiment\", json={\"text\": review}) then data = response.json().",
+      "Build each result as {\"review\": review, \"label\": data[\"label\"], \"score\": data[\"score\"]} and append it to results. Print with an f-string: f\"Review {i}: {data['label']} ({data['score']})\". Then look at the five labels and find the one that does not match the meaning of the review.",
+      "The sarcastic review is reviews[4]; set misread = {\"review\": reviews[4], \"reason\": \"...\"} and explain that words like great and amazing were counted as positive. For entities, loop over response.json()[\"entities\"] and print(e[\"type\"] + \": \" + e[\"text\"])."
+    ],
+    "packages": [
+      "requests"
+    ],
+    "assets": [],
+    "visible_examples": [
+      {
+        "description": "One review through the sentiment endpoint",
+        "code": "import requests\n\nresponse = requests.post(\"https://api.neuromind.lab/v1/sentiment\", json={\"text\": \"The hotel was wonderful and the staff were friendly.\"})\ndata = response.json()\nprint(data[\"label\"], data[\"score\"])",
+        "expected_output": "positive 1.0"
+      },
+      {
+        "description": "Entities in a short sentence",
+        "code": "import requests\n\nresponse = requests.post(\"https://api.neuromind.lab/v1/entities\", json={\"text\": \"Asha Rao lives in Pune.\"})\nfor e in response.json()[\"entities\"]:\n    print(e[\"type\"], e[\"text\"])",
+        "expected_output": "PERSON Asha Rao\nPLACE Pune"
+      }
+    ],
+    "success_criteria": [
+      "results is a list of five dictionaries with the keys review, label and score",
+      "Your output includes the line: Review 2: negative (1.0)",
+      "misread is a dictionary whose reason has at least 10 words",
+      "Every label and score in results is what the API returned for that review",
+      "misread names the sarcastic review and explains the surface words the tool counted",
+      "entities holds the people and places the API found in the sentence"
+    ],
+    "tests": [
+      {
+        "key": "l40-t1",
+        "label": "results holds five review dictionaries",
+        "remediation": "Append one dictionary per review with the keys review, label and score, so results has five entries.",
+        "objective": "Collect classification results in a list of dicts",
+        "hidden": false,
+        "definition": {
+          "description": "results shape",
+          "expr": "isinstance(results, list) and len(results) == 5 and all(isinstance(r, dict) and {'review', 'label', 'score'} <= set(r) for r in results)",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l40-t2",
+        "label": "Review 2 is printed with its label and score",
+        "remediation": "Print each review as Review <n>: <label> (<score>) using data[\"label\"] and data[\"score\"] from the API. Review 2 must show negative (1.0).",
+        "objective": "Call a sentiment endpoint",
+        "hidden": false,
+        "definition": {
+          "description": "Review 2 line",
+          "stdout_contains": "Review 2: negative (1.0)"
+        }
+      },
+      {
+        "key": "l40-t3",
+        "label": "misread has a reason of at least 10 words",
+        "remediation": "misread must be a dictionary with a \"reason\" string of at least 10 words explaining why the tool was wrong.",
+        "objective": "Evaluate NLP output critically",
+        "hidden": false,
+        "definition": {
+          "description": "misread reason length",
+          "expr": "isinstance(misread, dict) and len(str(misread.get('reason', '')).split()) >= 10",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l40-t4",
+        "label": "Every label and score comes from the API",
+        "remediation": "Send each of the five given reviews to /sentiment and store the label and score the API returned, in the same order as reviews. Do not change the review texts.",
+        "objective": "Call a sentiment endpoint",
+        "hidden": true
+      },
+      {
+        "key": "l40-t5",
+        "label": "misread is the sarcastic review with a real reason",
+        "remediation": "misread[\"review\"] must be the exact text of the sarcastic review (reviews[4]) and the reason must mention sarcasm or the words the tool counted, such as great or amazing.",
+        "objective": "Evaluate NLP output critically",
+        "hidden": true
+      },
+      {
+        "key": "l40-t6",
+        "label": "entities holds what the API found in the sentence",
+        "remediation": "POST sentence to /entities and store response.json()[\"entities\"] in entities without changing it.",
+        "objective": "Call an entity-extraction endpoint",
+        "hidden": true
+      }
+    ],
+    "solution": "import requests\n\nBASE = \"https://api.neuromind.lab/v1\"\n\nreviews = [\n    \"The food was delicious and the staff were friendly. I loved it.\",\n    \"Terrible experience. The room was cold and the service was slow.\",\n    \"The course was helpful and the teacher was great, though the videos were a bit boring.\",\n    \"The delivery was late and the box arrived broken. Very disappointing.\",\n    \"Oh great, my order arrived a week late. Amazing service, really.\",\n]\n\nresults = []\nfor i, review in enumerate(reviews, start=1):\n    response = requests.post(BASE + \"/sentiment\", json={\"text\": review})\n    data = response.json()\n    results.append({\"review\": review, \"label\": data[\"label\"], \"score\": data[\"score\"]})\n    print(f\"Review {i}: {data['label']} ({data['score']})\")\n\nmisread = {\n    \"review\": reviews[4],\n    \"reason\": \"This review is sarcastic. The tool only counted words: great and amazing looked positive and outweighed late, \"\n              \"but the customer is really complaining that the order took a week.\",\n}\nprint(\"Misread:\", misread[\"review\"])\nprint(\"Reason:\", misread[\"reason\"])\n\nsentence = \"Priya Sharma met Bilal Khan in Mumbai on Tuesday.\"\nresponse = requests.post(BASE + \"/entities\", json={\"text\": sentence})\nentities = response.json()[\"entities\"]\nfor e in entities:\n    print(e[\"type\"] + \": \" + e[\"text\"])\n",
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "limits": {}
+  }
+}
