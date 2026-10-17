@@ -80,7 +80,7 @@ async function officialVerdict(page: Page, exerciseId: string): Promise<string> 
 }
 
 test('learner: Block 1 catalogue, lecture 9 lab opens after its knowledge checks, browser check fails then passes, 3 hints then Redo', async ({ page }) => {
-  await signIn(page, 'learner2'); // a learner with no attempts yet
+  await signIn(page, 'learner1'); // a learner who has not used hints yet
   await page.getByRole('link', { name: 'Practical labs' }).click();
   await expect(page.getByRole('heading', { name: 'Practical labs', level: 1 })).toBeVisible();
   await expect(page.getByText(/of 16 labs passed\./)).toBeVisible();

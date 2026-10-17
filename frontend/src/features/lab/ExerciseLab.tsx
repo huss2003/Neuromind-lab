@@ -210,7 +210,11 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
     setHintBusy(true); setHintError(null);
     try {
       const h = await revealHint(exercise.id, exercise.hints_revealed.length);
-      setExercise({ ...exercise, hints_revealed: [...exercise.hints_revealed, h.text] });
+      const revealed = [...exercise.hints_revealed, h.text];
+      const cap = Math.min(exercise.hints_total, exercise.hints_max);
+      // keep the counters in step with the server: the 3rd hint makes Redo available without a reload
+      setExercise({ ...exercise, hints_revealed: revealed, hints_used: revealed.length,
+        redo_available: exercise.scoring === 'pass_fail' && cap > 0 && revealed.length >= cap });
     } catch (e) {
       setHintError(errorMessage(e));
     } finally {

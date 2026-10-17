@@ -9,6 +9,7 @@ test.describe.configure({ mode: 'serial' });
 const SUPABASE_URL = process.env.E2E_SUPABASE_URL ?? '';
 const SUPABASE_ANON = process.env.E2E_SUPABASE_ANON_KEY ?? '';
 const COURSE = '00000000-0000-4000-8000-000000000001';
+const COHORT = `E2E cohort ${Date.now().toString(36)}`; // unique per run: an archived cohort keeps its name
 
 test('admin workspace: overview, create then deactivate and reactivate a person (sign-in really blocked), audit trail', async ({ page }) => {
   await signIn(page, 'admin');
@@ -47,20 +48,20 @@ test('admin workspace: overview, create then deactivate and reactivate a person 
 test('cohorts: admin builds one; the teacher sees it and the learner; announcement reaches only that teacher\'s learner; report exports', async ({ page }) => {
   await signIn(page, 'admin');
   await page.goto('/admin/cohorts');
-  await page.getByLabel('Name').fill('E2E cohort');
+  await page.getByLabel('Name').fill(COHORT);
   await page.getByRole('button', { name: 'Create cohort' }).click();
-  await expect(page.getByRole('heading', { name: 'E2E cohort' })).toBeVisible();
-  await page.getByLabel('Add a teacher to E2E cohort').selectOption({ label: 'Teacher' });
+  await expect(page.getByRole('heading', { name: COHORT })).toBeVisible();
+  await page.getByLabel(`Add a teacher to ${COHORT}`).selectOption({ label: 'Teacher' });
   await page.getByRole('button', { name: 'Add teacher' }).click();
-  await expect(page.getByText('Teacher was added to E2E cohort.')).toBeVisible();
-  await page.getByLabel('Add a learner to E2E cohort').selectOption({ label: 'Learner Two' });
+  await expect(page.getByText(`Teacher was added to ${COHORT}.`)).toBeVisible();
+  await page.getByLabel(`Add a learner to ${COHORT}`).selectOption({ label: 'Learner Two' });
   await page.getByRole('button', { name: 'Add learner' }).click();
-  await expect(page.getByText('Learner Two was added to E2E cohort.')).toBeVisible();
+  await expect(page.getByText(`Learner Two was added to ${COHORT}.`)).toBeVisible();
   await signOutUi(page);
 
   await signIn(page, 'teacher');
   await page.goto('/teacher');
-  await expect(page.getByRole('group', { name: 'Cohort E2E cohort' })).toContainText('1');
+  await expect(page.getByRole('group', { name: `Cohort ${COHORT}` })).toContainText('1');
   await page.getByLabel('Title').fill('E2E announcement');
   await page.getByLabel('Message').fill('Bring your questions to the lab.');
   await page.getByRole('button', { name: 'Send announcement' }).click();
@@ -87,7 +88,7 @@ test('cohorts: admin builds one; the teacher sees it and the learner; announceme
   await signOutUi(page);
   await signIn(page, 'admin');
   await page.goto('/admin/cohorts');
-  await page.getByRole('button', { name: /Archive E2E cohort/ }).click();
+  await page.getByRole('button', { name: `Archive ${COHORT}` }).click();
   await page.getByRole('button', { name: 'Archive', exact: true }).click();
   await expect(page.getByText('Cohort archived.')).toBeVisible();
 });

@@ -80,6 +80,23 @@ test('hints: the bulb gives 3 hints, then Redo restores the starter code and fre
   await expect(page.getByText('Attempt history (2)')).toBeVisible();
 });
 
+test('hints: after the 3rd hint the Redo button appears in the lab at once, without a reload or another check', async ({ page }) => {
+  const state = await learner(page);
+  await page.goto(`/labs/${IDS.ex}`);
+  await setCode(page, BAD);
+  await page.getByRole('button', { name: 'Save & check' }).click();
+  await page.getByTestId('check-dialog').getByRole('button', { name: 'Dismiss' }).click();
+  await expect(page.getByRole('button', { name: /Redo the lab/ })).toHaveCount(0);
+  for (let i = 1; i <= 3; i++) {
+    await page.getByRole('button', { name: new RegExp(`Hint: ${i - 1} of 3 used`) }).click();
+    await expect(page.getByText(`Hint ${i}:`)).toBeVisible();
+  }
+  await expect(page.getByText(/Not passed yet · 3 of 3 hints used/)).toBeVisible();
+  await page.getByRole('button', { name: /Redo the lab/ }).click();
+  await expect(page.getByRole('button', { name: /Hint: 0 of 3 used/ })).toBeEnabled();
+  expect(state.cycle).toBe(2);
+});
+
 test('save & check: a correct attempt passes, the popup says so and the catalogue shows Passed', async ({ page }) => {
   await learner(page);
   await page.goto(`/labs/${IDS.ex}`);
