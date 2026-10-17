@@ -184,7 +184,7 @@ export function ExerciseLab({ exerciseId, alreadyPassed, sections, onGradingStar
     setCheck({ phase: 'quick', quick: null, official: null });
     setCheckOpen(true);
     const official = submit();
-    if (runtime.status === 'ready' || runtime.status === 'idle') {
+    if (runtime.status !== 'error') { // a runtime still loading is awaited inside check()
       const quick = await runtime.check(code, exercise.visible_checks);
       setCheck((c) => (c && c.phase !== 'official' && c.phase !== 'failed-to-send' ? { ...c, quick } : c ? { ...c, quick } : c));
     }

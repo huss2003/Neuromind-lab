@@ -24,6 +24,7 @@ export function usePyodide(options: RuntimeOptions = {}) {
   opts.current = options;
   const [status, setStatus] = useState<RuntimeStatus>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
+  const loading = useRef<Promise<boolean> | null>(null); // the load in progress, so a check can wait for it instead of giving up
   const packagesKey = (options.packages ?? []).join(',');
   const runTimeout = (options.packages ?? []).some((p) => HEAVY.includes(p)) ? 30_000 : RUN_TIMEOUT_MS;
 
@@ -43,16 +44,25 @@ export function usePyodide(options: RuntimeOptions = {}) {
       w.postMessage({ ...msg, id });
     }), [spawn]);
 
-  const init = useCallback(async () => {
+  const init = useCallback((): Promise<boolean> => {
     setStatus('loading'); setLoadError(null);
-    try {
-      const r = await call({ type: 'init', packages: opts.current.packages ?? [] }, LOAD_TIMEOUT_MS);
-      if (r.type === 'fatal') throw new Error(String(r.message));
-      setStatus('ready');
-    } catch {
-      setStatus('error');
-      setLoadError('The browser Python runtime could not load. Check your internet connection and retry. You can still save and check your work officially.');
-    }
+    const load: { promise?: Promise<boolean> } = {};
+    load.promise = (async () => {
+      try {
+        const r = await call({ type: 'init', packages: opts.current.packages ?? [] }, LOAD_TIMEOUT_MS);
+        if (r.type === 'fatal') throw new Error(String(r.message));
+        setStatus('ready');
+        return true;
+      } catch {
+        setStatus('error');
+        setLoadError('The browser Python runtime could not load. Check your internet connection and retry. You can still save and check your work officially.');
+        return false;
+      } finally {
+        if (loading.current === load.promise) loading.current = null;
+      }
+    })();
+    loading.current = load.promise;
+    return load.promise;
   }, [call]);
 
    
@@ -78,8 +88,9 @@ export function usePyodide(options: RuntimeOptions = {}) {
 
   /** Instant check of the VISIBLE criteria, in the browser. Never an official result. */
   const check = useCallback(async (code: string, tests: VisibleCheck[]): Promise<QuickCheckResult> => {
-    if (status === 'error' || status === 'loading') return { status: 'unavailable', criteria: [], error: null, stdout: '' };
-    if (!worker.current) await init();
+    // Still loading (first visit downloads Python and the lab's packages): wait for it rather than skip the browser check.
+    const ready = loading.current ? await loading.current : status !== 'error' && (worker.current ? true : await init());
+    if (!ready) return { status: 'unavailable', criteria: [], error: null, stdout: '' };
     setStatus('running');
     try {
       const r = await call({ type: 'check', code, tests, packages: opts.current.packages ?? [], files: filesOf(opts.current.assets), labApi: Boolean(opts.current.labApi) }, runTimeout);
