@@ -12,11 +12,13 @@ const opts = [{ id: 'a', text: 'Option A' }, { id: 'b', text: 'Option B' }, { id
 const CORRECT: Record<string, string> = { [IDS.q1]: 'b', [IDS.q2]: 'a', [IDS.q3]: 'a' };
 const EXPL = { right: 'Right because it is.', wrong: 'Not this one — see the lesson.' };
 
-export interface MockOpts { role?: 'learner' | 'teacher' | 'admin'; email?: string; name?: string; graderDown?: boolean; apiDown401?: boolean; videoFails?: boolean; unenrolled?: boolean; lockedLecture?: boolean; forceStatus?: 'runtime_error' | 'timeout' | 'expired'; draftFails?: boolean }
+export interface MockOpts { role?: 'learner' | 'teacher' | 'admin'; email?: string; name?: string; graderDown?: boolean; apiDown401?: boolean; videoFails?: boolean; unenrolled?: boolean; lockedLecture?: boolean; forceStatus?: 'runtime_error' | 'timeout' | 'expired'; draftFails?: boolean;
+  labKind?: 'code' | 'quiz' | 'written' | 'upload'; passFail?: boolean; labReady?: boolean }
 export interface MockState {
   version: number; current: string; position: number; status: 'in_progress' | 'completed'; started: boolean;
   attempts: { cp: string; correct: boolean; at: number }[]; completedCps: Set<string>; submissions: any[]; drafts: Record<string, string>;
   ext: Ext; hintsShown: number; feedback: { id: string; body: string; published: boolean }[]; calls: string[]; auditPatches: number; opts: MockOpts;
+  cycle: number; redoCount: number; reviews: Record<string, { passed: boolean; feedback: string; scores: { criterion: string; points: number; max_points: number }[] }>;
 }
 
 export interface Ext {
@@ -28,18 +30,24 @@ export interface Ext {
   portfolio: { id: string; title: string; note: string; created_at: string; exercise: string; score: number; submission_id: string; source_code: string }[];
   announcements: { id: string; title: string; body: string; created_at: string; from: string }[];
   teacherAnnouncements: { id: string; title: string; body: string; scope: string; course_id: string; created_at: string }[];
-  factors: { id: string; factor_type: 'totp'; status: 'verified' | 'unverified' }[]; signups: string[]; oauth: string[];
+  factors: { id: string; factor_type: 'totp'; status: 'verified' | 'unverified' }[]; signups: string[]; oauth: string[]; imports: { lecture_number: number; publish: boolean; replace: boolean }[];
   lectureStatus: string; reported: { category: string; message: string }[]; requeued: string[];
 }
 
 export function newState(opts: MockOpts = {}): MockState {
+  const st = build(opts);
+  if (opts.labReady) { st.completedCps.add(IDS.cp1); st.completedCps.add(IDS.cp2); st.started = true; }
+  return st;
+}
+
+function build(opts: MockOpts): MockState {
   return { version: 1, current: SEG(0), position: 0, status: 'in_progress', started: false, attempts: [], completedCps: new Set(), submissions: [], drafts: {}, ext: { users: [
     { id: 'u-1', email: 'asha@example.test', display_name: 'Asha Rao', role: 'learner', deactivated: false, last_sign_in_at: '2026-10-13T09:00:00Z', created_at: '2026-10-01T00:00:00Z', email_confirmed: true },
     { id: 'u-2', email: 'tara@example.test', display_name: 'Tara Teacher', role: 'teacher', deactivated: false, last_sign_in_at: null, created_at: '2026-10-01T00:00:00Z', email_confirmed: true },
     { id: IDS.learner, email: 'owner@example.test', display_name: 'Owner', role: 'admin', deactivated: false, last_sign_in_at: '2026-10-14T05:00:00Z', created_at: '2026-10-01T00:00:00Z', email_confirmed: true }],
     cohorts: [], issues: [{ id: 'i-1', reference: 'I1ABCDEF', category: 'content', message: 'There is a typo in lesson two', page: '/lectures/l-9', status: 'open', admin_note: null, created_at: '2026-10-14T05:00:00Z', reporter: 'Asha Rao' }],
-    deadLetters: [{ submission_id: 'dead0001-aaaa', exercise_id: 'ex-1', created_at: '2026-10-14T04:00:00Z', claim_count: 3 }], certificates: [], portfolio: [], announcements: [], teacherAnnouncements: [], lectureStatus: 'published', reported: [], requeued: [], factors: [], signups: [], oauth: [] },
-  hintsShown: 0, feedback: [], calls: [], auditPatches: 0, opts };
+    deadLetters: [{ submission_id: 'dead0001-aaaa', exercise_id: 'ex-1', created_at: '2026-10-14T04:00:00Z', claim_count: 3 }], certificates: [], portfolio: [], announcements: [], teacherAnnouncements: [], lectureStatus: 'published', reported: [], requeued: [], factors: [], signups: [], oauth: [], imports: [] },
+  hintsShown: 0, feedback: [], calls: [], auditPatches: 0, opts, cycle: 1, redoCount: 0, reviews: {} };
 }
 
 const segments = [
@@ -92,8 +100,31 @@ function exerciseView(s: MockState) {
   return { id: IDS.ex, title: 'Print your name', instructions: 'Create a variable called student_name and print it.', language: 'python', starter_code: 'student_name = ""\nprint(student_name)\n', practice_mode: 'both', pass_threshold: 80, max_attempts: null, hints_total: 3, hint_penalty_percent: 10, hints_revealed: HINTS.slice(0, s.hintsShown), best_score: bestScore(s), attempts_used: s.submissions.length, draft: s.drafts[IDS.ex] ?? null, draft_stale: false, content_version: 1,
     objective: 'Create a text variable and print it.', constraints: 'Use a variable named student_name and print() once.', success_criteria: ['Your program prints a line of text', 'What you print matches student_name'],
     visible_examples: [{ description: 'Example', code: 'student_name = "Aarav"\nprint(student_name)', expected_output: 'Aarav' }], runtime: 'Python 3 — practice runs in your browser; official grading runs on the server',
-    hints_policy: 'Hints are optional. Each one lowers that attempt\'s score by 10 points; it never lowers a score you already earned.', unlocked: reach(s) >= 6 };
+    hints_policy: s.opts.passFail ? 'You can take up to 3 hints for this lab. After the last hint you can start the lab again (Redo).' : 'Hints are optional. Each one lowers that attempt\'s score by 10 points; it never lowers a score you already earned.', unlocked: reach(s) >= 6,
+    lab_kind: s.opts.labKind ?? 'code', scoring: s.opts.passFail ? 'pass_fail' : 'score', packages: [], assets: [], limits: {},
+    visible_checks: [{ test_order: 1, label: 'student_name holds text', definition: { check: 'variable_is_str', name: 'student_name' }, remediation: 'Create student_name = "Aarav".', objective: 'Store text in a variable' }],
+    hints_max: 3, hints_used: s.hintsShown, cycle: s.cycle, redo_count: s.redoCount, redo_available: Boolean(s.opts.passFail) && s.hintsShown >= 3 && !passedEx(s),
+    questions: s.opts.labKind === 'quiz' ? QUIZ.map((q) => ({ id: q.id, question_order: q.order, prompt: q.prompt, options: q.options })) : [],
+    rubric: s.opts.labKind === 'written' || s.opts.labKind === 'upload' ? RUBRIC : [], checklist: s.opts.labKind === 'upload' ? ['Deployed to a hosting service', 'README explains purpose and limits'] : [],
+    lecture: { id: IDS.lecture, lecture_number: 9, title: 'Python setup, notebooks and the first program' },
+    review: (() => { const last = s.submissions.at(-1); const rv = last && s.reviews[last.id]; return rv ? { passed: rv.passed, feedback: rv.feedback, scores: rv.scores, reviewed_at: new Date().toISOString() } : null; })() };
 }
+
+const QUIZ = [
+  { id: 'q-1', order: 1, prompt: 'Which statement prints text in Python?', options: [{ id: 'a', text: 'print("Hi")' }, { id: 'b', text: 'echo "Hi"' }], correct: 'a', explanation: 'print() writes to the screen.' },
+  { id: 'q-2', order: 2, prompt: 'What does 7 // 2 give?', options: [{ id: 'a', text: '3.5' }, { id: 'b', text: '3' }], correct: 'b', explanation: '// divides and rounds down.' },
+  { id: 'q-3', order: 3, prompt: 'Which is a string?', options: [{ id: 'a', text: '"42"' }, { id: 'b', text: '42' }], correct: 'a', explanation: 'Quotes make text.' },
+];
+const RUBRIC = [{ criterion: 'Names the problem clearly', description: 'States who has the problem and what it is', max_points: 2 }, { criterion: 'Gives evidence', description: 'Cites something observed, not guessed', max_points: 3 }];
+const labState = (s: MockState) => {
+  const subs = s.submissions; const last = subs.at(-1);
+  if (s.opts.lockedLecture) return 'locked';
+  if (passedEx(s)) return 'passed';
+  if (!last) return 'not_started';
+  if (last.status === 'submitted') return 'awaiting_review';
+  if (['failed', 'runtime_error', 'timeout'].includes(last.status)) return 'needs_retry';
+  return 'in_progress';
+};
 
 function gradeOf(code: string, hints: number) {
   const hasVar = /student_name\s*=\s*['"][^'"]+['"]/.test(code);
@@ -108,6 +139,8 @@ const submissionView = (x: any) => ({
   passed_tests: x.criteria.filter((c: any) => c.passed).length, total_tests: 2, execution_ms: 12, feedback: ['error', 'expired'].includes(x.status) ? [{ kind: 'infrastructure', message: 'The grading service is unavailable. Your code was not judged. Please try again.' }] : [{ kind: x.status === 'passed' ? 'success' : 'failure', message: x.status === 'passed' ? 'All required tests passed.' : 'Some checks are not passed yet.' }],
   criteria: ['error', 'expired'].includes(x.status) ? [] : x.criteria, remediation: ['error', 'expired'].includes(x.status) ? [] : x.criteria.filter((c: any) => !c.passed && c.remediation).map((c: any) => ({ criterion: c.label, text: c.remediation, objective: c.objective, review_segment_id: c.review_segment_id, review_title: c.review_title })),
   infrastructure_error: ['error', 'expired', 'cancelled'].includes(x.status), created_at: new Date(x.at).toISOString(), content_version: 1, test_suite_version: 1,
+  awaiting_review: x.status === 'submitted', quiz_results: x.quiz_results ?? null, answers: x.answers ?? null, review: x.review ?? null,
+  ...(x.passed_tests != null ? { passed_tests: x.passed_tests, total_tests: x.total_tests } : {}),
 });
 
 const learners = Array.from({ length: 13 }, (_, i) => ({ id: i === 0 ? IDS.learner : `lrn-${i + 1}`, display_name: i === 0 ? 'Asha Rao' : `Learner ${String(i + 1).padStart(2, '0')}` }));
@@ -176,6 +209,8 @@ export async function installMocks(page: Page, state: MockState) {
       const lec = { state: state.opts.lockedLecture ? 'locked' : state.status === 'completed' ? 'completed' : state.submissions.length && !passedEx(state) ? 'needs_attention' : state.started ? 'in_progress' : 'available', id: IDS.lecture, module_id: IDS.module, lecture_number: 9, title: 'Python setup, notebooks and the first program', summary: 'Set up Python, run a notebook cell and write your first program.', duration_seconds: 3600 };
       return ok(r, { id: IDS.course, slug: 'c', title: 'NeuroMind AI Foundations', description: 'A practical path from your first Python program to building AI systems.', lectures: [lec], modules: [{ id: IDS.module, module_number: 2, title: 'Python for AI', description: '', lectures: [lec] }] });
     }
+    if (path === '/labs') return ok(r, { courses: state.opts.unenrolled ? [] : [{ id: IDS.course, title: 'NeuroMind AI Foundations', description: '', total: 1, passed: passedEx(state) ? 1 : 0,
+      modules: [{ id: 'm-2', module_number: 2, title: 'Month 2: Python Fundamentals I', labs: [{ lecture_id: IDS.lecture, lecture_number: 9, lecture_title: 'Python setup, notebooks and the first program', module_id: 'm-2', exercise_id: IDS.ex, title: 'Print your name', lab_kind: state.opts.labKind ?? 'code', packages: [], state: labState(state), lecture_state: state.opts.lockedLecture ? 'locked' : 'available', attempts: state.submissions.length, last_status: state.submissions.at(-1)?.status ?? null }] }] }] });
     if (path === '/me/progress') return ok(r, { sessions: state.started ? [{ lecture_id: IDS.lecture, status: state.status, current_segment_id: state.current, completed_at: state.status === 'completed' ? new Date().toISOString() : null }] : [] });
     if (path === '/me/feedback') return ok(r, { feedback: state.feedback.filter((f) => f.published).map((f) => ({ ...f, created_at: new Date().toISOString() })) });
     if (path.startsWith(`/lectures/${IDS.lecture}`) && state.opts.lockedLecture) return err(r, 400, 'LECTURE_LOCKED', 'Complete the earlier lecture first to unlock this one.');
@@ -203,18 +238,33 @@ export async function installMocks(page: Page, state: MockState) {
       if (cp !== IDS.cp3 || correct) state.completedCps.add(cp);
       return ok(r, { attempt_id: `a-${Date.now()}`, is_correct: correct, score: correct ? 1 : 0, explanation: correct ? EXPL.right : EXPL.wrong, checkpoint_completed: state.completedCps.has(cp), next_action: { type: 'next_segment' } });
     }
-    if (path === `/exercises/${IDS.ex}`) { if (reach(state) < 6) return err(r, 400, 'CHECKPOINT_REQUIRED', 'Complete earlier required checkpoints first'); return ok(r, exerciseView(state)); }
-    if (path === `/exercises/${IDS.ex}/hints`) { const b = body(); if (b.hint_index !== state.hintsShown) return err(r, 409, 'HINT_ORDER', 'Reveal hints in order'); state.hintsShown++; return ok(r, { hint_index: b.hint_index, text: HINTS[b.hint_index], hints_revealed: state.hintsShown, hints_total: 3, penalty_percent: state.hintsShown * 10 }); }
+    if (path === `/exercises/${IDS.ex}`) { if (state.opts.lockedLecture) return err(r, 400, 'LECTURE_LOCKED', 'Complete the earlier lecture first to unlock this one.'); if (reach(state) < 6) return err(r, 400, 'CHECKPOINT_REQUIRED', 'Complete earlier required checkpoints first'); return ok(r, exerciseView(state)); }
+    if (path === `/exercises/${IDS.ex}/redo`) { if (!state.opts.passFail || state.hintsShown < 3) return err(r, 409, 'REDO_NOT_AVAILABLE', 'Redo becomes available once you have used all the hints for this lab'); state.cycle++; state.redoCount++; state.hintsShown = 0; delete state.drafts[IDS.ex]; return ok(r, { cycle: state.cycle, redo_count: state.redoCount, hints_used: 0, hints_max: 3, starter_code: 'student_name = ""\nprint(student_name)\n' }); }
+    if (path === `/exercises/${IDS.ex}/hints`) { const b = body(); if (b.hint_index !== state.hintsShown) return err(r, 409, 'HINT_ORDER', 'Reveal hints in order'); if (state.opts.passFail && state.hintsShown >= 3) return err(r, 409, 'HINTS_EXHAUSTED', 'You have used all 3 hints for this lab.'); state.hintsShown++; return ok(r, { hint_index: b.hint_index, text: HINTS[b.hint_index], hints_revealed: state.hintsShown, hints_total: 3, penalty_percent: state.hintsShown * 10 }); }
     if (path === `/exercises/${IDS.ex}/draft`) { if (state.opts.draftFails) return err(r, 503, 'DEPENDENCY_UNAVAILABLE', 'Request could not be processed'); state.drafts[IDS.ex] = body().source_code; return r.fulfill({ status: 204, headers: J }); }
     if (path === `/exercises/${IDS.ex}/submissions`) {
       if (m === 'GET') return ok(r, { submissions: state.submissions.map(submissionView), best_score: bestScore(state) });
       if (state.submissions.filter((x) => Date.now() - x.at < 60_000).length >= 6) return err(r, 429, 'RATE_LIMITED', "You're submitting very quickly. Wait a few seconds, then try again.");
-      const code = body().source_code as string; const g = gradeOf(code, state.hintsShown);
+      const req = body();
+      if (state.opts.labKind === 'quiz') {
+        const answers = (req.answers ?? {}) as Record<string, string>;
+        const results = QUIZ.map((q) => ({ question_id: q.id, question_order: q.order, selected_option_id: answers[q.id] ?? null, correct: answers[q.id] === q.correct, explanation: q.explanation }));
+        const correct = results.filter((x) => x.correct).length;
+        state.submissions.push({ id: `s-${state.submissions.length + 1}`, number: state.submissions.length + 1, status: correct === QUIZ.length ? 'passed' : 'failed', score: Math.round(100 * correct / QUIZ.length), raw: null, hints: 0, criteria: results.map((x) => ({ label: `Question ${x.question_order}`, hidden: false, passed: x.correct, remediation: x.correct ? null : x.explanation })), at: Date.now(), quiz_results: results, passed_tests: correct, total_tests: QUIZ.length });
+        return ok(r, { submission_id: `s-${state.submissions.length}`, status: state.submissions.at(-1).status, status_url: '' }, 202);
+      }
+      if (state.opts.labKind === 'written' || state.opts.labKind === 'upload') {
+        if (state.opts.labKind === 'written' && !String(req.source_code ?? '').trim()) return err(r, 422, 'VALIDATION_ERROR', 'Nothing to submit yet');
+        if (state.opts.labKind === 'upload' && !/^https:\/\//.test(String(req.answers?.link ?? ''))) return err(r, 422, 'VALIDATION_ERROR', 'Give the https:// link to your work');
+        state.submissions.push({ id: `s-${state.submissions.length + 1}`, number: state.submissions.length + 1, status: 'submitted', score: null, raw: null, hints: 0, criteria: [], at: Date.now(), source_code: req.source_code, answers: req.answers ?? null, passed_tests: 0, total_tests: 0 });
+        return ok(r, { submission_id: `s-${state.submissions.length}`, status: 'submitted', status_url: '' }, 202);
+      }
+      const code = req.source_code as string; const g = gradeOf(code, state.opts.passFail ? 0 : state.hintsShown);
       const crashed = /1\/0/.test(code);
       const status = state.opts.graderDown ? 'error' : state.opts.forceStatus ?? (crashed ? 'runtime_error' : g.score >= 80 ? 'passed' : 'failed');
       const unscored = state.opts.graderDown || state.opts.forceStatus === 'expired';
       state.submissions.push({ id: `s-${state.submissions.length + 1}`, number: state.submissions.length + 1, status, score: unscored ? null : crashed ? 0 : g.score, raw: g.raw, hints: state.hintsShown, criteria: g.criteria, at: Date.now() });
-      state.hintsShown = 0;
+      if (!state.opts.passFail) state.hintsShown = 0;
       return ok(r, { submission_id: `s-${state.submissions.length}`, status: 'queued', status_url: '' }, 202);
     }
     const sm = path.match(/^\/submissions\/(s-\d+)$/);
@@ -253,6 +303,19 @@ export async function installMocks(page: Page, state: MockState) {
       if (rq) { u.requeued.push(rq[1]); u.deadLetters = u.deadLetters.filter((d) => d.submission_id !== rq[1]); return ok(r, { submission_id: rq[1], status: 'queued' }); }
       if (path === '/admin/audit') { const t = url.searchParams.get('event_type'); const ev = [{ id: 'a1', actor_id: 'u-3aaaaaaa', event_type: 'admin.user_created', resource_type: 'user', resource_id: 'u-1bbbbbbb', request_id: 'r1', metadata: { new_role: 'learner' }, created_at: '2026-10-14T05:00:00Z' }, { id: 'a2', actor_id: null, event_type: 'auth.denied', resource_type: 'route', resource_id: null, request_id: 'r2', metadata: { role: 'learner' }, created_at: '2026-10-14T04:00:00Z' }].filter((e) => !t || e.event_type === t); return ok(r, { events: ev, total: ev.length, limit: 25, offset: 0 }); }
       if (path === '/admin/courses') return ok(r, { courses: [{ id: IDS.course, title: 'NeuroMind AI Foundations', status: 'published', learners_enrolled: 1, lectures: [{ id: IDS.lecture, lecture_number: 9, title: 'Python setup', status: u.lectureStatus, content_version: 2, exercises: [{ id: IDS.ex, title: 'Print your name', status: 'published', test_suite_version: 1, pass_threshold: 80, max_attempts: null }] }] }], note: 'Published content is cached for up to 15 seconds.' });
+      if (path === '/admin/content/packs/validate' || path === '/admin/content/packs/import') {
+        const b = body(); const missing = (b.pack?.lab?.tests ?? []).map((t: { key: string }) => t.key).filter((k: string) => !(k in (b.tests ?? {})));
+        const problems = b.pack?.title ? [] : ['title: Field required'];
+        const valid = problems.length === 0 && missing.length === 0;
+        if (path.endsWith('validate')) return ok(r, { valid, problems, missing_tests: missing, ...(b.pack?.title ? { summary: { lecture_number: b.pack.lecture_number, title: b.pack.title, segments: b.pack.segments.length, checkpoints: b.pack.checkpoints.length, lab_tests: b.pack.lab.tests.length } } : {}) });
+        if (!valid) return err(r, 422, 'VALIDATION_ERROR', 'The pack is not valid');
+        if (b.pack.lecture_number === 9 && !b.publish && !b.replace_published) return err(r, 409, 'CONFLICT', 'Lecture 9 is published. Importing as a draft would hide it from learners.');
+        u.imports.push({ lecture_number: b.pack.lecture_number, publish: !!b.publish, replace: !!b.replace_published });
+        return ok(r, { lecture_id: 'l-new', lecture_number: b.pack.lecture_number, status: b.publish ? 'published' : 'draft', created: true });
+      }
+      if (path === `/admin/exercises/${IDS.ex}/tests`) return ok(r, { id: IDS.ex, title: 'Print your name', lab_kind: 'code', scoring: 'pass_fail', packages: [], hints: HINTS, hints_max: 3,
+        tests: [{ test_order: 1, hidden: false, label: 'student_name holds text', definition: { check: 'variable_is_str', name: 'student_name' }, points: 1, remediation: 'Create student_name = "Aarav".', objective: 'Store text in a variable' },
+                { test_order: 2, hidden: true, label: 'The printed text matches student_name', definition: { check: 'stdout_equals_variable', name: 'student_name' }, points: 1, remediation: 'Print the variable itself.', objective: 'Print output' }], questions: [] });
       const ls = path.match(/^\/admin\/lectures\/(.+)\/status$/);
       if (ls) { u.lectureStatus = body().status; return ok(r, { lecture_id: ls[1], status: u.lectureStatus, previous_status: 'published' }); }
       if (path === '/admin/cohorts' && m === 'GET') return ok(r, { cohorts: u.cohorts });
@@ -305,6 +368,22 @@ export async function installMocks(page: Page, state: MockState) {
       });
     }
     if (path === `/teacher/learners/${IDS.learner}/feedback` && m === 'POST') { const b = body(); state.feedback.push({ id: `f-${state.feedback.length}`, body: b.body, published: b.publish }); return ok(r, { id: 'f', published: b.publish }, 201); }
+    if (path === '/teacher/reviews') return ok(r, { pending: state.submissions.filter((x) => x.status === 'submitted').map((x) => ({ submission_id: x.id, learner_id: IDS.learner, learner: 'Asha Rao', exercise_id: IDS.ex, exercise: 'Print your name', lecture: 'Lecture 9: Python setup, notebooks and the first program', number: x.number, created_at: new Date(x.at).toISOString() })), total: state.submissions.filter((x) => x.status === 'submitted').length });
+    const rvm = path.match(/^\/teacher\/submissions\/(s-\d+)\/review$/);
+    if (rvm && m === 'POST') {
+      const x = state.submissions.find((y) => y.id === rvm[1]); if (!x) return err(r, 404, 'NOT_FOUND', 'x');
+      const b = body(); const scores = RUBRIC.map((rb) => ({ criterion: rb.criterion, points: (b.scores ?? []).find((sc: { criterion: string; points: number }) => sc.criterion === rb.criterion)?.points ?? 0, max_points: rb.max_points }));
+      state.reviews[x.id] = { passed: b.passed, feedback: b.feedback, scores }; x.status = b.passed ? 'passed' : 'failed'; x.review = { ...state.reviews[x.id], reviewed_at: new Date().toISOString() };
+      x.score = Math.round(100 * scores.reduce((a, sc) => a + sc.points, 0) / 5);
+      return ok(r, { submission_id: x.id, status: x.status, score: x.score });
+    }
+    const tdm = path.match(/^\/teacher\/submissions\/(s-\d+)$/);
+    if (tdm && (state.opts.labKind === 'written' || state.opts.labKind === 'upload')) {
+      const x = state.submissions.find((y) => y.id === tdm[1]); if (!x) return err(r, 404, 'NOT_FOUND', 'x');
+      return ok(r, { submission_id: x.id, exercise: 'Print your name', number: x.number, status: x.status, score: x.score, raw_score: x.score, max_score: 100, pass_threshold: 100, hints_used: 0, hint_penalty: 0, source_code: x.source_code ?? '', criteria: [], feedback_messages: [], execution_ms: null, created_at: new Date(x.at).toISOString(), infrastructure_failure: false,
+        lab_kind: state.opts.labKind, rubric: RUBRIC, checklist: state.opts.labKind === 'upload' ? ['Deployed to a hosting service', 'README explains purpose and limits'] : [], answers: x.answers ?? null, review: x.review ?? null,
+        evidence: { grader_version: null, test_suite_version: 1, content_version: 1, correlation_id: null, started_at: null, finished_at: null } });
+    }
     if (path === '/teacher/submissions/s-1') {
       return ok(r, { submission_id: 's-1', exercise: 'Print your name', number: 1, status: 'failed', score: 50, raw_score: 50, max_score: 100, pass_threshold: 80, hints_used: 0, hint_penalty: 0, source_code: 'student_name = "Aarav"\nprint("hello")\n', criteria: [{ label: 'student_name holds text', hidden: false, passed: true }, { label: 'Hidden check 1', hidden: true, passed: false }], feedback_messages: [], execution_ms: 12, created_at: new Date().toISOString(), infrastructure_failure: false, evidence: { grader_version: '1.1.0', test_suite_version: 1, content_version: 1, correlation_id: 'req-abc123', started_at: new Date().toISOString(), finished_at: new Date().toISOString() } });
     }

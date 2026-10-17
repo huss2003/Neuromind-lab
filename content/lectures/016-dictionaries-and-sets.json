@@ -1,0 +1,123 @@
+{
+  "schema_version": 2,
+  "lecture_number": 16,
+  "title": "Dictionaries and sets",
+  "summary": "Look values up by key with a dictionary, give a safe default with .get(), and remove duplicates with a set.",
+  "objectives": [
+    "Store and look up key-value pairs in a dictionary",
+    "Use .get() with a default so a missing key does not crash the program",
+    "Remove duplicates from a list with a set"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    15
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nA dictionary stores pairs: a key (like a name) and a value (like a phone number), so you can look up a value by its key. A set stores each item only once, which makes it the quickest way to remove duplicates. In this lab you build a small contact book, add a person, look up a number with square brackets, and use `.get()` with a default so that asking for a name that is not there gives `not found` instead of an error. Then you take a list of email sign-ups with repeats, turn it into a set, and show that the count drops once the duplicates are gone."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: contact book and sign-up list"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Contact book and sign-up list",
+    "objective": "Build a dictionary contact book with safe .get() lookups, then use a set to count unique email sign-ups.",
+    "instructions": "Part 1: the contact book. The dictionary contacts maps names to phone numbers.\n\n1. Add a third contact: the key \"Chloe\" with the value \"555-0103\".\n2. Look up Ben's number with square brackets, contacts[\"Ben\"], and print it as: Ben: 555-0102\n3. Look up \"Dev\" (who is not in the book) with .get() and the default \"not found\", and print it as: Dev: not found\n\nPart 2: the sign-ups. The list signups holds six email addresses, some repeated.\n\n4. Make a set from the list with set(signups) and store it in unique_signups.\n5. Print how many sign-ups there were and how many are unique, as two lines: Sign-ups: 6 and Unique: 3. Use len() for both numbers.\n\nYour program should print exactly four lines:\n\nBen: 555-0102\nDev: not found\nSign-ups: 6\nUnique: 3",
+    "constraints": "Keep the variable names contacts, signups and unique_signups. Do not change the signups list. Use .get() with a default for Dev; do not use if or try. Use len() to count; do not type 6 or 3 yourself. Do not use input().",
+    "starter_code": "# Part 1: a contact book (name -> phone number)\ncontacts = {\n    \"Asha\": \"555-0101\",\n    \"Ben\": \"555-0102\",\n}\n\n# 1. Add \"Chloe\" with the number \"555-0103\"\n\n# 2. Print Ben's number using square brackets, like:  Ben: 555-0102\n\n# 3. Print Dev's number using .get() with the default \"not found\", like:  Dev: not found\n\n# Part 2: email sign-ups with duplicates\nsignups = [\"asha@mail.com\", \"ben@mail.com\", \"asha@mail.com\", \"chloe@mail.com\", \"ben@mail.com\", \"asha@mail.com\"]\n\n# 4. Make a set from signups and store it in unique_signups\n\n# 5. Print the two counts, like:  Sign-ups: 6  and  Unique: 3\n",
+    "hints": [
+      "Add to a dictionary with square brackets: contacts[\"Chloe\"] = \"555-0103\". Read with square brackets too: contacts[\"Ben\"].",
+      "contacts.get(\"Dev\", \"not found\") gives the number if Dev is there and \"not found\" if not. A set is made with set(signups); it keeps one copy of each address.",
+      "Print with commas: print(\"Ben:\", contacts[\"Ben\"]), print(\"Dev:\", contacts.get(\"Dev\", \"not found\")), print(\"Sign-ups:\", len(signups)) and print(\"Unique:\", len(unique_signups))."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "visible_examples": [
+      {
+        "description": "A tiny dictionary with a safe lookup",
+        "code": "ages = {\"Mia\": 13}\nages[\"Raj\"] = 14\nprint(\"Raj:\", ages[\"Raj\"])\nprint(\"Zoe:\", ages.get(\"Zoe\", \"unknown\"))",
+        "expected_output": "Raj: 14\nZoe: unknown"
+      },
+      {
+        "description": "A set drops the repeats",
+        "code": "colours = [\"red\", \"blue\", \"red\", \"red\"]\nunique = set(colours)\nprint(len(colours), len(unique))",
+        "expected_output": "4 2"
+      }
+    ],
+    "success_criteria": [
+      "contacts holds Asha, Ben and Chloe with the right numbers",
+      "The missing name prints Dev: not found",
+      "unique_signups is a set",
+      "unique_signups holds every address once and is smaller than signups",
+      "The four lines are printed exactly as shown"
+    ],
+    "tests": [
+      {
+        "key": "l16-t1",
+        "label": "contacts holds Asha, Ben and Chloe with the right numbers",
+        "remediation": "Add the new person with contacts[\"Chloe\"] = \"555-0103\" and leave Asha and Ben as they are.",
+        "objective": "Store key-value pairs in a dictionary",
+        "hidden": false,
+        "definition": {
+          "description": "contacts holds Asha, Ben and Chloe with the right numbers",
+          "expr": "contacts",
+          "expected": {
+            "Asha": "555-0101",
+            "Ben": "555-0102",
+            "Chloe": "555-0103"
+          }
+        }
+      },
+      {
+        "key": "l16-t2",
+        "label": "The missing name prints Dev: not found",
+        "remediation": "Use contacts.get(\"Dev\", \"not found\") and print it as Dev: not found. Square brackets would crash with a KeyError because Dev is not in the book.",
+        "objective": "Use .get() with a default",
+        "hidden": false,
+        "definition": {
+          "description": "The missing name prints Dev: not found",
+          "stdout_contains": "Dev: not found"
+        }
+      },
+      {
+        "key": "l16-t3",
+        "label": "unique_signups is a set",
+        "remediation": "Make it with set(signups), using round brackets, and store the result in unique_signups.",
+        "objective": "Remove duplicates with a set",
+        "hidden": false,
+        "definition": {
+          "description": "unique_signups is a set",
+          "check": "variable_type",
+          "name": "unique_signups",
+          "type": "set"
+        }
+      },
+      {
+        "key": "l16-t4",
+        "label": "unique_signups holds every address once and is smaller than signups",
+        "remediation": "Build unique_signups from the signups list with set(signups), and do not change signups. The set should have 3 addresses while the list has 6.",
+        "objective": "Remove duplicates with a set",
+        "hidden": true
+      },
+      {
+        "key": "l16-t5",
+        "label": "The four lines are printed exactly as shown",
+        "remediation": "Print exactly four lines: Ben: 555-0102, Dev: not found, Sign-ups: 6 and Unique: 3, in that order, using len() for the two numbers.",
+        "objective": "Print results clearly",
+        "hidden": true
+      }
+    ],
+    "solution": "contacts = {\n    \"Asha\": \"555-0101\",\n    \"Ben\": \"555-0102\",\n}\n\ncontacts[\"Chloe\"] = \"555-0103\"\n\nprint(\"Ben:\", contacts[\"Ben\"])\nprint(\"Dev:\", contacts.get(\"Dev\", \"not found\"))\n\nsignups = [\"asha@mail.com\", \"ben@mail.com\", \"asha@mail.com\", \"chloe@mail.com\", \"ben@mail.com\", \"asha@mail.com\"]\n\nunique_signups = set(signups)\n\nprint(\"Sign-ups:\", len(signups))\nprint(\"Unique:\", len(unique_signups))\n"
+  }
+}

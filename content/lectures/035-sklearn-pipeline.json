@@ -1,0 +1,148 @@
+{
+  "schema_version": 2,
+  "lecture_number": 35,
+  "title": "Building an ML Model with Scikit-learn",
+  "summary": "Build a complete, working ML pipeline end-to-end: load data, split it, train a model, and evaluate it correctly.",
+  "objectives": [
+    "Load a CSV with pandas and separate the features (X) from the label (y)",
+    "Split the data into train and test sets with train_test_split and random_state=0",
+    "Train a classifier with .fit() and predict with .predict()",
+    "Evaluate with accuracy on the test set and compare it with the training accuracy"
+  ],
+  "duration_minutes": 60,
+  "prerequisites": [
+    34
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nIn class you watched the whole machine-learning pipeline run on one dataset. Now you build it yourself, start to finish, on a different one: `plants.csv` holds 50 house plants with how much water each got per week, its hours of sunlight per day, how many times a month it was fed, and whether it stayed healthy (yes or no). The label is a category, so this is a classification task. You will load the file with pandas, pick the features and the label, split into train and test sets, train a classifier, and measure its accuracy on rows it has never seen. Every stage gets a short comment saying what it does, because a pipeline you can explain is a pipeline you can trust."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: pipeline for healthy plants"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Pipeline: will the plant stay healthy?",
+    "objective": "Build the full load -> features/label -> split -> fit -> predict -> evaluate pipeline on plants.csv and report train and test accuracy.",
+    "instructions": "The file plants.csv has 50 rows and the columns water_ml, sunlight_hours, fertiliser_per_month and healthy (the words yes or no). Build the pipeline in this order and put a one-line comment above each stage saying what it does.\n\n1. Load: df = pd.read_csv(\"plants.csv\"). Print Rows: 50 using len(df).\n2. Features and label: X = df[[\"water_ml\", \"sunlight_hours\", \"fertiliser_per_month\"]] and y = df[\"healthy\"]. Keep the labels as the words yes and no; scikit-learn accepts text labels.\n3. Split: X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0). Print Train rows: 40 and Test rows: 10.\n4. Model: the label is a category, so use a classifier: model = DecisionTreeClassifier(random_state=0) or model = LogisticRegression(max_iter=1000). Then model.fit(X_train, y_train).\n5. Evaluate: predictions = model.predict(X_test) and accuracy = accuracy_score(y_test, predictions). Also compute train_accuracy = accuracy_score(y_train, model.predict(X_train)). Print Train accuracy: <value> and then Test accuracy: <value>, each rounded to 2 decimals.\n\nIf the train accuracy is much higher than the test accuracy, you are looking at the overfitting signature from the last lecture. That is fine here; just notice it.",
+    "constraints": "Read the data from plants.csv. Use test_size=0.2 and random_state=0 in the split, and random_state=0 if you use a decision tree. Keep the names df, X, y, X_train, X_test, y_train, y_test, model, predictions, accuracy and train_accuracy. Keep the labels as the words yes and no. No input().",
+    "starter_code": "import pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\n# Stage 1 - Load: read plants.csv into df and print the number of rows\ndf = pd.read_csv(\"plants.csv\")\nprint(\"Rows:\", len(df))\n\n# Stage 2 - Features and label: X holds the three feature columns, y holds healthy\n\n\n# Stage 3 - Split: train_test_split with test_size=0.2 and random_state=0,\n#           then print Train rows: ... and Test rows: ...\n\n\n# Stage 4 - Model: create a classifier and fit it on the training data\n\n\n# Stage 5 - Evaluate: predict on X_test, compute accuracy and train_accuracy,\n#           print Train accuracy and Test accuracy rounded to 2 decimals\n",
+    "hints": [
+      "X = df[[\"water_ml\", \"sunlight_hours\", \"fertiliser_per_month\"]] (two sets of square brackets) and y = df[\"healthy\"]. The split returns four things in this order: X_train, X_test, y_train, y_test.",
+      "model = DecisionTreeClassifier(random_state=0) then model.fit(X_train, y_train). Predict with predictions = model.predict(X_test) and compare with y_test using accuracy_score(y_test, predictions).",
+      "Print with f-strings: print(f\"Test accuracy: {accuracy:.2f}\"). For train_accuracy, predict on X_train instead and compare with y_train: train_accuracy = accuracy_score(y_train, model.predict(X_train))."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas",
+      "scikit-learn"
+    ],
+    "assets": [
+      {
+        "name": "plants.csv",
+        "content": "water_ml,sunlight_hours,fertiliser_per_month,healthy\n525,2,2,yes\n575,5,0,yes\n375,7,3,no\n125,2,3,no\n375,2,3,no\n575,7,1,yes\n225,4,3,no\n625,4,4,yes\n325,5,4,yes\n425,8,4,yes\n325,5,4,yes\n475,7,4,yes\n175,6,1,no\n650,6,0,yes\n225,7,3,yes\n575,3,2,yes\n650,4,2,no\n700,1,3,yes\n525,3,3,yes\n100,1,0,no\n325,2,0,no\n500,1,0,no\n100,3,1,no\n375,4,0,yes\n250,5,3,no\n250,2,1,no\n600,7,1,yes\n600,4,2,yes\n700,1,4,yes\n650,5,2,yes\n425,1,2,no\n550,3,2,yes\n175,7,0,no\n475,1,2,no\n200,3,2,no\n400,2,2,no\n475,1,3,no\n550,4,3,yes\n600,6,1,yes\n600,8,0,yes\n675,8,2,no\n325,4,2,no\n250,3,1,no\n300,6,2,no\n375,4,1,no\n600,5,2,yes\n350,7,3,yes\n625,2,1,yes\n550,2,2,yes\n175,4,1,no\n",
+        "encoding": "text",
+        "description": "50 house plants: weekly water (ml), daily sunlight (hours), feeds per month, and whether the plant stayed healthy"
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Splitting a tiny table into train and test rows",
+        "code": "import pandas as pd\nfrom sklearn.model_selection import train_test_split\n\ndf = pd.DataFrame({\"hours\": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], \"passed\": [\"no\", \"no\", \"no\", \"no\", \"yes\", \"no\", \"yes\", \"yes\", \"yes\", \"yes\"]})\nX = df[[\"hours\"]]\ny = df[\"passed\"]\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)\nprint(\"Train rows:\", len(X_train))\nprint(\"Test rows:\", len(X_test))",
+        "expected_output": "Train rows: 8\nTest rows: 2"
+      },
+      {
+        "description": "Accuracy compares predictions with the true labels",
+        "code": "from sklearn.metrics import accuracy_score\n\ntrue_labels = [\"yes\", \"no\", \"yes\", \"no\"]\npredictions = [\"yes\", \"no\", \"no\", \"no\"]\naccuracy = accuracy_score(true_labels, predictions)\nprint(f\"Accuracy: {accuracy:.2f}\")",
+        "expected_output": "Accuracy: 0.75"
+      }
+    ],
+    "success_criteria": [
+      "X holds the three feature columns and y holds the yes/no label",
+      "The split gives 40 training rows and 10 test rows",
+      "Test accuracy is printed with 2 decimals",
+      "The split used random_state=0, so the test rows are the expected ones",
+      "model is a fitted classifier and predictions are its predictions for X_test",
+      "accuracy and train_accuracy are computed from the right rows"
+    ],
+    "tests": [
+      {
+        "key": "l35-t1",
+        "label": "X holds the three feature columns and y holds the yes/no label",
+        "remediation": "X = df[[\"water_ml\", \"sunlight_hours\", \"fertiliser_per_month\"]] (two sets of square brackets, in this order) and y = df[\"healthy\"]. Keep yes/no as words.",
+        "objective": "Separate features from the label",
+        "hidden": false,
+        "definition": {
+          "description": "X and y",
+          "expr": "list(X.columns) == ['water_ml', 'sunlight_hours', 'fertiliser_per_month'] and sorted(set(list(y))) == ['no', 'yes']",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l35-t2",
+        "label": "The split gives 40 training rows and 10 test rows",
+        "remediation": "Use train_test_split(X, y, test_size=0.2, random_state=0) and unpack the result into X_train, X_test, y_train, y_test in that order.",
+        "objective": "Split data into train and test sets",
+        "hidden": false,
+        "definition": {
+          "description": "split sizes",
+          "expr": "[list(X_train.shape), len(X_test), len(y_train), len(y_test)]",
+          "expected": [
+            [
+              40,
+              3
+            ],
+            10,
+            40,
+            10
+          ]
+        }
+      },
+      {
+        "key": "l35-t3",
+        "label": "Test accuracy is printed with 2 decimals",
+        "remediation": "After accuracy = accuracy_score(y_test, predictions), print it as print(f\"Test accuracy: {accuracy:.2f}\").",
+        "objective": "Evaluate a classifier with accuracy",
+        "hidden": false,
+        "definition": {
+          "description": "Test accuracy line",
+          "stdout_regex": "^Test accuracy: [01]\\.\\d\\d$"
+        }
+      },
+      {
+        "key": "l35-t4",
+        "label": "The split used random_state=0, so the test rows are the expected ones",
+        "remediation": "Split with exactly train_test_split(X, y, test_size=0.2, random_state=0). Do not shuffle, sort or filter the data before or after the split.",
+        "objective": "Split data into train and test sets",
+        "hidden": true
+      },
+      {
+        "key": "l35-t5",
+        "label": "model is a fitted classifier and predictions are its predictions for X_test",
+        "remediation": "model must be DecisionTreeClassifier(random_state=0) or LogisticRegression(max_iter=1000), fitted with model.fit(X_train, y_train); then predictions = model.predict(X_test).",
+        "objective": "Train a classifier and predict",
+        "hidden": true
+      },
+      {
+        "key": "l35-t6",
+        "label": "accuracy and train_accuracy are computed from the right rows",
+        "remediation": "accuracy = accuracy_score(y_test, predictions) and train_accuracy = accuracy_score(y_train, model.predict(X_train)). Use the allowed model settings (random_state=0 for the tree, max_iter=1000 for logistic regression) and the random_state=0 split.",
+        "objective": "Evaluate on held-out data and compare with training accuracy",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\n# Stage 1 - Load: read the CSV into a DataFrame so we can work with columns\ndf = pd.read_csv(\"plants.csv\")\nprint(\"Rows:\", len(df))\n\n# Stage 2 - Features and label: X is what the model sees, y is what it must predict\nX = df[[\"water_ml\", \"sunlight_hours\", \"fertiliser_per_month\"]]\ny = df[\"healthy\"]\n\n# Stage 3 - Split: keep 20% of rows aside so we can test on data the model never saw\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)\nprint(\"Train rows:\", len(X_train))\nprint(\"Test rows:\", len(X_test))\n\n# Stage 4 - Model: the label is a category, so a classifier; fit learns from the training rows\nmodel = DecisionTreeClassifier(random_state=0)\nmodel.fit(X_train, y_train)\n\n# Stage 5 - Evaluate: accuracy on the test rows is the honest score; train accuracy shows overfitting\npredictions = model.predict(X_test)\naccuracy = accuracy_score(y_test, predictions)\ntrain_accuracy = accuracy_score(y_train, model.predict(X_train))\nprint(f\"Train accuracy: {train_accuracy:.2f}\")\nprint(f\"Test accuracy: {accuracy:.2f}\")\n"
+  }
+}

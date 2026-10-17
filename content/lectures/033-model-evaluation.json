@@ -1,0 +1,140 @@
+{
+  "schema_version": 2,
+  "lecture_number": 33,
+  "title": "Model Evaluation",
+  "summary": "Calculate and interpret accuracy, precision, recall and a confusion matrix for a classification model.",
+  "objectives": [
+    "Count true positives, false positives, false negatives and true negatives from predictions and true labels",
+    "Compute accuracy, precision and recall from those four counts",
+    "Explain why a high accuracy can hide a model that fails at its real job",
+    "Write a verdict on whether a model is useful for its stated purpose"
+  ],
+  "duration_minutes": 50,
+  "prerequisites": [
+    32
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nA small company has built a spam filter, and on paper it looks good: 85% of its guesses are right. But the company has one rule: a filter is only useful if it catches at least 8 out of every 10 spam emails. In this lab you will read a file of 40 emails with the true label and the model's prediction, count the four kinds of outcome (TP, FP, FN, TN), and compute accuracy, precision and recall. Then you will write a one-sentence verdict that says whether the filter is good enough for its job, and why. This is the lesson from class: accuracy alone can hide a model that fails at the very thing it was built for."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: is the spam filter good enough?"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Is the spam filter good enough?",
+    "objective": "Compute a confusion matrix, precision and recall for a spam filter and give a verdict on whether it does its job.",
+    "instructions": "The file predictions.csv has 40 rows and three columns: email_id, true_label and predicted_label. The labels are the words spam and not spam. Treat spam as the positive class.\n\n1. Load the file with pandas: df = pd.read_csv(\"predictions.csv\").\n2. Count the four outcomes and store them in tp, fp, fn and tn:\n   - tp: true label spam, predicted spam\n   - fp: true label not spam, predicted spam\n   - fn: true label spam, predicted not spam\n   - tn: true label not spam, predicted not spam\n   Loop over the rows with zip(df[\"true_label\"], df[\"predicted_label\"]), or use sklearn.metrics.confusion_matrix if you prefer.\n3. Compute accuracy = (tp + tn) / 40, precision = tp / (tp + fp) and recall = tp / (tp + fn). Keep the full values in the variables; round only when printing.\n4. Print seven lines in this order, rates rounded to 2 decimals:\nTP: <count>\nFP: <count>\nFN: <count>\nTN: <count>\nAccuracy: <rate>\nPrecision: <rate>\nRecall: <rate>\n5. The company rule: the filter is good enough only if recall is at least 0.8. Set verdict to ONE sentence that starts with the exact words good enough or not good enough, then gives the reason and names recall. Print it as the last line: Verdict: <verdict>",
+    "constraints": "Read the labels from predictions.csv; do not type them into your code. Keep the names df, tp, fp, fn, tn, accuracy, precision, recall and verdict. Count every row: the four counts must add up to 40. No input().",
+    "starter_code": "import pandas as pd\n\n# 1. Load predictions.csv into a DataFrame called df\ndf = pd.read_csv(\"predictions.csv\")\n\n# 2. Count the four outcomes. spam is the positive class.\n#    tp: true spam, predicted spam        fp: true not spam, predicted spam\n#    fn: true spam, predicted not spam    tn: true not spam, predicted not spam\ntp = 0\nfp = 0\nfn = 0\ntn = 0\nfor actual, predicted in zip(df[\"true_label\"], df[\"predicted_label\"]):\n    pass  # replace with if/elif branches that add 1 to the right counter\n\n# 3. Compute accuracy, precision and recall from the four counts\n\n\n# 4. Print the four counts, then the three rates rounded to 2 decimals\n\n\n# 5. The filter is good enough only if recall >= 0.8.\n#    verdict = \"good enough ...\" or \"not good enough ...\": give the reason and name recall.\n#    Then print it as:  Verdict: <verdict>\n",
+    "hints": [
+      "Inside the loop compare the two labels: if actual == \"spam\" and predicted == \"spam\": tp += 1. Write one branch for each of the four combinations (elif for the other three).",
+      "precision = tp / (tp + fp) answers 'of the emails flagged as spam, how many really were spam?'. recall = tp / (tp + fn) answers 'of the real spam, how many did we catch?'. accuracy = (tp + tn) / (tp + fp + fn + tn).",
+      "Print with f-strings, for example print(f\"Recall: {recall:.2f}\"). Then compare recall with 0.8: if recall >= 0.8: verdict = \"good enough - ...\" else: verdict = \"not good enough - recall is only ..., so ...\". Finish with print(\"Verdict:\", verdict)."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas",
+      "scikit-learn"
+    ],
+    "assets": [
+      {
+        "name": "predictions.csv",
+        "content": "email_id,true_label,predicted_label\ne01,not spam,not spam\ne02,not spam,not spam\ne03,not spam,not spam\ne04,spam,not spam\ne05,not spam,not spam\ne06,spam,not spam\ne07,not spam,not spam\ne08,spam,spam\ne09,not spam,not spam\ne10,spam,not spam\ne11,not spam,spam\ne12,spam,not spam\ne13,spam,not spam\ne14,not spam,not spam\ne15,not spam,not spam\ne16,not spam,not spam\ne17,spam,spam\ne18,not spam,not spam\ne19,not spam,not spam\ne20,not spam,not spam\ne21,not spam,not spam\ne22,not spam,not spam\ne23,spam,spam\ne24,not spam,not spam\ne25,not spam,not spam\ne26,not spam,not spam\ne27,not spam,not spam\ne28,not spam,not spam\ne29,not spam,not spam\ne30,not spam,not spam\ne31,not spam,not spam\ne32,not spam,not spam\ne33,not spam,not spam\ne34,not spam,not spam\ne35,not spam,not spam\ne36,not spam,not spam\ne37,not spam,not spam\ne38,not spam,not spam\ne39,not spam,not spam\ne40,not spam,not spam\n",
+        "encoding": "text",
+        "description": "40 emails: the true label and the spam filter's prediction (spam / not spam)"
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Counting one kind of outcome with zip",
+        "code": "actual = [\"spam\", \"spam\", \"not spam\", \"not spam\"]\npredicted = [\"spam\", \"not spam\", \"not spam\", \"spam\"]\n\ntp = 0\nfor a, p in zip(actual, predicted):\n    if a == \"spam\" and p == \"spam\":\n        tp += 1\nprint(\"TP:\", tp)",
+        "expected_output": "TP: 1"
+      },
+      {
+        "description": "Precision and recall from counts",
+        "code": "tp, fp, fn = 4, 2, 6\nprecision = tp / (tp + fp)\nrecall = tp / (tp + fn)\nprint(f\"Precision: {precision:.2f}\")\nprint(f\"Recall: {recall:.2f}\")",
+        "expected_output": "Precision: 0.67\nRecall: 0.40"
+      }
+    ],
+    "success_criteria": [
+      "tp, fp, fn and tn together count all 40 emails",
+      "Recall is printed as a decimal, for example Recall: 0.52",
+      "verdict is one full sentence",
+      "The four counts are correct for predictions.csv",
+      "accuracy, precision and recall are computed correctly from the counts",
+      "The verdict applies the recall rule and names recall"
+    ],
+    "tests": [
+      {
+        "key": "l33-t1",
+        "label": "tp, fp, fn and tn together count all 40 emails",
+        "remediation": "Every row must land in exactly one of tp, fp, fn and tn. Check that your if/elif branches cover all four combinations and that the loop runs over every row of df.",
+        "objective": "Build a confusion matrix from predictions and true labels",
+        "hidden": false,
+        "definition": {
+          "description": "the four counts add up to 40",
+          "expr": "int(tp) + int(fp) + int(fn) + int(tn) == 40",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l33-t2",
+        "label": "Recall is printed as a decimal",
+        "remediation": "Compute recall = tp / (tp + fn) and print it as print(f\"Recall: {recall:.2f}\").",
+        "objective": "Compute and report recall",
+        "hidden": false,
+        "definition": {
+          "description": "Recall line",
+          "stdout_regex": "^Recall: [01]\\.\\d+"
+        }
+      },
+      {
+        "key": "l33-t3",
+        "label": "verdict is one full sentence",
+        "remediation": "Set verdict to one sentence of at least 8 words. Start with good enough or not good enough and give the reason.",
+        "objective": "Write a verdict on a model's usefulness",
+        "hidden": false,
+        "definition": {
+          "description": "verdict is a sentence",
+          "expr": "isinstance(verdict, str) and len(verdict.split()) >= 8",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l33-t4",
+        "label": "The four counts are correct for predictions.csv",
+        "remediation": "Recheck which label is the positive class (spam). tp counts rows where both labels are spam; fn counts real spam the model called not spam; fp counts not spam the model called spam; tn counts rows where both are not spam.",
+        "objective": "Build a confusion matrix from predictions and true labels",
+        "hidden": true
+      },
+      {
+        "key": "l33-t5",
+        "label": "accuracy, precision and recall are computed correctly from the counts",
+        "remediation": "accuracy = (tp + tn) / 40, precision = tp / (tp + fp), recall = tp / (tp + fn). Store the full values; round only inside print().",
+        "objective": "Compute accuracy, precision and recall",
+        "hidden": true
+      },
+      {
+        "key": "l33-t6",
+        "label": "The verdict applies the recall rule and names recall",
+        "remediation": "Apply the rule: the filter is good enough only if recall is at least 0.8. Start the verdict with the exact words good enough or not good enough, and mention recall in the reason.",
+        "objective": "Judge a model by the metric that matters for its purpose",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\n\ndf = pd.read_csv(\"predictions.csv\")\n\ntp = 0\nfp = 0\nfn = 0\ntn = 0\nfor actual, predicted in zip(df[\"true_label\"], df[\"predicted_label\"]):\n    if actual == \"spam\" and predicted == \"spam\":\n        tp += 1\n    elif actual == \"not spam\" and predicted == \"spam\":\n        fp += 1\n    elif actual == \"spam\" and predicted == \"not spam\":\n        fn += 1\n    else:\n        tn += 1\n\naccuracy = (tp + tn) / (tp + fp + fn + tn)\nprecision = tp / (tp + fp)\nrecall = tp / (tp + fn)\n\nprint(\"TP:\", tp)\nprint(\"FP:\", fp)\nprint(\"FN:\", fn)\nprint(\"TN:\", tn)\nprint(f\"Accuracy: {accuracy:.2f}\")\nprint(f\"Precision: {precision:.2f}\")\nprint(f\"Recall: {recall:.2f}\")\n\nif recall >= 0.8:\n    verdict = f\"good enough - recall is {recall:.2f}, so the filter catches most of the real spam\"\nelse:\n    verdict = f\"not good enough - recall is only {recall:.2f}, so the filter misses most of the real spam even though accuracy looks high\"\nprint(\"Verdict:\", verdict)\n"
+  }
+}

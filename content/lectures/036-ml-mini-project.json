@@ -1,0 +1,146 @@
+{
+  "schema_version": 2,
+  "lecture_number": 36,
+  "title": "ML Mini-Project and Practical Assessment",
+  "summary": "Independently complete and present a small end-to-end ML project, demonstrating the full Month 5 skill set under practical assessment conditions.",
+  "objectives": [
+    "Decide from the label whether a new dataset is a regression or a classification task",
+    "Build the full pipeline without step-by-step help: load, features/label, split, fit, predict, evaluate",
+    "Report train and test accuracy honestly",
+    "State the result and one genuine limitation of the model in a written summary"
+  ],
+  "duration_minutes": 60,
+  "prerequisites": [
+    35
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nThis is the mock practical for Month 5. You get a dataset you have never seen: `deliveries.csv`, 50 delivery runs for a small courier, with the distance of the run, the number of stops, whether it rained, and whether the parcel arrived late (yes or no). There are no step-by-step instructions this time, only the task list a junior ML practitioner would get. Decide the task type from the label, build the whole pipeline, measure accuracy on the test rows, and write one honest summary sentence with the result and one real limitation of your model. Work as if the clock is running, but the checks care about correctness, not speed."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: mock practical on late deliveries"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Mock practical: late deliveries",
+    "objective": "On an unseen dataset, choose the task type, build and evaluate a full ML pipeline, and write an honest one-sentence verdict with a limitation.",
+    "instructions": "deliveries.csv has 50 rows and the columns distance_km, stops, rain (1 = it rained, 0 = dry) and late (the words yes or no).\n\n1. Look at the label column late and set task_type to \"regression\" or \"classification\".\n2. Load the file into df. Make X from the three feature columns, in the file's order, and y from late. Keep yes/no as words.\n3. Split with train_test_split(X, y, test_size=0.2, random_state=0) into X_train, X_test, y_train, y_test.\n4. Train a model that suits the task type: DecisionTreeClassifier(random_state=0) or LogisticRegression(max_iter=1000). Store it in model and fit it on the training rows.\n5. Evaluate: predictions = model.predict(X_test), accuracy = accuracy_score(y_test, predictions), and train_accuracy from the training rows. Print three lines:\nTask: <task_type>\nTrain accuracy: <2 decimals>\nTest accuracy: <2 decimals>\n6. Write summary: ONE sentence of at least 15 words that gives the test accuracy (the same number you printed) and one genuine limitation of the model, for example the small number of rows or features that may not capture everything. Use the word limitation, small or only in it. Print it as the last line: Summary: <summary>",
+    "constraints": "Read the data from deliveries.csv. Use test_size=0.2 and random_state=0 in the split, and random_state=0 for a decision tree. Keep the names task_type, df, X, y, X_train, X_test, y_train, y_test, model, predictions, accuracy, train_accuracy and summary. No input().",
+    "starter_code": "import pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\n# 1. Task type: is the label late a number or a category?\ntask_type = \"\"\n\n# 2. Load deliveries.csv into df; X = the three feature columns, y = late\n\n\n# 3. Split with test_size=0.2 and random_state=0\n\n\n# 4. Create a model that fits the task type and fit it on the training rows\n\n\n# 5. Predict on X_test; compute accuracy and train_accuracy; print Task, Train accuracy, Test accuracy\n\n\n# 6. summary: one honest sentence (15+ words) with the test accuracy and one limitation,\n#    then print it as  Summary: <summary>\nsummary = \"\"\n",
+    "hints": [
+      "late holds the words yes and no, so the label is a category: task_type = \"classification\". Load with pd.read_csv(\"deliveries.csv\"); X = df[[\"distance_km\", \"stops\", \"rain\"]] and y = df[\"late\"].",
+      "Same pipeline as the last lab: train_test_split(X, y, test_size=0.2, random_state=0), then model = DecisionTreeClassifier(random_state=0), model.fit(X_train, y_train), predictions = model.predict(X_test), accuracy = accuracy_score(y_test, predictions).",
+      "Build the summary with an f-string, e.g. summary = f\"The model reached {accuracy:.2f} test accuracy, but the dataset is small (only 50 runs), so the result may change on new deliveries.\" Then print(\"Summary:\", summary)."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas",
+      "scikit-learn"
+    ],
+    "assets": [
+      {
+        "name": "deliveries.csv",
+        "content": "distance_km,stops,rain,late\n18.9,4,1,yes\n15.4,1,0,no\n19.3,1,1,yes\n13.1,11,0,yes\n24.7,7,1,yes\n19.9,1,1,yes\n6.3,3,0,no\n21.1,7,0,yes\n15.0,1,1,yes\n14.0,2,1,no\n1.2,10,1,no\n20.6,11,0,yes\n17.6,1,0,no\n16.0,7,1,yes\n2.4,2,0,no\n18.1,1,0,no\n9.9,2,1,no\n10.8,1,0,no\n15.0,1,0,no\n6.8,2,0,no\n7.6,10,1,yes\n9.3,8,1,yes\n1.8,1,0,no\n13.5,10,1,yes\n15.0,10,0,yes\n20.4,1,0,yes\n4.9,5,0,no\n2.6,1,0,no\n23.0,9,0,yes\n7.6,6,1,yes\n18.3,1,0,no\n6.0,4,0,no\n21.1,9,0,yes\n20.4,12,0,yes\n16.7,12,0,yes\n2.1,3,0,no\n2.6,5,0,no\n6.2,8,0,yes\n22.9,12,0,yes\n6.1,2,0,no\n4.2,10,1,yes\n5.0,3,1,no\n2.3,8,1,no\n18.9,4,0,yes\n2.4,1,0,no\n5.7,9,0,no\n18.3,6,0,yes\n19.9,11,0,yes\n14.9,8,0,yes\n10.7,1,0,no\n",
+        "encoding": "text",
+        "description": "50 courier runs: distance (km), number of stops, rain (1/0), and whether the parcel was late"
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "A tiny decision tree learns a threshold",
+        "code": "from sklearn.tree import DecisionTreeClassifier\n\nX = [[1], [2], [8], [9]]\ny = [\"no\", \"no\", \"yes\", \"yes\"]\nmodel = DecisionTreeClassifier(random_state=0)\nmodel.fit(X, y)\nprint(model.predict([[1.5], [8.5]]).tolist())",
+        "expected_output": "['no', 'yes']"
+      },
+      {
+        "description": "A summary sentence built with an f-string",
+        "code": "accuracy = 0.8\nsummary = f\"The model reached {accuracy:.2f} test accuracy, but with only 20 rows this is a weak estimate.\"\nprint(\"Summary:\", summary)",
+        "expected_output": "Summary: The model reached 0.80 test accuracy, but with only 20 rows this is a weak estimate."
+      }
+    ],
+    "success_criteria": [
+      "Test accuracy is printed with 2 decimals",
+      "The split gives 40 training rows with 3 features and 10 test rows",
+      "summary is one honest sentence that gives the test accuracy and names a limitation",
+      "task_type is right for a yes/no label",
+      "The split used random_state=0, so the test rows are the expected ones",
+      "accuracy and train_accuracy are right for the allowed models"
+    ],
+    "tests": [
+      {
+        "key": "l36-t1",
+        "label": "Test accuracy is printed with 2 decimals",
+        "remediation": "After accuracy = accuracy_score(y_test, predictions), print it as print(f\"Test accuracy: {accuracy:.2f}\").",
+        "objective": "Evaluate a classifier with accuracy",
+        "hidden": false,
+        "definition": {
+          "description": "Test accuracy line",
+          "stdout_regex": "^Test accuracy: [01]\\.\\d\\d$"
+        }
+      },
+      {
+        "key": "l36-t2",
+        "label": "The split gives 40 training rows with 3 features and 10 test rows",
+        "remediation": "X = df[[\"distance_km\", \"stops\", \"rain\"]], y = df[\"late\"], then train_test_split(X, y, test_size=0.2, random_state=0) unpacked into X_train, X_test, y_train, y_test.",
+        "objective": "Build features/label and split the data",
+        "hidden": false,
+        "definition": {
+          "description": "split sizes",
+          "expr": "[list(X_train.shape), len(y_test)]",
+          "expected": [
+            [
+              40,
+              3
+            ],
+            10
+          ]
+        }
+      },
+      {
+        "key": "l36-t3",
+        "label": "summary is one honest sentence that gives the test accuracy and names a limitation",
+        "remediation": "summary must be a string of at least 15 words, contain the test accuracy as you printed it (use an f-string with {accuracy:.2f}), and include the word limitation, small or only.",
+        "objective": "State a result and a genuine limitation",
+        "hidden": false,
+        "definition": {
+          "description": "summary sentence",
+          "expr": "isinstance(summary, str) and len(summary.split()) >= 15 and any(w in summary.lower() for w in ('limitation', 'small', 'only', 'few', 'not enough', 'might', 'may ', 'cannot')) and any(s in summary for s in (f'{float(accuracy):.2f}', f'{float(accuracy):.1f}', f'{round(float(accuracy) * 100)}%', f'{round(float(accuracy) * 100)} %'))",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l36-t4",
+        "label": "task_type is right for a yes/no label",
+        "remediation": "late holds the words yes and no, a category, not a number. Set task_type to the matching task type (one of \"regression\" or \"classification\").",
+        "objective": "Choose the task type from the label",
+        "hidden": true
+      },
+      {
+        "key": "l36-t5",
+        "label": "The split used random_state=0, so the test rows are the expected ones",
+        "remediation": "Split with exactly train_test_split(X, y, test_size=0.2, random_state=0), with X holding the three feature columns and y = df[\"late\"] kept as words. Do not shuffle, sort or filter the data.",
+        "objective": "Split data into train and test sets",
+        "hidden": true
+      },
+      {
+        "key": "l36-t6",
+        "label": "accuracy and train_accuracy are right for the allowed models",
+        "remediation": "Use DecisionTreeClassifier(random_state=0) or LogisticRegression(max_iter=1000), fitted on X_train and y_train. accuracy = accuracy_score(y_test, predictions) and train_accuracy = accuracy_score(y_train, model.predict(X_train)).",
+        "objective": "Train and evaluate honestly on held-out data",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score\n\n# 1. The label late is a category (yes/no), so this is classification\ntask_type = \"classification\"\n\n# 2. Load, then features and label\ndf = pd.read_csv(\"deliveries.csv\")\nX = df[[\"distance_km\", \"stops\", \"rain\"]]\ny = df[\"late\"]\n\n# 3. Hold out 20% of the rows for an honest test\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)\n\n# 4. A classifier for a yes/no label\nmodel = DecisionTreeClassifier(random_state=0)\nmodel.fit(X_train, y_train)\n\n# 5. Evaluate on the test rows, and on the training rows to see the gap\npredictions = model.predict(X_test)\naccuracy = accuracy_score(y_test, predictions)\ntrain_accuracy = accuracy_score(y_train, model.predict(X_train))\nprint(\"Task:\", task_type)\nprint(f\"Train accuracy: {train_accuracy:.2f}\")\nprint(f\"Test accuracy: {accuracy:.2f}\")\n\n# 6. One honest sentence: the result and a real limitation\nsummary = (f\"The decision tree reached {accuracy:.2f} test accuracy on 10 held-out runs, but the dataset is small \"\n           f\"(only 50 runs), so one limitation is that the score could change a lot on new deliveries.\")\nprint(\"Summary:\", summary)\n"
+  }
+}

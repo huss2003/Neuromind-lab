@@ -5,9 +5,11 @@ For a small supervised pilot. The goal is simple: protect learners and their dat
 ## Who does what
 | Role | Person | Contact |
 |---|---|---|
-| Incident lead (decides, communicates) | **to be named by the owner** | **to be named** |
-| Technical responder | **to be named** | **to be named** |
-| Owner / data controller (legal and learner notices) | **to be named** | **to be named** |
+| Incident lead (decides, communicates) | Owner (Hussain) | Hussainsingapuri24@gmail.com |
+| Technical responder | Owner (Hussain), until a second person is named | Hussainsingapuri24@gmail.com |
+| Owner / data controller (legal and learner notices) | Owner (Hussain) | Hussainsingapuri24@gmail.com |
+
+Automatic alerts (worker down, queue backlog, API unreachable from the worker, EC2 status check, and the $15 budget) are delivered to the same address through the AWS notification topic `neuromind-alerts`; delivery was tested on 2026-10-14. One person holds every role for now, so add a second named responder before real learners join. Replace "Owner (Hussain)" with your full name and organisation when you give the policy details.
 
 ## Severity
 | Level | Meaning | Respond within |

@@ -1,0 +1,146 @@
+{
+  "schema_version": 2,
+  "lecture_number": 32,
+  "title": "Clustering",
+  "summary": "Explain unsupervised clustering (grouping unlabelled data) and distinguish it from the supervised tasks in Lectures 30-31.",
+  "objectives": [
+    "Explain the difference between unsupervised clustering and supervised classification",
+    "Run KMeans with n_clusters=3 on a 2-feature dataset that has no label column",
+    "Plot the discovered clusters in different colours and save the chart to a file",
+    "Describe in plain words what each discovered group seems to represent"
+  ],
+  "duration_minutes": 60,
+  "prerequisites": [
+    31
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nRegression and classification learned from examples that came with the right answer. **Clustering** has no answer column at all: the model looks at the data and finds groups by itself, which is why it is called unsupervised learning. K-Means does this by picking K centre points, giving every row to its nearest centre, moving each centre to the middle of its rows, and repeating until nothing changes. In this lab you will load `shoppers.csv` (45 fictional shoppers: visits per month and average spend per visit, no labels), run `KMeans` with `n_clusters=3`, print the size and the averages of each cluster, and save a scatter plot coloured by cluster to `clusters.png`. Finally you will write one sentence describing what the three groups seem to be, for example frequent small spenders and occasional big spenders."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: find three groups of shoppers"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Find three groups of shoppers with K-Means",
+    "objective": "Run KMeans(n_clusters=3) on visits and spend, plot the clusters in colours, save the chart and describe the groups.",
+    "instructions": "The file shoppers.csv has 45 rows with two columns: visits_per_month and avg_spend (rupees per visit). There is no label column. The starter code already loads it into df.\n\n1. Make X = df[[\"visits_per_month\", \"avg_spend\"]] (both columns, in this order).\n2. Create model = KMeans(n_clusters=3, random_state=0, n_init=10), run labels = model.fit_predict(X) and store the result as a new column: df[\"cluster\"] = labels.\n3. Print the three cluster sizes, smallest first, and then the average of each column per cluster:\nsizes = sorted(df[\"cluster\"].value_counts().tolist())\nprint(\"Cluster sizes:\", sizes)\nprint(df.groupby(\"cluster\")[[\"visits_per_month\", \"avg_spend\"]].mean().round(1))\n4. Draw a scatter plot of visits (x) against spend (y) coloured by cluster with plt.scatter(df[\"visits_per_month\"], df[\"avg_spend\"], c=df[\"cluster\"]). Add axis labels with plt.xlabel and plt.ylabel, save it with plt.savefig(\"clusters.png\") and print:\nSaved clusters.png\n5. Read the averages you printed and store one sentence (at least 12 words) in description that says what each of the three groups seems to represent: how often they visit and how much they spend.\n\nThere is no screen in the lab, so do not use plt.show(); the saved file is the chart.",
+    "constraints": "Use KMeans from sklearn.cluster with n_clusters=3, random_state=0 and n_init=10. Keep the names df, X, model, labels, sizes and description, and the column name cluster. Save the chart as clusters.png with matplotlib; no plt.show(). No input().",
+    "starter_code": "import pandas as pd\nimport matplotlib.pyplot as plt\nfrom sklearn.cluster import KMeans\n\ndf = pd.read_csv(\"shoppers.csv\")\n\n# 1. X = the two columns visits_per_month and avg_spend, in this order (there is no label column)\n\n\n# 2. model = KMeans(n_clusters=3, random_state=0, n_init=10)\n#    labels = model.fit_predict(X)\n#    df[\"cluster\"] = labels\n\n\n# 3. sizes = the three cluster sizes, smallest first (sorted value_counts)\n#    Print:  Cluster sizes: [.., .., ..]\n#    Then print the average visits and spend of each cluster (groupby(\"cluster\") ... .mean().round(1))\n\n\n# 4. Scatter plot of visits (x) against spend (y), coloured by cluster, with axis labels,\n#    saved with plt.savefig(\"clusters.png\")  (no plt.show() here: there is no screen)\n#    Print:  Saved clusters.png\n\n\n# 5. One sentence (at least 12 words) describing what each of the three groups seems to represent\ndescription = \"\"\n",
+    "hints": [
+      "There is no y this time: X = df[[\"visits_per_month\", \"avg_spend\"]] is all the model gets. model = KMeans(n_clusters=3, random_state=0, n_init=10) and labels = model.fit_predict(X) give one cluster number (0, 1 or 2) per row.",
+      "df[\"cluster\"] = labels adds the numbers as a column. df[\"cluster\"].value_counts().tolist() lists the sizes; wrap it in sorted(). df.groupby(\"cluster\")[[\"visits_per_month\", \"avg_spend\"]].mean().round(1) shows the average visits and spend of each group.",
+      "plt.scatter(df[\"visits_per_month\"], df[\"avg_spend\"], c=df[\"cluster\"]) colours each dot by its cluster; add plt.xlabel(\"Visits per month\") and plt.ylabel(\"Average spend\"), then plt.savefig(\"clusters.png\"). Describe the groups from the averages, for example: one group visits often but spends little, one visits rarely but spends a lot, and one is in between."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas",
+      "matplotlib",
+      "scikit-learn"
+    ],
+    "assets": [
+      {
+        "name": "shoppers.csv",
+        "content": "visits_per_month,avg_spend\n4,937\n13,318\n13,188\n13,253\n4,718\n5,726\n14,392\n13,322\n6,846\n11,379\n2,2493\n3,2540\n2,2545\n2,2229\n11,394\n6,703\n9,288\n2,2374\n10,231\n2,2447\n3,2145\n15,190\n12,300\n6,716\n13,229\n11,244\n4,759\n5,764\n4,884\n12,358\n1,1895\n15,265\n2,2590\n15,293\n7,793\n6,1085\n5,1062\n4,943\n3,2399\n1,2039\n1,2331\n4,831\n6,1025\n11,252\n15,286\n",
+        "encoding": "text",
+        "description": "45 fictional shoppers: visits_per_month and avg_spend (rupees per visit). No labels."
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "K-Means with two clusters on six points",
+        "code": "import pandas as pd\nfrom sklearn.cluster import KMeans\n\ndata = pd.DataFrame({\"x\": [1, 2, 1, 10, 11, 10], \"y\": [1, 1, 2, 10, 10, 11]})\nmodel = KMeans(n_clusters=2, random_state=0, n_init=10)\nlabels = model.fit_predict(data)\ndata[\"cluster\"] = labels\nprint(sorted(data[\"cluster\"].value_counts().tolist()))\nprint(sorted(data.groupby(\"cluster\")[\"x\"].mean().round(1).tolist()))",
+        "expected_output": "[3, 3]\n[1.3, 10.3]"
+      },
+      {
+        "description": "Saving a coloured scatter plot to a file",
+        "code": "import os\nimport matplotlib.pyplot as plt\n\nplt.scatter([1, 2, 3, 8, 9], [1, 2, 1, 8, 9], c=[0, 0, 0, 1, 1])\nplt.xlabel(\"x\")\nplt.savefig(\"dots.png\")\nprint(\"Saved:\", os.path.exists(\"dots.png\"))",
+        "expected_output": "Saved: True"
+      }
+    ],
+    "success_criteria": [
+      "model is a KMeans with n_clusters=3 and random_state=0",
+      "clusters.png is saved and holds a real chart",
+      "Your output includes: Cluster sizes: [a, b, c] with the three sizes, smallest first",
+      "description is one sentence of at least 12 words about how often each group visits and how much it spends",
+      "labels holds one cluster number (0, 1 or 2) for each of the 45 rows, with the sizes K-Means found",
+      "The three cluster centres are the ones K-Means finds from shoppers.csv"
+    ],
+    "tests": [
+      {
+        "key": "l32-t1",
+        "label": "model is a KMeans with n_clusters=3 and random_state=0",
+        "remediation": "Create it with model = KMeans(n_clusters=3, random_state=0, n_init=10) before calling fit_predict.",
+        "objective": "Run K-Means with a chosen number of clusters",
+        "hidden": false,
+        "definition": {
+          "description": "KMeans with k=3",
+          "expr": "type(model).__name__ == 'KMeans' and model.n_clusters == 3 and model.random_state == 0",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l32-t2",
+        "label": "clusters.png is saved and holds a chart",
+        "remediation": "Draw the scatter plot with plt.scatter(...) and then call plt.savefig(\"clusters.png\"). Do not use plt.show(); it does nothing here and the file must exist.",
+        "objective": "Plot the clusters and save the chart to a file",
+        "hidden": false,
+        "definition": {
+          "description": "clusters.png exists",
+          "expr": "__import__('os').path.getsize('clusters.png') > 1000",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l32-t3",
+        "label": "The cluster sizes are printed, smallest first",
+        "remediation": "sizes = sorted(df[\"cluster\"].value_counts().tolist()) after df[\"cluster\"] = labels, then print(\"Cluster sizes:\", sizes). The sizes must come from KMeans(n_clusters=3, random_state=0, n_init=10) on both columns.",
+        "objective": "Read the result of K-Means",
+        "hidden": false,
+        "definition": {
+          "description": "Cluster sizes line",
+          "stdout_contains": "Cluster sizes: [12, 15, 18]"
+        }
+      },
+      {
+        "key": "l32-t4",
+        "label": "description says what the three groups seem to represent",
+        "remediation": "Write a full sentence of at least 12 words in description. Say how often each group visits and how much it spends, using the averages you printed, for example: one group visits often but spends little, one visits rarely but spends a lot.",
+        "objective": "Describe discovered groups in plain words",
+        "hidden": false,
+        "definition": {
+          "description": "description sentence",
+          "expr": "isinstance(description, str) and len(description.split()) >= 12 and 'spend' in description.lower() and any(w in description.lower() for w in ['visit', 'often', 'frequent', 'rarely', 'occasional'])",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l32-t5",
+        "label": "labels holds one cluster number per row with the sizes K-Means found",
+        "remediation": "labels = model.fit_predict(X) gives one number (0, 1 or 2) for each of the 45 rows. Do not build or edit the labels by hand; they must come from the model.",
+        "objective": "Run K-Means on unlabelled data",
+        "hidden": true
+      },
+      {
+        "key": "l32-t6",
+        "label": "The cluster centres are the ones K-Means finds from shoppers.csv",
+        "remediation": "Fit the model on X = df[[\"visits_per_month\", \"avg_spend\"]] (all 45 rows, both columns in this order) with n_clusters=3, random_state=0 and n_init=10; do not change the data first.",
+        "objective": "Run K-Means on unlabelled data",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\nimport matplotlib.pyplot as plt\nfrom sklearn.cluster import KMeans\n\ndf = pd.read_csv(\"shoppers.csv\")\n\nX = df[[\"visits_per_month\", \"avg_spend\"]]\n\nmodel = KMeans(n_clusters=3, random_state=0, n_init=10)\nlabels = model.fit_predict(X)\ndf[\"cluster\"] = labels\n\nsizes = sorted(df[\"cluster\"].value_counts().tolist())\nprint(\"Cluster sizes:\", sizes)\nprint(df.groupby(\"cluster\")[[\"visits_per_month\", \"avg_spend\"]].mean().round(1))\n\nplt.scatter(df[\"visits_per_month\"], df[\"avg_spend\"], c=df[\"cluster\"])\nplt.xlabel(\"Visits per month\")\nplt.ylabel(\"Average spend per visit (rupees)\")\nplt.title(\"Shopper clusters found by K-Means\")\nplt.savefig(\"clusters.png\")\nprint(\"Saved clusters.png\")\n\ndescription = \"One group visits often but spends little each time, one visits a few times a month with medium spending, and one visits rarely but spends a lot.\"\n"
+  }
+}

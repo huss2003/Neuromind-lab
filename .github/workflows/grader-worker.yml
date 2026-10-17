@@ -1,0 +1,47 @@
+name: grader-worker
+# Interim official grading host (owner decision 2026-10-17, replaces AWS until a PC/VPS grader is ready).
+# Runs grader/worker.py on a GitHub-hosted runner with the same Docker + gVisor sandbox the CI job proves. Each run serves
+# about 5 h 40 min, then stops gracefully (SIGTERM: finish or release the current job). A schedule every 5 h plus the
+# concurrency group keeps exactly one run active and the next one queued behind it, so hand-over gaps are only the
+# ~3 min set-up; queued attempts wait (they expire after 15 min, never marked failed). See SELF_HOSTED_GRADER.md §14.
+# Logs are public (public repo): the worker prints no learner code and no hidden checks; the token is a masked secret.
+on:
+  schedule:
+    - cron: "17 */5 * * *"
+  workflow_dispatch:
+concurrency:
+  group: grader-worker
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install -q -r grader/requirements-worker.txt
+      - name: Install gVisor and register it with Docker
+        run: |
+          curl -fsSL https://gvisor.dev/archive.key | sudo gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | sudo tee /etc/apt/sources.list.d/gvisor.list
+          sudo apt-get update -q && sudo apt-get install -y -q runsc
+          sudo runsc install && sudo systemctl restart docker
+      - run: docker build -q -t neuromind-grader-sandbox grader/
+      - name: Serve grading jobs (about 5 h 40 min)
+        working-directory: grader
+        env:
+          API_BASE_URL: ${{ vars.GRADER_API_BASE_URL }}
+          GRADER_WORKER_TOKEN: ${{ secrets.GRADER_WORKER_TOKEN }}
+          GRADER_RUNTIME: runsc
+          WORKER_CONCURRENCY: "2"
+          WORKER_ID: gha-${{ github.run_id }}
+          GRADING_TIMEOUT_SECONDS: "5"
+          GRADING_MEMORY_MB: "128"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          [ -n "$API_BASE_URL" ] && [ -n "$GRADER_WORKER_TOKEN" ] || { echo "GRADER_API_BASE_URL variable or GRADER_WORKER_TOKEN secret missing"; exit 1; }
+          timeout --signal=TERM --kill-after=60 20400 python worker.py || [ $? -eq 124 ]

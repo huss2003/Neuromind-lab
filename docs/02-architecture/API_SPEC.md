@@ -128,7 +128,9 @@ All routes are under `/api/v1`. Errors use the standard shape. Admin routes need
 | GET | `/admin/overview` · `/admin/queue` | counts, health, queue depth, queue-wait / execution / end-to-end percentiles for 24 h, dead letters |
 | POST | `/admin/submissions/{id}/requeue` | only `status=error` with `claim_count>=3`; 404 otherwise |
 | GET | `/admin/audit?event_type&actor_id&limit(<=200)&offset` | newest first |
-| GET | `/admin/courses` · PATCH `/admin/lectures/{id}/status` | `{status: draft|published|archived}`; publishing a lecture with no sections is refused (422) |
+| GET | `/admin/courses` · PATCH `/admin/lectures/{id}/status` | `{status: draft|published|archived}`; publishing a lecture with no sections is refused (422); the lecture's questions and lab take the same status |
+| POST | `/admin/content/packs/validate` | `{pack, tests}` → `{valid, problems[], missing_tests[], summary}`; writes nothing; max about 400 KB (413) |
+| POST | `/admin/content/packs/import` | `{pack, tests, publish=false, replace_published=false, course_id?}`; idempotent upsert of the lecture, questions, checkpoints, lab, sections and hidden tests; draft unless `publish`; 422 if invalid or a hidden test definition is missing; 409 if it would turn a published lecture into a draft without `replace_published`; audited as `admin.content_pack_imported` (counts only, never test definitions) |
 | GET/POST | `/admin/cohorts` · DELETE `/admin/cohorts/{id}` | archive, not delete |
 | PUT/DELETE | `/admin/cohorts/{id}/members/{learner}` · `/teachers/{teacher}` | membership drives enrolment and teacher assignment |
 | GET/PATCH | `/admin/issues` | `{status, admin_note}` |
@@ -141,3 +143,23 @@ All routes are under `/api/v1`. Errors use the standard shape. Admin routes need
 | GET | `/teacher/cohorts` · `/teacher/reports/progress?format=json|csv&cohort_id=` | CSV cells starting with `= + - @` are prefixed with `'` |
 
 Submission views now also return `content_version`, `test_suite_version`, `started_at`, `finished_at`. The worker `GET /internal/grader/health` also returns `queue_wait_p95_seconds`, `execution_p95_seconds`, `sample_last_hour`. The API returns 403 `MFA_REQUIRED` for an account with a verified second factor when the access token did not complete it (assurance level 1).
+
+## 2026-10-16 additions (practical labs; see docs/01-product/PRACTICAL_LABS_SPEC.md)
+All routes are under `/api/v1`. Labs exist only for published lectures; a learner only reaches the lab of a lecture they have reached (a lab behind an uncompleted checkpoint answers 400 `CHECKPOINT_REQUIRED` and a locked lecture is not opened at all, as before).
+
+| Method | Route | Notes |
+|---|---|---|
+| GET | `/labs` | course → month-module → lab rows: `{lecture_id, lecture_number, lecture_title, exercise_id, title, lab_kind, packages, state, lecture_state, attempts, last_status}`; `state` is `locked`, `not_started`, `in_progress`, `awaiting_review`, `needs_retry` or `passed`, computed from server records only; learners see enrolled courses, teachers and admins all published courses |
+| GET | `/exercises/{id}` | now also `lab_kind` (`code`, `quiz`, `written`, `upload`), `scoring` (`score`, `pass_fail`), `packages`, `assets` (name, description; data files for the browser runtime), `limits`, `visible_checks` (the non-hidden checks with their definitions so the browser can run the quick check; hidden checks never leave the server), `hints_max`, `hints_used`, `cycle`, `redo_count`, `redo_available`, `questions` (quiz: prompt and options, never `correct_option_id`), `rubric`, `checklist`, `review` (teacher decision when one exists) |
+| POST | `/exercises/{id}/hints` | pass/fail labs: at most `hints_max` (3) per cycle; the fourth answers 409 `HINTS_EXHAUSTED`; score-mode labs keep the per-attempt behaviour |
+| POST | `/exercises/{id}/redo` | only when the hints of the current cycle are used up, else 409 `REDO_NOT_AVAILABLE`; starts cycle `n+1` with fresh hints and the starter code, drops the draft, keeps the attempt history; audited `lab.redo` |
+| POST | `/exercises/{id}/submissions` | body now `{source_code?, content_version?, answers?}`; `code`: graded as before (official result on the server); `quiz`: `answers = {question_id: option_id}` marked at insert, result `passed`/`failed` with `quiz_results` (per question correct/incorrect and explanation, never the correct option); `written`: `source_code` is the learner's text, status `submitted`; `upload`: `answers = {link (https), notes?, checklist: [true…]}` validated (422) then `submitted` |
+| GET | `/submissions/{id}` | also `awaiting_review`, `quiz_results`, `answers` (own submissions only) and `review` (`passed`, `feedback`, `scores`, `reviewed_at`) |
+| GET | `/teacher/reviews` | written/upload attempts in status `submitted` for the teacher's assigned learners (admins: all) |
+| POST | `/teacher/submissions/{id}/review` | `{passed, feedback, scores: [{criterion, points}]}`; points are capped by the rubric's `max_points` (422 if above); the decision becomes the official result (`passed`/`failed`, score from the rubric); re-reviewing replaces it; audited `teacher.reviewed`; 409 `NOT_REVIEWABLE` for code and quiz labs |
+| GET | `/teacher/submissions/{id}` | also `lab_kind`, `rubric`, `checklist`, `answers`, `review` |
+| GET | `/admin/exercises/{id}/tests` | every check of a lab, hidden ones included, with definitions and quiz answers — administrators only (owner decision 2026-10-16: test definitions always visible to the admin) |
+| POST | `/admin/content/packs/validate` · `/import` | pack schema v2 (`lab_only`, lab `kind`, `scoring`, `packages`, `assets`, `limits`, `questions`, `rubric`, `checklist`, `hints_max`); visible checks may carry their `definition` inline and are then never reported as missing; hidden checks must not (422) |
+| GET | `/internal/grader/claim` | the claimed job also carries `files` (lab data files), `packages`, `limits` (`memory_mb`, `timeout_seconds`) and `probes` (expressions evaluated in the learner namespace after the run; expected values stay on the server) |
+
+Official results stay server-authoritative: the browser quick check (Pyodide, same `evaluate.py` as the grader, visible checks only) is guidance; `Save` sends the code to the server and the recorded attempt, hint and redo counts come from server rows. The sandbox never reaches the internet: the predefined practice API (`https://api.neuromind.lab/v1`, in-process simulator `labmock`) is the only "network" a lab can use, in the browser and in the grader alike.

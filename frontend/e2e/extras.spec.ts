@@ -9,6 +9,10 @@ test.describe.configure({ mode: 'serial' });
 const SUPABASE_URL = process.env.E2E_SUPABASE_URL ?? '';
 const SUPABASE_ANON = process.env.E2E_SUPABASE_ANON_KEY ?? '';
 const COURSE = '00000000-0000-4000-8000-000000000001';
+const RUN = Date.now().toString(36);
+const ZED = `Zed Temporary ${RUN}`; // unique per run: a temporary account from an earlier run may still exist
+const ZED_EMAIL = `zed.${RUN}@neuromind.test`;
+const COHORT = `E2E cohort ${Date.now().toString(36)}`; // unique per run: an archived cohort keeps its name
 
 test('admin workspace: overview, create then deactivate and reactivate a person (sign-in really blocked), audit trail', async ({ page }) => {
   await signIn(page, 'admin');
@@ -18,23 +22,23 @@ test('admin workspace: overview, create then deactivate and reactivate a person 
   await expect(page.getByText('Service health')).toBeVisible();
   await page.goto('/admin/users');
   await expect(page.getByRole('cell', { name: 'learner1@neuromind.test' })).toBeVisible();
-  await page.getByLabel('Full name').fill('Zed Temporary');
-  await page.getByLabel('Email address').fill('zed.temp@neuromind.test');
+  await page.getByLabel('Full name').fill(ZED);
+  await page.getByLabel('Email address').fill(ZED_EMAIL);
   await page.getByLabel('Starting password').fill(`${PASSWORD}-zed`);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByText('Account created for Zed Temporary.')).toBeVisible();
-  await page.getByLabel('Search by name or email').fill('zed.temp');
+  await expect(page.getByText(`Account created for ${ZED}.`)).toBeVisible();
+  await page.getByLabel('Search by name or email').fill(ZED_EMAIL);
   await page.getByRole('button', { name: 'Search' }).click();
-  await expect(page.getByRole('cell', { name: 'zed.temp@neuromind.test' })).toBeVisible();
-  await page.getByRole('button', { name: /Deactivate Zed Temporary/ }).click();
+  await expect(page.getByRole('cell', { name: ZED_EMAIL })).toBeVisible();
+  await page.getByRole('button', { name: new RegExp(`Deactivate ${ZED}`) }).click();
   await page.getByRole('button', { name: 'Deactivate', exact: true }).click();
-  await expect(page.getByText('Zed Temporary was deactivated.')).toBeVisible();
+  await expect(page.getByText(`${ZED} was deactivated.`)).toBeVisible();
 
   // a deactivated person cannot sign in (the Auth user is banned) - checked straight against Supabase from the browser
-  const attempt = () => page.evaluate(async ([url, key, pw]) => (await fetch(`${url}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: key as string, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'zed.temp@neuromind.test', password: pw }) })).status, [SUPABASE_URL, SUPABASE_ANON, `${PASSWORD}-zed`] as const);
+  const attempt = () => page.evaluate(async ([url, key, pw, email]) => (await fetch(`${url}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: key as string, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pw }) })).status, [SUPABASE_URL, SUPABASE_ANON, `${PASSWORD}-zed`, ZED_EMAIL] as const);
   expect(await attempt()).toBeGreaterThanOrEqual(400);
-  await page.getByRole('button', { name: /Reactivate Zed Temporary/ }).click();
-  await expect(page.getByText('Zed Temporary was reactivated.')).toBeVisible();
+  await page.getByRole('button', { name: new RegExp(`Reactivate ${ZED}`) }).click();
+  await expect(page.getByText(`${ZED} was reactivated.`)).toBeVisible();
   await expect.poll(attempt, { timeout: 30_000 }).toBe(200);
 
   await page.goto('/admin/audit');
@@ -47,20 +51,20 @@ test('admin workspace: overview, create then deactivate and reactivate a person 
 test('cohorts: admin builds one; the teacher sees it and the learner; announcement reaches only that teacher\'s learner; report exports', async ({ page }) => {
   await signIn(page, 'admin');
   await page.goto('/admin/cohorts');
-  await page.getByLabel('Name').fill('E2E cohort');
+  await page.getByLabel('Name').fill(COHORT);
   await page.getByRole('button', { name: 'Create cohort' }).click();
-  await expect(page.getByRole('heading', { name: 'E2E cohort' })).toBeVisible();
-  await page.getByLabel('Add a teacher to E2E cohort').selectOption({ label: 'Teacher' });
+  await expect(page.getByRole('heading', { name: COHORT })).toBeVisible();
+  await page.getByLabel(`Add a teacher to ${COHORT}`).selectOption({ label: 'Teacher' });
   await page.getByRole('button', { name: 'Add teacher' }).click();
-  await expect(page.getByText('Teacher was added to E2E cohort.')).toBeVisible();
-  await page.getByLabel('Add a learner to E2E cohort').selectOption({ label: 'Learner Two' });
+  await expect(page.getByText(`Teacher was added to ${COHORT}.`)).toBeVisible();
+  await page.getByLabel(`Add a learner to ${COHORT}`).selectOption({ label: 'Learner Two' });
   await page.getByRole('button', { name: 'Add learner' }).click();
-  await expect(page.getByText('Learner Two was added to E2E cohort.')).toBeVisible();
+  await expect(page.getByText(`Learner Two was added to ${COHORT}.`)).toBeVisible();
   await signOutUi(page);
 
   await signIn(page, 'teacher');
   await page.goto('/teacher');
-  await expect(page.getByRole('group', { name: 'Cohort E2E cohort' })).toContainText('1');
+  await expect(page.getByRole('group', { name: `Cohort ${COHORT}` })).toContainText('1');
   await page.getByLabel('Title').fill('E2E announcement');
   await page.getByLabel('Message').fill('Bring your questions to the lab.');
   await page.getByRole('button', { name: 'Send announcement' }).click();
@@ -87,7 +91,7 @@ test('cohorts: admin builds one; the teacher sees it and the learner; announceme
   await signOutUi(page);
   await signIn(page, 'admin');
   await page.goto('/admin/cohorts');
-  await page.getByRole('button', { name: /Archive E2E cohort/ }).click();
+  await page.getByRole('button', { name: `Archive ${COHORT}` }).click();
   await page.getByRole('button', { name: 'Archive', exact: true }).click();
   await expect(page.getByText('Cohort archived.')).toBeVisible();
 });

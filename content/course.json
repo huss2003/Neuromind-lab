@@ -1,0 +1,842 @@
+{
+ "id": "00000000-0000-4000-8000-000000000001",
+ "slug": "ai-creator-program",
+ "title": "AI Foundations, AI Application & AI Creator Program",
+ "description": "104 hours over 13 months, 2 hours a week, from absolute beginner to AI creator. Every lecture from Lecture 9 onward has a practical lab.",
+ "modules": [
+  {
+   "id": "b84f0742-f0cc-5925-9169-7ab48132475a",
+   "module_number": 1,
+   "title": "Month 1: AI Foundations & Responsible AI",
+   "description": "Lectures 1-8.",
+   "lectures": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "id": "00000000-0000-4000-8000-000000000002",
+   "module_number": 2,
+   "title": "Month 2: Python Fundamentals I",
+   "description": "Lectures 9-16.",
+   "lectures": [
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+   ]
+  },
+  {
+   "id": "d42e3139-4072-5094-a206-05d50b2c57a0",
+   "module_number": 3,
+   "title": "Month 3: Python Fundamentals II, Data & APIs",
+   "description": "Lectures 17-24.",
+   "lectures": [
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+   ]
+  },
+  {
+   "id": "346cd19e-8e48-5d9f-ac15-9c05e0736f80",
+   "module_number": 4,
+   "title": "Month 4: Data Science & Machine Learning Foundations",
+   "description": "Lectures 25-32.",
+   "lectures": [
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32
+   ]
+  },
+  {
+   "id": "e652d608-3352-5a47-bd66-96516a71d6f9",
+   "module_number": 5,
+   "title": "Month 5: Machine Learning Practice, Computer Vision & NLP",
+   "description": "Lectures 33-40.",
+   "lectures": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40
+   ]
+  },
+  {
+   "id": "8a844b5b-8e8a-5617-8b05-be7b7f026b5a",
+   "module_number": 6,
+   "title": "Month 6: Multimodal AI & Generative AI Foundations",
+   "description": "Lectures 41-48.",
+   "lectures": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48
+   ]
+  },
+  {
+   "id": "1539a7b3-9640-56d3-8cb1-094dbaf4a897",
+   "module_number": 7,
+   "title": "Month 7: Generative AI Applications & Prompt Engineering",
+   "description": "Lectures 49-56.",
+   "lectures": [
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56
+   ]
+  },
+  {
+   "id": "dafeff8a-24a5-56a6-8439-015156c7c945",
+   "module_number": 8,
+   "title": "Month 8: Prompt Evaluation, Context Engineering & RAG",
+   "description": "Lectures 57-64.",
+   "lectures": [
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64
+   ]
+  },
+  {
+   "id": "748b6f77-e05a-5767-a363-eab6d2afa9df",
+   "module_number": 9,
+   "title": "Month 9: RAG Project, AI APIs & Agents",
+   "description": "Lectures 65-72.",
+   "lectures": [
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72
+   ]
+  },
+  {
+   "id": "414476db-b903-56c0-a846-4745548e931c",
+   "module_number": 10,
+   "title": "Month 10: Agent Automation & AI Application Development",
+   "description": "Lectures 73-80.",
+   "lectures": [
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80
+   ]
+  },
+  {
+   "id": "3191e810-538d-5a4e-979c-f25f44be6822",
+   "module_number": 11,
+   "title": "Month 11: Application Engineering & Azure AI-901 Orientation",
+   "description": "Lectures 81-88.",
+   "lectures": [
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88
+   ]
+  },
+  {
+   "id": "85aa4b1b-6c77-55c8-a47b-cb2e6b102437",
+   "module_number": 12,
+   "title": "Month 12: Azure AI-901 Certification & AWS AIF-C01 Orientation",
+   "description": "Lectures 89-96.",
+   "lectures": [
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96
+   ]
+  },
+  {
+   "id": "f582bb61-a2e9-5944-a6e7-6b8c96fcf788",
+   "module_number": 13,
+   "title": "Month 13: AWS AIF-C01 Certification & Final Capstone",
+   "description": "Lectures 97-104.",
+   "lectures": [
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104
+   ]
+  }
+ ],
+ "lectures": [
+  {
+   "number": 1,
+   "title": "What AI Is and Where We Use It",
+   "summary": "Identify everyday AI applications and explain, in plain language, what makes them \"AI\" rather than ordinary software.",
+   "practical_project": ""
+  },
+  {
+   "number": 2,
+   "title": "AI, ML, Deep Learning and Generative AI",
+   "summary": "Place AI, machine learning, deep learning and generative AI correctly inside one another and give one example of each.",
+   "practical_project": ""
+  },
+  {
+   "number": 3,
+   "title": "How AI Systems Work",
+   "summary": "Describe, step by step, the path data takes from training to a working prediction (input -> model -> output).",
+   "practical_project": ""
+  },
+  {
+   "number": 4,
+   "title": "Traditional Software vs AI + Practical AI Audit",
+   "summary": "Compare traditional rule-based programs with AI systems on inputs, logic and failure modes, and conduct a hands-on audit of real apps.",
+   "practical_project": ""
+  },
+  {
+   "number": 5,
+   "title": "Using AI Assistants Effectively",
+   "summary": "Use an AI chat assistant productively for a real task, and recognise when its answer needs to be checked rather than trusted outright.",
+   "practical_project": ""
+  },
+  {
+   "number": 6,
+   "title": "AI Safety, Privacy and Security",
+   "summary": "Identify personal and sensitive data that should never be typed into a public AI tool, and explain why.",
+   "practical_project": ""
+  },
+  {
+   "number": 7,
+   "title": "Bias, Fairness, Hallucinations and Ethics",
+   "summary": "Explain how training data can cause biased or unfair AI outputs, and define a hallucination with a concrete example.",
+   "practical_project": ""
+  },
+  {
+   "number": 8,
+   "title": "Responsible AI Workshop",
+   "summary": "Apply a responsible-AI checklist (privacy, bias, hallucination-checking, appropriate use) to evaluate a real AI tool end-to-end.",
+   "practical_project": ""
+  },
+  {
+   "number": 9,
+   "title": "Python Setup, IDE and First Program",
+   "summary": "Install and run Python in an IDE, and write/execute a first working program.",
+   "practical_project": "Set up Python and an editor, then write and run hello.py, a program that prints a personalised greeting with the student's own name plus two personal facts; the student must also deliberately break one line with a typo, read the resulting error message, and fix it."
+  },
+  {
+   "number": 10,
+   "title": "Variables, Data Types and Type Conversion",
+   "summary": "Create variables of different data types and convert between them correctly.",
+   "practical_project": "Build a 'profile card' program storing a name (str), age (int), height (float) and is_student (bool) in separate variables, then print one combined sentence about the profile that correctly converts the numeric values with str() so no TypeError is raised."
+  },
+  {
+   "number": 11,
+   "title": "Operators and Expressions",
+   "summary": "Use arithmetic, comparison and logical operators correctly, including operator precedence.",
+   "practical_project": "Build an eligibility checker (e.g. 'can I borrow this library book?') that combines at least two conditions with and/or operators, and test it against three different input sets to confirm the logic behaves correctly for each."
+  },
+  {
+   "number": 12,
+   "title": "Conditions and Decision Making",
+   "summary": "Write correct if/elif/else logic to handle multiple branching outcomes.",
+   "practical_project": "Code a 4-branch grading calculator (A/B/C/Fail) using if/elif/else with correctly ordered conditions, then deliberately test it with boundary marks (exactly 90 and exactly 60) to prove the elif order produces the right grade at each cutoff."
+  },
+  {
+   "number": 13,
+   "title": "Loops",
+   "summary": "Use for loops and while loops correctly, including range() and avoiding infinite loops.",
+   "practical_project": "Write both a for loop (using range()) and a while loop version of the same task — summing the numbers 1 to 100 — compare their outputs, and in the while loop deliberately omit the counter increment once to produce and then fix a real infinite loop."
+  },
+  {
+   "number": 14,
+   "title": "Strings and String Manipulation",
+   "summary": "Manipulate strings using indexing, slicing, and common built-in string methods.",
+   "practical_project": "Write a script that takes a messy raw string (extra spaces, inconsistent case) and cleans it into a presentable name using .strip(), .lower()/.title() and related string methods, then builds a greeting sentence from the cleaned name using an f-string."
+  },
+  {
+   "number": 15,
+   "title": "Lists and Tuples",
+   "summary": "Create, index, slice and modify lists; explain why tuples are immutable and when to use each.",
+   "practical_project": "Build a list-based task tracker that adds, removes and sorts items, and separately create an immutable tuple (e.g. a fixed coordinate or RGB colour) and attempt to mutate one of its elements to trigger and explain the resulting TypeError."
+  },
+  {
+   "number": 16,
+   "title": "Dictionaries and Sets",
+   "summary": "Use dictionaries for key-value lookups and sets for removing duplicates/membership checks, and choose correctly between them.",
+   "practical_project": "Build a dictionary-based contact book (name -> phone number) using correct key access and .get() with a default for a missing key, plus a set that deduplicates a list of email sign-ups, demonstrating that the set's length drops once duplicates are removed."
+  },
+  {
+   "number": 17,
+   "title": "Functions and Parameters",
+   "summary": "Write reusable functions with parameters, default values and return values.",
+   "practical_project": "Refactor a piece of repeated, copy-pasted grade-calculation code into a single reusable function with parameters and a return value (not print), add one default parameter, and call the function with three different sets of arguments."
+  },
+  {
+   "number": 18,
+   "title": "Debugging and Programming Challenge",
+   "summary": "Apply systematic debugging (reading tracebacks, isolating the failing line, testing small pieces) to fix broken code under time pressure.",
+   "practical_project": "Debug a deliberately broken ~15-line program containing an off-by-one range, a missing str() TypeError, an indentation mistake and a variable-name typo, fixing all bugs within a time limit and keeping a bug log recording each bug found and its fix."
+  },
+  {
+   "number": 19,
+   "title": "Functions, Scope and Modular Programming",
+   "summary": "Explain variable scope (local vs global) and organise code into separate, importable modules.",
+   "practical_project": "Refactor a single large script into two files — a helper module holding at least two functions and a main.py that imports and calls them — and fix a deliberate global-vs-local scope bug (an UnboundLocalError) by choosing between the global keyword and passing values via parameters/return."
+  },
+  {
+   "number": 20,
+   "title": "Files, Paths and Exception Handling",
+   "summary": "Read and write text files safely, and handle predictable errors using try/except instead of letting the program crash.",
+   "practical_project": "Build a small file-based notes app that writes user notes to a text file using 'with open(...)', reads them back, and wraps the read step in try/except so a missing or empty file prints a friendly message instead of crashing the program."
+  },
+  {
+   "number": 21,
+   "title": "JSON, Dictionaries and Structured Data",
+   "summary": "Read and write JSON data, mapping it correctly to Python dictionaries and lists.",
+   "practical_project": "Build a Python dict representing a small product catalogue with nested fields, save it to a JSON file with json.dump(), then load it back with json.load() and print one nested value to confirm the save-then-load round trip worked correctly."
+  },
+  {
+   "number": 22,
+   "title": "Basic Object-Oriented Programming",
+   "summary": "Define a simple class with attributes and methods, and create multiple objects (instances) from it.",
+   "practical_project": "Define a Python class (e.g. Pet, Book or Playlist) with at least two attributes and one method using __init__ and self, then create two separate instances and print each one's introduce()-style output to demonstrate that their data is independent."
+  },
+  {
+   "number": 23,
+   "title": "APIs, HTTP and Requests",
+   "summary": "Make a basic HTTP GET request to a public API using Python's requests library and extract data from the JSON response.",
+   "practical_project": "Write a script that sends a GET request to a public API with requests.get(), checks response.status_code before trusting the result, parses the JSON response with .json(), and prints one specific extracted field in a readable sentence."
+  },
+  {
+   "number": 24,
+   "title": "NumPy Fundamentals",
+   "summary": "Create and manipulate NumPy arrays, and explain why NumPy is faster than plain Python lists for numeric work.",
+   "practical_project": "Convert a list of sample exam scores into a NumPy array and compute its mean, max, min and standard deviation plus a +5 'curve' adjustment, all using vectorised array operations instead of manual for loops."
+  },
+  {
+   "number": 25,
+   "title": "Pandas and Data Cleaning",
+   "summary": "Load a CSV into a Pandas DataFrame and clean common real-world data problems (missing values, wrong types, duplicates).",
+   "practical_project": "Load a deliberately messy fictional CSV of students' marks with pd.read_csv(), use .info() and .describe() to diagnose a missing value, a wrong-type (text) column and a duplicate row, then write cleaning code (fillna/astype/drop_duplicates) that fixes each problem and document what was found and fixed."
+  },
+  {
+   "number": 26,
+   "title": "Matplotlib, Data Interpretation and Git/GitHub",
+   "summary": "Create a basic chart from cleaned data, correctly interpret what it shows, and publish a project to GitHub with a README.",
+   "practical_project": "Using the Lecture 25 cleaned marks data, build a bar chart of average marks per subject with Matplotlib, write 2-3 sentences of genuine interpretation of what the chart shows, and publish the cleaned-CSV code plus the chart to a new GitHub repository with a README covering purpose, data source and limitations."
+  },
+  {
+   "number": 27,
+   "title": "What Is Machine Learning?",
+   "summary": "Explain machine learning as learning patterns from examples rather than following hand-written rules, with a concrete contrast.",
+   "practical_project": "Compare two approaches to the same prediction problem (e.g. detecting spam) side by side — a hand-written rule list versus 'show the computer 1000 labelled examples' — and write up the pros and cons of each to show why ML learns patterns rather than following hand-coded rules."
+  },
+  {
+   "number": 28,
+   "title": "Datasets, Features and Labels",
+   "summary": "Identify features and labels in a real dataset and explain the difference between them.",
+   "practical_project": "Load a small fictional dataset (e.g. housing or pass/fail records) with Pandas, use .columns and .head() to inspect it, and correctly label each column as a feature or the label, explicitly justifying which column is the label and why."
+  },
+  {
+   "number": 29,
+   "title": "Data Preparation and Train/Test Splits",
+   "summary": "Split a dataset into training and test sets correctly, and explain why testing on unseen data matters.",
+   "practical_project": "Perform an 80/20 train_test_split on a provided dataset's features (X) and labels (y), print the resulting shapes of each split, and write one sentence explaining why the test set must never be used during training."
+  },
+  {
+   "number": 30,
+   "title": "Regression",
+   "summary": "Explain what regression predicts (a continuous number) and distinguish it from classification.",
+   "practical_project": "Use sklearn's LinearRegression to fit a model on a small (hours_studied, exam_score) dataset, then predict the score for a new, unseen number of study hours and sanity-check whether the predicted value is reasonable."
+  },
+  {
+   "number": 31,
+   "title": "Classification",
+   "summary": "Explain what classification predicts (a category) and build a simple classifier.",
+   "practical_project": "Train a simple classifier (e.g. KNeighborsClassifier) on a small labelled dataset, predict the class of at least one new unseen example, and explain the prediction using the nearest-neighbours intuition."
+  },
+  {
+   "number": 32,
+   "title": "Clustering",
+   "summary": "Explain unsupervised clustering (grouping unlabelled data) and distinguish it from the supervised tasks in Lectures 30-31.",
+   "practical_project": "Run K-Means with k=3 on a small 2-feature unlabelled dataset, plot the resulting clusters in different colours, and write one sentence describing what each discovered group appears to represent, with no predefined labels used."
+  },
+  {
+   "number": 33,
+   "title": "Model Evaluation",
+   "summary": "Calculate and interpret accuracy, precision, recall and a confusion matrix for a classification model.",
+   "practical_project": "Compute a confusion matrix plus precision and recall for a provided set of model predictions versus true labels, and write a verdict on whether the model is actually useful given a scenario (like disease detection) where accuracy alone is misleading."
+  },
+  {
+   "number": 34,
+   "title": "Overfitting and Generalisation",
+   "summary": "Identify overfitting from a train-vs-test performance gap and describe at least one way to reduce it.",
+   "practical_project": "Given train/test accuracy pairs for three different models, diagnose each as overfit, underfit, or well-generalised based on the train-test gap, and propose one concrete, specific fix for each problem case."
+  },
+  {
+   "number": 35,
+   "title": "Building an ML Model with Scikit-learn",
+   "summary": "Build a complete, working ML pipeline end-to-end: load data, split it, train a model, and evaluate it correctly.",
+   "practical_project": "Build a complete end-to-end ML pipeline on a provided dataset different from the lecture demo: load with Pandas, identify features/label, split train/test, choose and train an appropriate regression or classification model, and evaluate it, documenting each stage with a comment explaining what it does."
+  },
+  {
+   "number": 36,
+   "title": "ML Mini-Project and Practical Assessment",
+   "summary": "Independently complete and present a small end-to-end ML project, demonstrating the full Month 5 skill set under practical assessment conditions.",
+   "practical_project": "Independently complete a timed mock practical: given an unseen fictional dataset, choose the appropriate task type, build and evaluate a full ML pipeline, and submit the code plus a short written verdict stating the model's performance and at least one genuine limitation."
+  },
+  {
+   "number": 37,
+   "title": "Computer Vision Fundamentals",
+   "summary": "Explain how a digital image is represented as numeric pixel data, and why that representation is what a CV model actually learns from.",
+   "practical_project": "Load a sample image, print its NumPy shape (height x width x colour channels) and a slice of raw pixel values, then convert it to grayscale and compare the array shape before and after to show what a model actually 'sees'."
+  },
+  {
+   "number": 38,
+   "title": "Image Classification, Object Detection and OCR",
+   "summary": "Distinguish image classification, object detection and OCR by what each one actually outputs, and try each on a sample image.",
+   "practical_project": "Run a pretrained image classifier, an object detector and an OCR tool on the same sample photo (e.g. a street scene with a shop sign) and write a short comparison of what each one actually returned — a single label, bounding boxes, or extracted text."
+  },
+  {
+   "number": 39,
+   "title": "Natural Language Processing Fundamentals",
+   "summary": "Explain tokenisation and why text must be converted to numbers before any model can process it.",
+   "practical_project": "Use a provided tokeniser to tokenise three self-written sentences, inspect the resulting token list and token IDs, and note any surprising subword splits to show why raw text must be converted to numbers before a model can process it."
+  },
+  {
+   "number": 40,
+   "title": "Text Classification, Sentiment and Information Extraction",
+   "summary": "Build and evaluate a basic sentiment classifier, and extract specific entities from text.",
+   "practical_project": "Run a provided sentiment analysis tool on five real or sample reviews, including at least one sarcastic/ambiguous one, and write up where the tool classified correctly and where it failed, plus run entity extraction on a sentence to pull out named people, locations and dates."
+  },
+  {
+   "number": 41,
+   "title": "Multimodal AI: Text, Images, Audio and Video",
+   "summary": "Explain what makes an AI system multimodal and give a real example combining at least two modalities.",
+   "practical_project": "Use a provided multimodal tool to answer a typed text question about an uploaded image, then repeat with a deliberately unrelated question on the same image and write up how the model's answer changed, demonstrating that the model relates the two modalities together rather than treating them independently."
+  },
+  {
+   "number": 42,
+   "title": "Practical Multimodal AI Application",
+   "summary": "Build a small working application combining at least two modalities to accomplish a real task.",
+   "practical_project": "Build a two-step pipeline that photographs a page of handwritten or printed notes, runs OCR to extract the text, then feeds that text into a summarisation or topic-classification step to produce 3 bullet-point takeaways, testing the pipeline on two different images and documenting one observed failure and which stage caused it."
+  },
+  {
+   "number": 43,
+   "title": "What Is Generative AI?",
+   "summary": "Explain what makes generative AI distinct from the classification/regression models built in Month 5, with examples across text, image and audio.",
+   "practical_project": "Generate 3 outputs from the exact same text or image prompt using a generative tool, confirm none are identical, and write 2-3 sentences explaining why a generative model produces varying new content instead of selecting from a fixed set of answers like a Month 5 classifier would."
+  },
+  {
+   "number": 44,
+   "title": "How Large Language Models Work",
+   "summary": "Explain next-token prediction as the core mechanism behind how an LLM generates text, one token at a time.",
+   "practical_project": "Manually rank 4 candidate next words for 3 incomplete sentences by estimated likelihood, then compare the rankings against an actual LLM's completions, and write an explanation of autoregressive generation showing how each predicted token gets fed back in as context for predicting the next one."
+  },
+  {
+   "number": 45,
+   "title": "Tokens, Context Windows and Model Outputs",
+   "summary": "Explain what a context window is, why it has a limit, and what happens when that limit is exceeded.",
+   "practical_project": "Estimate, using a rough tokens-per-word rule of thumb, whether a given long document fits inside a stated context-window size, then test by pasting a long text plus a lengthy conversation into an assistant and showing where earlier details get dropped or truncated once the shared token budget is exceeded."
+  },
+  {
+   "number": 46,
+   "title": "Training, Fine-Tuning and Inference -- Conceptual Overview",
+   "summary": "Distinguish pretraining, fine-tuning and inference, and explain why most learners use pretrained models rather than training one from scratch.",
+   "practical_project": "Sort 5 given AI-usage scenarios (e.g. chatting with an assistant, adapting a model to legal documents, training a model from scratch) into pretraining, fine-tuning, or inference, then write one-line justifications explaining why routine assistant use is inference rather than training."
+  },
+  {
+   "number": 47,
+   "title": "Embeddings and Semantic Similarity -- Introduction",
+   "summary": "Explain what an embedding is (a numeric vector representing meaning) and why similar meanings produce similar vectors.",
+   "practical_project": "Use a provided tool to generate embeddings for 5 short sentences (some similar in meaning, some unrelated), compute pairwise similarity scores, and verify that semantically similar sentence pairs score higher than unrelated pairs despite sharing little or no identical wording."
+  },
+  {
+   "number": 48,
+   "title": "Hallucinations and Model Limitations",
+   "summary": "Identify and verify a hallucinated claim from an LLM, building directly on the Lecture 7 definition with LLM-specific detail.",
+   "practical_project": "Ask an AI assistant for 3 specific factual claims (a date, a statistic, and a citation) on a chosen topic, independently verify each one against a reliable source, and write up which claims (if any) were hallucinated and exactly how each was checked."
+  },
+  {
+   "number": 49,
+   "title": "Comparing Models and AI Services",
+   "summary": "Compare 2-3 different AI models/services on a shared task using defined criteria (cost, speed, quality, context window), rather than by reputation alone.",
+   "practical_project": "Run the identical small task (e.g. summarising the same paragraph) through 2-3 different AI tools/models, score each on cost, speed, quality and context-window relevance in a comparison table, and write a one-line recommendation justified by at least 2 of those criteria."
+  },
+  {
+   "number": 50,
+   "title": "Build a Small Generative AI Application",
+   "summary": "Build a small, working generative AI application end-to-end, consolidating Lectures 43-49.",
+   "practical_project": "Design and build a small generative application (e.g. a flashcard generator that turns a topic into 5 question/answer pairs), call a text-generation model with a clear prompt, manually verify at least 2 of the generated facts, and publish the finished app to GitHub with a README documenting the verification steps."
+  },
+  {
+   "number": 51,
+   "title": "Prompt Structure and Clear Instructions",
+   "summary": "Write a well-structured prompt with explicit task, role, and constraints, and show the measurable difference versus a vague prompt.",
+   "practical_project": "Take a vague prompt (e.g. \"explain photosynthesis\") and rewrite it using an explicit Role + Task + Constraints structure, run both the original and rewritten versions through a model, and compare the two outputs to show the measurable improvement from adding structure."
+  },
+  {
+   "number": 52,
+   "title": "Context, Constraints and Output Formats",
+   "summary": "Add relevant background context to a prompt and request a specific output format (e.g. a table or JSON), and verify the format is followed correctly.",
+   "practical_project": "Provide a model with a real piece of context (an actual email or paragraph of notes) and request its response in a specific structured format such as a 3-column table, then check whether the output actually matches the requested structure and revise the prompt if it drifted."
+  },
+  {
+   "number": 53,
+   "title": "Few-Shot Examples and Structured Responses",
+   "summary": "Use few-shot examples inside a prompt to steer the model's output style and format more reliably than instructions alone.",
+   "practical_project": "Take a style-sensitive task where a zero-shot prompt produces inconsistent output, add 2-3 few-shot input/output examples directly in the prompt, and compare the consistency of the results before and after adding the examples."
+  },
+  {
+   "number": 54,
+   "title": "Prompt Testing and Iterative Improvement",
+   "summary": "Systematically test a prompt against multiple inputs, identify failure cases, and iteratively revise the prompt to fix them.",
+   "practical_project": "Take an existing prompt and test it against 5 varied inputs including at least one deliberate edge case, diagnose the specific cause of any failure, revise the prompt to fix it, and re-test all 5 inputs to confirm the fix didn't break a previously working case."
+  },
+  {
+   "number": 55,
+   "title": "Hallucination Testing and Fact Verification",
+   "summary": "Design a deliberate test to check whether a prompt/model combination is prone to hallucinating on a specific task, and apply a mitigation.",
+   "practical_project": "Design a deliberately tricky, partly-fictional probe question (e.g. describing a nonexistent historical treaty) to tempt hallucination, run it both with and without an explicit \"say so if you're not confident\" instruction, and compare the two responses to assess whether the mitigation measurably reduced confident fabrication."
+  },
+  {
+   "number": 56,
+   "title": "Building an Evaluation Dataset",
+   "summary": "Build a small evaluation dataset of test cases with known correct answers, to systematically score a prompt's performance.",
+   "practical_project": "Build an 8-10 item evaluation dataset for a chosen prompt task, each item with a verified, known-correct expected answer, structured so it can be used to objectively score any version of that task's prompt in the next lecture."
+  },
+  {
+   "number": 57,
+   "title": "Prompt Evaluation Benchmark Project",
+   "summary": "Score 2-3 competing prompt versions against the Lecture 56 evaluation dataset and select the best one with evidence.",
+   "practical_project": "Write 2-3 competing versions of a prompt for the same task (e.g. plain, few-shot, constraint-heavy), score each version's accuracy against every item in the Lecture 56 evaluation dataset, and write a justified recommendation naming the winning version and its actual score."
+  },
+  {
+   "number": 58,
+   "title": "What Is Context Engineering?",
+   "summary": "Explain context engineering as deliberately designing what information surrounds a prompt, distinct from (and broader than) prompt engineering.",
+   "practical_project": "Pick a question an AI assistant cannot answer correctly from general training alone (e.g. \"what's in my fridge right now\"), and design on paper exactly what specific piece of context and from what source would need to be supplied alongside the prompt for the model to answer it correctly."
+  },
+  {
+   "number": 59,
+   "title": "Documents, Chunking and Metadata",
+   "summary": "Split a long document into appropriately sized chunks with metadata, and explain why chunk size affects retrieval quality.",
+   "practical_project": "Split a provided multi-page sample document into appropriately sized chunks with a chosen overlap, attach simple metadata (section/source name) to each chunk, and write a justification of the chosen chunk size balancing context preservation against retrieval precision."
+  },
+  {
+   "number": 60,
+   "title": "Embeddings and Semantic Search",
+   "summary": "Embed a set of document chunks and retrieve the most relevant ones for a query using semantic similarity, building directly on Lecture 47.",
+   "practical_project": "Embed the chunks from the Lecture 59 document plus a test query that deliberately uses different wording than the document (e.g. \"vacation days\" vs \"annual leave\"), and confirm that semantic search correctly retrieves the matching chunk despite the wording mismatch, explaining why keyword search would have missed it."
+  },
+  {
+   "number": 61,
+   "title": "Vector Search and Retrieval",
+   "summary": "Store chunk embeddings in a vector index and retrieve the top-k most relevant chunks efficiently for a query.",
+   "practical_project": "Store a batch of chunk embeddings in a simple vector index tool, run several test queries with k=3, and inspect the top-k retrieved chunks and their similarity scores to judge which results are genuinely relevant versus borderline."
+  },
+  {
+   "number": 62,
+   "title": "RAG Architecture",
+   "summary": "Diagram and explain the full RAG (retrieval-augmented generation) pipeline end to end, connecting every prior lecture in the unit.",
+   "practical_project": "Draw the complete RAG pipeline from memory (query -> embed -> retrieve top-k chunks -> insert as context -> generate answer), labelling each stage with the earlier lecture whose skill it uses, and write a paragraph explaining why this architecture reduces but does not eliminate hallucination risk."
+  },
+  {
+   "number": 63,
+   "title": "Building a Simple RAG Pipeline",
+   "summary": "Implement a working RAG pipeline end to end in code, from a document to a grounded generated answer.",
+   "practical_project": "Write code that chunks a provided sample document, embeds and stores the chunks, accepts a user query, retrieves the top-k relevant chunks, inserts them into a prompt template, and calls a generation model to produce a grounded answer, then test the pipeline on 3 different questions and verify each answer is actually supported by its retrieved chunk."
+  },
+  {
+   "number": 64,
+   "title": "Evaluating Retrieval and Answers",
+   "summary": "Evaluate a RAG pipeline's retrieval quality and answer quality separately, since each can fail independently.",
+   "practical_project": "Build a 5-8 item evaluation set of query/expected-chunk/expected-answer triples for the Lecture 63 pipeline, score retrieval accuracy and answer accuracy as two separate numbers, and diagnose any mismatch by identifying whether the failure occurred at the retrieval stage or the generation stage."
+  },
+  {
+   "number": 65,
+   "title": "RAG Knowledge Assistant Project",
+   "summary": "Build, evaluate and present a complete RAG-based knowledge assistant on a self-chosen document set, consolidating the full Month 9 unit.",
+   "practical_project": "Build a complete RAG-based knowledge assistant over a self-chosen document set (notes, a hobby topic, or a short guide), run the two-metric retrieval/answer evaluation from Lecture 64 against it, and prepare a presentation covering the document choice, pipeline design, evaluation scores, and one honestly reported real limitation."
+  },
+  {
+   "number": 66,
+   "title": "HTTP, REST APIs and Authentication",
+   "summary": "Explain REST API authentication methods and make an authenticated API request correctly and securely.",
+   "practical_project": "Make an authenticated GET request to a provided test API by passing the API key as a Bearer token in the request header, then deliberately compare it against a non-working attempt that places the key in the URL, explaining the logging/exposure risk the header approach avoids."
+  },
+  {
+   "number": 67,
+   "title": "Calling an LLM API from Python",
+   "summary": "Call a real LLM API from Python with a correctly structured request, and extract the generated text from the response.",
+   "practical_project": "Write a Python script that sends a chosen prompt to a real LLM API, checks the response status code, and correctly parses the nested JSON structure to extract and print just the generated text rather than the full raw response."
+  },
+  {
+   "number": 68,
+   "title": "Handling JSON Responses, Errors and Retries",
+   "summary": "Handle real-world API failures gracefully using try/except and a retry strategy, rather than letting the program crash on the first failure.",
+   "practical_project": "Wrap an LLM API call in try/except with a 3-attempt retry loop (with a short delay between attempts), then test it against a provided deliberately-failing endpoint to confirm the retry logic actually engages and reports a clear failure message once all attempts are exhausted."
+  },
+  {
+   "number": 69,
+   "title": "Environment Variables and API Key Security",
+   "summary": "Store and load an API key securely using environment variables instead of hardcoding it in source code.",
+   "practical_project": "Refactor a prior script so its API key is loaded from a `.env` file via `os.getenv()` instead of being hardcoded in the source, and confirm `.env` is listed in `.gitignore` before committing, demonstrating no secret key appears in plain text anywhere in the committed code."
+  },
+  {
+   "number": 70,
+   "title": "Building a Python AI Workflow",
+   "summary": "Chain multiple API calls together into one automated workflow that accomplishes a multi-step task.",
+   "practical_project": "Build a 3-step Python workflow that fetches data from one API (e.g. a news headline), passes it into an LLM API call for a one-line summary, and saves the result to a dated file, applying secure key loading and basic error handling throughout and documenting how data flows between the three steps."
+  },
+  {
+   "number": 71,
+   "title": "Agent Fundamentals and Tool Calling",
+   "summary": "Explain what an AI agent is (an LLM that can decide to call external tools) and build a minimal example with one tool.",
+   "practical_project": "Build a minimal agent with one tool (e.g. a calculator or unit-converter function) and test it with 3 queries -- one that should trigger the tool, one that shouldn't, and one ambiguous case -- then explain the agent's tool-use decision for the ambiguous case and whether it was correct."
+  },
+  {
+   "number": 72,
+   "title": "Workflow Automation and External Tools",
+   "summary": "Integrate a real external tool/service into an agent or workflow (beyond a toy function), handling its specific input/output requirements.",
+   "practical_project": "Integrate one real external tool (e.g. a real search API or a file-writing function, not a toy demo) into the Lecture 71 agent, matching its exact expected input/output format, apply a deliberate scoping limit (such as restricting a file-writing tool to one folder) to keep it safe, and test with a deliberately malformed input to confirm the error handling catches the mismatch gracefully."
+  },
+  {
+   "number": 73,
+   "title": "Testing and Monitoring AI Workflows",
+   "summary": "Add logging and basic monitoring to an AI workflow/agent so failures and unusual behaviour can be detected after the fact, not just during a live test.",
+   "practical_project": "Add structured logging (timestamp, action taken, success/failure) to the multi-step workflow/agent built in Lectures 70-72, run it against 10 varied test inputs, and produce a log-based report identifying any failure pattern across the runs."
+  },
+  {
+   "number": 74,
+   "title": "AI Workflow/Agent Project",
+   "summary": "Design, build, log and present a complete AI workflow or agent project, consolidating the full Month 10 unit.",
+   "practical_project": "Design, build and log a complete original AI workflow or agent (e.g. a study-helper agent that looks up a topic, summarizes it, and saves the summary to a file) with secure key storage, error handling/retries, and sensible tool scoping, then run it across at least 10 varied test inputs and present the design alongside the actual logged success/failure rate."
+  },
+  {
+   "number": 75,
+   "title": "AI Application Requirements and Problem Definition",
+   "summary": "Write a clear requirements document for an AI application, defining the problem, users, and success criteria before writing any code.",
+   "practical_project": "Write a one-page requirements document for a chosen Month 11 capstone app idea, specifying the target user, the specific problem being solved, the core features, and at least one concrete, measurable success criterion (e.g. a percentage, time limit, or accuracy threshold) rather than a vague goal."
+  },
+  {
+   "number": 76,
+   "title": "Application Architecture and Component Design",
+   "summary": "Design a component-level architecture for an AI application, identifying each piece and how data flows between them.",
+   "practical_project": "Starting from the Lecture 75 requirements, draw a component-level architecture diagram for the capstone app (input/UI, processing logic, AI API calls, storage, output), labelling each component's responsibility and the exact data that flows between adjacent components."
+  },
+  {
+   "number": 77,
+   "title": "Python Project Structure and Reusable Modules",
+   "summary": "Organise an application's code into a clean, multi-file project structure with reusable modules, rather than one long script.",
+   "practical_project": "Restructure the capstone project's code into separate purpose-specific files (e.g. ai_calls.py, storage.py, main.py) matching the Lecture 76 component diagram, with each file handling exactly one responsibility and main.py importing and wiring them together correctly."
+  },
+  {
+   "number": 78,
+   "title": "Connecting Frontend, Backend and AI APIs",
+   "summary": "Wire together a basic user-facing interface, backend processing logic, and an AI API call into one working request/response flow.",
+   "practical_project": "Connect the capstone's input interface (CLI or simple web form) to its backend logic so a full round trip works: user input is received, passed to an AI API call, and a processed result is returned to the same interface, fixing at least one real format/wiring issue encountered along the way."
+  },
+  {
+   "number": 79,
+   "title": "Data Handling and Persistent Storage",
+   "summary": "Persist application data correctly between runs using file or lightweight database storage, handling corrupted/missing data gracefully.",
+   "practical_project": "Add persistent storage (e.g. a JSON file) to the capstone so its data survives between runs, then deliberately delete or corrupt the data file and confirm the app starts gracefully with a sensible default/empty state instead of crashing."
+  },
+  {
+   "number": 80,
+   "title": "Input Validation and Error Handling",
+   "summary": "Validate user input against expected constraints before processing it, and give clear, specific error messages when input is invalid.",
+   "practical_project": "Add input validation to the capstone's entry point covering at least 3 realistic bad-input cases (empty, excessively long, wrong type/format), each failing fast before any costly AI API call and producing a specific, actionable error message rather than a crash or generic failure."
+  },
+  {
+   "number": 81,
+   "title": "Testing Python Functions and API Integrations",
+   "summary": "Write and run automated tests for individual functions and for an AI API integration, including a mocked test that doesn't require a real API call.",
+   "practical_project": "Write at least 3 unit tests for a pure logic function in the capstone (e.g. a formatting function) checking exact expected outputs, plus one mocked test for the capstone's API-handling code that verifies correct response parsing without making a real network call, and confirm all tests pass."
+  },
+  {
+   "number": 82,
+   "title": "AI Application Evaluation",
+   "summary": "Evaluate the finished application against the Lecture 75 success criteria using real test cases, not just a subjective impression.",
+   "practical_project": "Build an 8-10 case evaluation set and run the finished capstone application against it, scoring the actual result honestly against the specific measurable success criterion defined in Lecture 75, including reporting any shortfall and its likely cause."
+  },
+  {
+   "number": 83,
+   "title": "Logging, Debugging and Observability",
+   "summary": "Add structured logging and basic observability to a deployed-style application so issues can be diagnosed after the fact.",
+   "practical_project": "Add structured logging with appropriate severity levels (info/warning/error) across the capstone application covering requests, AI calls, and errors, then verify by inspection that no sensitive data (API keys, raw personal input) ever appears in a log entry."
+  },
+  {
+   "number": 84,
+   "title": "Basic Deployment and Environment Configuration",
+   "summary": "Deploy a working version of the application to a basic hosting environment, with configuration (not hardcoded values) controlling environment-specific settings.",
+   "practical_project": "Deploy the capstone application to a simple hosting environment, replacing any hardcoded local paths/settings with environment-variable-based configuration, then test the deployed version directly and document and fix any environment-specific issue that surfaces."
+  },
+  {
+   "number": 85,
+   "title": "Application Security and Secrets Management",
+   "summary": "Audit a deployed application for common security issues: exposed secrets, unvalidated input, and insecure data handling.",
+   "practical_project": "Run a structured security audit of the deployed capstone: search all code, logs, and config for any exposed API key or secret, confirm input validation is present at every entry point, and document every finding (including \"none found\") with evidence."
+  },
+  {
+   "number": 86,
+   "title": "Integration, Testing and Project Review",
+   "summary": "Complete a final integration pass on the capstone application, confirming every Month 11 requirement (architecture, testing, evaluation, security, deployment) is genuinely in place.",
+   "practical_project": "Complete a full Month 11 review checklist against the capstone covering architecture, project structure, the connected loop, data persistence, validation, testing, evaluation, logging, deployment, and security, fix any gap found (including redeploying after security fixes), and publish the finalised project and README to GitHub."
+  },
+  {
+   "number": 87,
+   "title": "Azure AI-901: Exam Structure, Skills Measured and Readiness Plan",
+   "summary": "Describe the AI-901 exam's structure, the two skill domains it measures, and build a personal 6-hour study plan for the remaining lectures in this unit.",
+   "practical_project": "Map personal Month 1-10 notes against the AI-901 exam's two skill domains (concepts ~40-45%, implementing AI solutions with Microsoft Foundry ~55-60%) to identify confidence gaps, then write a personal 6-hour study plan across Lectures 88-92 that allocates more time to the weaker domain."
+  },
+  {
+   "number": 88,
+   "title": "Azure AI-901: AI Concepts, Workloads and Responsible AI Review",
+   "summary": "Review and self-test on AI-901's \"AI concepts, workloads and responsible AI\" domain, drawing directly on Months 1, 5 and 7 content.",
+   "practical_project": "Complete a 10-question self-test matching described business scenarios to the correct AI workload type (computer vision, NLP, generative AI, classic ML) and to Microsoft's six responsible-AI pillars, then review every missed item against its specific source lecture from Months 1, 5, or 7."
+  },
+  {
+   "number": 89,
+   "title": "Azure AI-901: Microsoft Foundry, Models and AI Solution Implementation",
+   "summary": "Describe Microsoft Foundry's role in implementing AI solutions and correctly select an appropriate model/service approach for a given scenario.",
+   "practical_project": "Work through 4 scenario cards, each requiring selection and justification of the appropriate Microsoft Foundry implementation approach (a foundation model for generation, a vision model, or a RAG pattern for grounded Q&A) for a described business need."
+  },
+  {
+   "number": 90,
+   "title": "Azure AI-901: Python, REST APIs, SDKs, Azure Resources and Implementation Scenarios",
+   "summary": "Apply Month 3-4 Python and Month 10 API/authentication skills to AI-901-style implementation scenario questions.",
+   "practical_project": "Work through 6 AI-901-style implementation scenario questions involving short code/REST API snippets (e.g. identifying an API key placed incorrectly in a URL instead of a header) and identify the correct vs. incorrect pattern in each, drawing on Month 10 API skills."
+  },
+  {
+   "number": 91,
+   "title": "Azure AI-901: Timed Scenario-Based Practice and Weak-Area Review",
+   "summary": "Complete a timed set of AI-901-style scenario questions under exam-like time pressure and identify remaining weak areas before the mock exam.",
+   "practical_project": "Complete a timed 20-question AI-901-style practice set spanning both exam domains, then categorise every wrong answer as either a genuine concept gap or a reading/timing mistake, producing a specific, actionable weak-area list ahead of the Lecture 92 mock exam."
+  },
+  {
+   "number": 92,
+   "title": "Azure AI-901: Mock Exam, Review and Remediation",
+   "summary": "Complete a full-length AI-901 mock exam under real exam conditions, score it against the 700/1000 passing bar, and complete targeted remediation on any remaining weak areas.",
+   "practical_project": "Complete a full-length, timed AI-901 mock exam matching the real question count and domain split, score it against the 700/1000 passing bar with a domain-level (concepts vs. implementation) breakdown, and write a one-paragraph remediation plan naming specific lectures to revisit for any domain scoring below target."
+  },
+  {
+   "number": 93,
+   "title": "AWS AIF-C01: Exam Structure, Domain Weightings and Study Plan",
+   "summary": "Describe the AIF-C01 exam's five domains and their exact weightings, and build a personal 6-hour study plan across Lectures 94-98.",
+   "practical_project": "Build a personal 6-hour study plan across Lectures 94-98 that allocates review time proportionally to the AIF-C01 exam's actual domain weightings (20/24/28/14/14%) rather than splitting time evenly across the five domains."
+  },
+  {
+   "number": 94,
+   "title": "AWS AIF-C01: AI/ML Lifecycle, Generative AI, Foundation Models and Prompt Engineering",
+   "summary": "Review AIF-C01's two heaviest early domains (Fundamentals of AI/ML, 20%, and Fundamentals of GenAI, 24%) using Months 5, 7 and 8 content.",
+   "practical_project": "Complete a 12-question self-test split across AIF-C01 Domain 1 (AI/ML lifecycle terminology) and Domain 2 (generative AI/prompt engineering terminology), drawing on Month 5, 7, and 8 vocabulary, and review every missed item against its specific source lecture."
+  },
+  {
+   "number": 95,
+   "title": "AWS AIF-C01: Foundation Model Applications, RAG, Agents and AWS AI Services",
+   "summary": "Review AIF-C01's heaviest domain (Applications of Foundation Models, 28%) using Month 9-10 RAG/agent content plus named AWS AI services.",
+   "practical_project": "Complete a matching exercise pairing 9 described foundational tasks to the correct named AWS AI service (e.g. Amazon Textract for extracting text/form data from scanned documents), then review the RAG architecture (Lecture 62) and agent tool-calling (Lecture 71) diagrams as exam-ready summaries for AIF-C01's heaviest-weighted domain."
+  },
+  {
+   "number": 96,
+   "title": "AWS AIF-C01: Responsible AI, Security, Compliance and Governance",
+   "summary": "Review AIF-C01's Domain 4 (Responsible AI, 14%) and Domain 5 (Security/Compliance/Governance, 14%) using Months 2 and 11 content.",
+   "practical_project": "Complete a 10-question sorting exercise classifying each described scenario as AIF-C01 Domain 4 (Responsible AI: bias, fairness, explainability) or Domain 5 (Security/Compliance/Governance: credentials, access control, logging), then review every misclassification against its specific earlier course lecture (6-8 or 69/79/83/85)."
+  },
+  {
+   "number": 97,
+   "title": "AWS AIF-C01: Timed Practice Questions and Weak-Area Review",
+   "summary": "Complete a timed set of AIF-C01-style questions spanning all 5 domains, weighted to match the real exam's domain proportions, and build a weak-area list.",
+   "practical_project": "Complete a timed AIF-C01-style practice set with questions distributed across all 5 domains in roughly the real exam's proportions (more on Domain 3, fewer on Domains 4-5), then build a domain-by-domain weak-area list categorising each wrong answer by root cause."
+  },
+  {
+   "number": 98,
+   "title": "AWS AIF-C01: Mock Exam, Review and Remediation",
+   "summary": "Complete a full-length AIF-C01 mock exam under real exam conditions (65 questions, 90 minutes), score it against the 700/1000 bar by domain, and complete targeted remediation.",
+   "practical_project": "Complete a full-length, timed AIF-C01 mock exam matching the real 65-question/90-minute format, score it against the 700/1000 passing bar with a breakdown across all 5 domains, and write a final remediation plan identifying the single weakest domain with a specific next action."
+  },
+  {
+   "number": 99,
+   "title": "Capstone Problem Definition, Success Criteria and Architecture",
+   "summary": "Define the final capstone project's problem statement, measurable success criteria, and architecture, applying the full Month 11 discipline to a final, more ambitious project.",
+   "practical_project": "Write the final capstone's problem statement, measurable success criteria, and a component architecture diagram for a project that deliberately integrates at least 3 distinct skill areas from across the year (e.g. Python + an LLM API + RAG, or ML + a deployed application), explicitly naming which skill areas are being combined."
+  },
+  {
+   "number": 100,
+   "title": "Capstone Implementation and Integration",
+   "summary": "Implement the planned capstone project, integrating its multiple components into a working whole.",
+   "practical_project": "Implement the Lecture 99 capstone architecture, applying Month 11's structural habits (clean multi-file structure, secure key handling, input validation, basic error handling) throughout the build, and document any deviation from the original plan with the real evidence/reason that prompted it."
+  },
+  {
+   "number": 101,
+   "title": "Capstone Testing, Evaluation and Error Analysis",
+   "summary": "Test the implemented capstone, evaluate it against the Lecture 99 success criteria, and conduct a root-cause error analysis on any failures found.",
+   "practical_project": "Write and run tests for the capstone's key functions, then evaluate the whole system against the original Lecture 99 success criterion using a real evaluation set, and for any shortfall found, perform root-cause error analysis tracing it to a specific stage or component rather than a vague explanation."
+  },
+  {
+   "number": 102,
+   "title": "Capstone Improvements, Limitations and Responsible Use",
+   "summary": "Apply at least one evidence-based improvement from the Lecture 101 error analysis, and write an honest, specific limitations and responsible-use statement for the finished project.",
+   "practical_project": "Implement at least one concrete, evidence-based fix targeting the specific root cause identified in Lecture 101, re-run the evaluation to measure the actual before/after improvement with real numbers, and write a specific (non-generic) limitations and responsible-use statement for the finished capstone."
+  },
+  {
+   "number": 103,
+   "title": "Final Presentation Preparation and Portfolio Review",
+   "summary": "Prepare a clear final capstone presentation and assemble a complete, well-documented portfolio of the year's GitHub projects.",
+   "practical_project": "Draft a 5-part final capstone presentation (problem/motivation, approach/architecture, demo, evaluation evidence, limitations) and review every GitHub repository from across the year, fixing any README that doesn't clearly state its purpose, approach, and limitations."
+  },
+  {
+   "number": 104,
+   "title": "Final Capstone Presentation, Practical Assessment and Graduation",
+   "summary": "Deliver the final capstone presentation, complete the practical assessment, and graduate with a complete, well-documented AI portfolio.",
+   "practical_project": "Deliver the final capstone presentation and demo, complete a practical assessment by answering direct questions about the project's design choices, measured evaluation results, and known limitations, and finalize a complete, well-documented GitHub portfolio as the graduation deliverable."
+  }
+ ]
+}

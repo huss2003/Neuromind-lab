@@ -1,0 +1,122 @@
+{
+  "schema_version": 2,
+  "lecture_number": 21,
+  "title": "JSON, dictionaries and structured data",
+  "summary": "Read and write JSON data, mapping it correctly to Python dictionaries and lists.",
+  "objectives": [
+    "Build a dictionary that holds a list of dictionaries",
+    "Save a dictionary to a file with json.dump()",
+    "Load a JSON file back into Python with json.load()",
+    "Read a nested value with two or more square brackets"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    20
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nPrograms often need to keep structured data after they stop running. JSON is a text format that stores dictionaries and lists in a way that both Python and other programs can read. In this lab you will build a small product catalogue as a Python dictionary, where each product is itself a dictionary inside a list. You will save it to `catalogue.json` with `json.dump()`, load it back with `json.load()` into a new variable, and print one nested value to prove the save-then-load round trip worked. The whole program is one file and needs no `input()`."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: save and load a product catalogue"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Save and load a product catalogue",
+    "objective": "Build a nested dictionary, save it as JSON, load it back into a new variable and print one nested value.",
+    "instructions": "Build a dictionary named catalogue with two keys: \"shop\" (the text \"NeuroMart\") and \"products\" (a list of three dictionaries). Each product has a \"name\" and a \"price\":\n\n- Notebook, 45\n- Pen, 10\n- Backpack, 850\n\nThe first product is already in the starter code. Add the other two, in the same order.\n\nThen:\n1. Save catalogue to a file called catalogue.json with json.dump().\n2. Load the file back with json.load() into a NEW variable called loaded (do not reuse catalogue).\n3. From loaded, read the price of the first product and print exactly one line: The first product costs 45\n\nUse with open(...) for both the writing step and the reading step, as you did in the files lecture.",
+    "constraints": "Use json.dump() to write and json.load() to read. Keep the names catalogue and loaded. Print the price from loaded, not from catalogue. No input().",
+    "starter_code": "import json\n\n# 1. Finish the catalogue: add Pen (10) and Backpack (850) after Notebook\ncatalogue = {\n    \"shop\": \"NeuroMart\",\n    \"products\": [\n        {\"name\": \"Notebook\", \"price\": 45},\n    ],\n}\n\n# 2. Save catalogue to catalogue.json with json.dump()\n\n\n# 3. Load catalogue.json back with json.load() into a new variable called loaded\n\n\n# 4. Print: The first product costs <price of the first product in loaded>\n",
+    "hints": [
+      "Add the two missing products as dictionaries inside the products list, separated by commas. Then save with json.dump(catalogue, f) inside a with open(...) block that opens the file for writing (\"w\").",
+      "To load, open catalogue.json again in reading mode and call json.load(f). Store what it returns in a new variable called loaded, not in catalogue.",
+      "The price is two levels deep: loaded[\"products\"][0][\"price\"]. Print it with print(\"The first product costs\", loaded[\"products\"][0][\"price\"])."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Save a smaller dictionary and load it back",
+        "code": "import json\n\nsettings = {\"theme\": \"dark\", \"sizes\": [10, 12]}\nwith open(\"settings.json\", \"w\") as f:\n    json.dump(settings, f)\n\nwith open(\"settings.json\") as f:\n    back = json.load(f)\n\nprint(back[\"sizes\"][1])",
+        "expected_output": "12"
+      },
+      {
+        "description": "Reading a value inside a list inside a dictionary",
+        "code": "school = {\"name\": \"Hill School\", \"classes\": [{\"room\": \"A\", \"size\": 30}, {\"room\": \"B\", \"size\": 28}]}\nprint(school[\"classes\"][1][\"room\"])",
+        "expected_output": "B"
+      }
+    ],
+    "success_criteria": [
+      "Your program creates a file called catalogue.json",
+      "catalogue.json holds the first product with price 45",
+      "Your program prints: The first product costs 45",
+      "loaded is a new dictionary read back from the file, not the same object as catalogue",
+      "catalogue.json holds all three products, in order"
+    ],
+    "tests": [
+      {
+        "key": "l21-t1",
+        "label": "catalogue.json is created",
+        "remediation": "Open the file for writing with with open(\"catalogue.json\", \"w\") as f: and call json.dump(catalogue, f) inside the block.",
+        "objective": "Save a dictionary with json.dump()",
+        "hidden": false,
+        "definition": {
+          "description": "catalogue.json exists",
+          "expr": "__import__('os').path.exists('catalogue.json')",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l21-t2",
+        "label": "catalogue.json holds the first product's price",
+        "remediation": "Dump the whole catalogue dictionary (with its products list). The first product must be Notebook with the number 45 as its price, not text.",
+        "objective": "Save a dictionary with json.dump()",
+        "hidden": false,
+        "definition": {
+          "description": "first product price in the file",
+          "expr": "__import__('json').load(open('catalogue.json'))['products'][0]['price']",
+          "expected": 45
+        }
+      },
+      {
+        "key": "l21-t3",
+        "label": "The printed sentence is right",
+        "remediation": "Print exactly one line: The first product costs 45. Use loaded[\"products\"][0][\"price\"] for the number.",
+        "objective": "Read a nested value from a dictionary",
+        "hidden": false,
+        "definition": {
+          "description": "printed sentence",
+          "expected_stdout": "The first product costs 45"
+        }
+      },
+      {
+        "key": "l21-t4",
+        "label": "loaded is read back from the file",
+        "remediation": "Load the file with json.load() into a variable called loaded. Do not write loaded = catalogue; the data must come back from the file.",
+        "objective": "Load JSON with json.load()",
+        "hidden": true
+      },
+      {
+        "key": "l21-t5",
+        "label": "All three products are in the file, in order",
+        "remediation": "The products list in the file must hold Notebook, Pen and Backpack, in that order, each as a dictionary with a name and a price.",
+        "objective": "Build nested dictionaries and lists",
+        "hidden": true
+      }
+    ],
+    "solution": "import json\n\ncatalogue = {\n    \"shop\": \"NeuroMart\",\n    \"products\": [\n        {\"name\": \"Notebook\", \"price\": 45},\n        {\"name\": \"Pen\", \"price\": 10},\n        {\"name\": \"Backpack\", \"price\": 850},\n    ],\n}\n\nwith open(\"catalogue.json\", \"w\") as f:\n    json.dump(catalogue, f)\n\nwith open(\"catalogue.json\") as f:\n    loaded = json.load(f)\n\nprint(\"The first product costs\", loaded[\"products\"][0][\"price\"])\n"
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "schema_version": 2,
+  "lecture_number": 12,
+  "title": "Lists and loops",
+  "summary": "Keep several values in a list and use a for loop to work through them one at a time.",
+  "objectives": [
+    "Create a list and read items by position",
+    "Repeat an action for every item with a for loop",
+    "Add values up with an accumulator variable"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    11
+  ],
+  "lab_only": false,
+  "checkpoints": [
+    {
+      "key": "cp1",
+      "type": "mcq",
+      "question": {
+        "prompt": "numbers = [4, 8, 15]. What is numbers[1]?",
+        "options": [
+          {
+            "id": "a",
+            "text": "4"
+          },
+          {
+            "id": "b",
+            "text": "8"
+          },
+          {
+            "id": "c",
+            "text": "15"
+          }
+        ],
+        "correct_option_id": "b",
+        "explanation_correct": "Positions start at zero, so numbers[0] is 4 and numbers[1] is 8.",
+        "explanation_incorrect": "Not quite. Counting starts at 0: numbers[0] is 4, numbers[1] is 8 and numbers[2] is 15.",
+        "shuffle_options": false
+      }
+    },
+    {
+      "key": "cp2",
+      "type": "mcq",
+      "question": {
+        "prompt": "How many times does the body of `for n in [3, 6, 9]:` run?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Three times, once for each item"
+          },
+          {
+            "id": "b",
+            "text": "Nine times"
+          },
+          {
+            "id": "c",
+            "text": "Once"
+          }
+        ],
+        "correct_option_id": "a",
+        "explanation_correct": "A for loop runs its body once per item. The list has three items, so the body runs three times.",
+        "explanation_incorrect": "Not quite. The body runs once for each item in the list, and this list has three items.",
+        "shuffle_options": true
+      }
+    },
+    {
+      "key": "cp3",
+      "type": "exit_check",
+      "question": {
+        "prompt": "total starts at 0. The loop is for n in [1, 2, 3]: total = total + n. What is total afterwards?",
+        "options": [
+          {
+            "id": "a",
+            "text": "3"
+          },
+          {
+            "id": "b",
+            "text": "6"
+          },
+          {
+            "id": "c",
+            "text": "123"
+          }
+        ],
+        "correct_option_id": "b",
+        "explanation_correct": "Each pass adds the current item: 0 + 1 + 2 + 3 gives 6.",
+        "explanation_incorrect": "Not quite. The loop adds each item to the running total: 0 + 1 = 1, then 1 + 2 = 3, then 3 + 3 = 6.",
+        "shuffle_options": false
+      }
+    }
+  ],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will do today",
+      "body": "## What you will do today\n\nReal data comes in groups: scores, prices, names. Today you will keep a group of values in a list and process it with a loop.\n\n- Create lists and read items by position\n- Use a `for` loop to visit every item\n- Add up values with a running total\n\nIn the lab you will add up a list of numbers with a loop."
+    },
+    {
+      "key": "reading-1",
+      "type": "reading",
+      "title": "Lists",
+      "body": "## A list holds many values\n\nA **list** keeps values in order, between square brackets and separated by commas.\n\n```\nnumbers = [4, 8, 15]\n```\n\n## Positions start at zero\n\nEach item has a position called an **index**, and the first index is `0`.\n\n- `numbers[0]` is `4`\n- `numbers[1]` is `8`\n- `numbers[-1]` is the last item, `15`\n\n## Useful tools\n\n- `len(numbers)` is how many items: `3`\n- `numbers.append(16)` adds an item at the end\n- Asking for a position that does not exist, such as `numbers[5]`, causes an `IndexError`."
+    },
+    {
+      "key": "check-1",
+      "type": "checkpoint",
+      "title": "Check: lists",
+      "checkpoint": "cp1"
+    },
+    {
+      "key": "reading-2",
+      "type": "reading",
+      "title": "for loops",
+      "body": "## Repeating an action\n\nA `for` loop runs its indented block once for each item in a list. On each pass, the loop variable holds the current item.\n\n```\nfor n in [3, 6, 9]:\n    print(n)\n```\n\nThis prints 3, then 6, then 9.\n\n## Counting with range\n\n`range(3)` produces `0, 1, 2`, which is handy when you just need to repeat something three times:\n\n```\nfor i in range(3):\n    print(\"hello\")\n```\n\n## Keeping a running total\n\nCreate a variable before the loop and update it inside:\n\n```\ntotal = 0\nfor n in [3, 6, 9]:\n    total = total + n\nprint(total)\n```\n\nThis prints `18`. The variable that collects the answer is often called an **accumulator**."
+    },
+    {
+      "key": "check-2",
+      "type": "checkpoint",
+      "title": "Check: for loops",
+      "checkpoint": "cp2"
+    },
+    {
+      "key": "example",
+      "type": "example",
+      "title": "Adding up a list",
+      "body": "## Summing a list of scores\n\n```\nscores = [70, 85, 90]\ntotal = 0\nfor s in scores:\n    total = total + s\nprint(total)\n```\n\nOutput:\n\n```\n245\n```\n\n## Following it step by step\n\n| pass | s | total after |\n|---|---|---|\n\nWork through it on paper: `total` starts at 0. After the first pass it is 70, after the second 155, after the third 245.\n\n## Deciding inside a loop\n\nThe block inside a `for` loop can hold an `if`. The decision is made again for every item:\n\n```\nscores = [70, 85, 40]\nfor s in scores:\n    if s >= 50:\n        result = \"pass\"\n    else:\n        result = \"fail\"\n    print(f\"{s}: {result}\")\n```\n\nOutput:\n\n```\n70: pass\n85: pass\n40: fail\n```\n\nThe `print` is inside the loop (indented) so it runs once per item. With `elif` you can have more than two outcomes. Python runs the first branch whose condition is True and skips the rest, so always check the highest cutoff first.\n\n## Common mistakes\n\n- Setting `total = 0` inside the loop resets it every time. Set it once, before the loop.\n- Forgetting to indent the line inside the loop means it runs only once, after the loop ends.\n- Printing inside the loop prints every running total; print after the loop for just the answer.\n- Putting a lower cutoff before a higher one (`>= 60` before `>= 90`) means a mark of 95 stops at the first True branch and gets the lower grade.\n\nIn the lab you will turn a list of marks into grades with if, elif and else inside a loop.",
+      "opens_exercise": true
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: add up a list"
+    },
+    {
+      "key": "exit",
+      "type": "exit_check",
+      "title": "Exit check",
+      "checkpoint": "cp3"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Grading calculator with boundary marks",
+    "objective": "Use if, elif and else inside a for loop to turn a list of marks into grades, checking the cutoffs 90 and 60 exactly.",
+    "instructions": "Grades are A for 90 or more, B for 75 or more, C for 60 or more, and Fail for anything lower. The list marks is given and includes the boundary marks 90 and 60 on purpose. Use a for loop to go through every mark. Inside the loop, use if, elif and else to store the right letter in grade, checking the highest cutoff first. Then print the mark and the grade on one line in the shape 90: A. Look at the lines for 90, 60 and 59 to prove that each cutoff lands on the right side.",
+    "constraints": "Keep the list marks exactly as given and the variable name grade. Use one if / elif / elif / else chain with >= comparisons. Print one line per mark, in the order of the list, and nothing else.",
+    "starter_code": "# Grades: A for 90 or more, B for 75 or more, C for 60 or more, otherwise Fail\nmarks = [96, 90, 75, 60, 59]\n\n# 1. Use a for loop to go through every mark in marks\n# 2. Inside the loop, use if / elif / elif / else to store the right letter in grade.\n#    Check the highest cutoff first.\n# 3. Still inside the loop, print the mark and the grade like this:  90: A\n\n",
+    "hints": [
+      "Start with for mark in marks: and put the whole if / elif / else inside the loop, indented by four spaces.",
+      "Check the biggest cutoff first: if mark >= 90 gives A, elif mark >= 75 gives B, elif mark >= 60 gives C, and else gives Fail.",
+      "Print inside the loop, after the if / elif / else and at the same indentation as the if: print(f\"{mark}: {grade}\")."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Three outcomes for three marks",
+        "code": "for mark in [80, 50, 20]:\n    if mark >= 70:\n        result = \"high\"\n    elif mark >= 40:\n        result = \"middle\"\n    else:\n        result = \"low\"\n    print(f\"{mark}: {result}\")",
+        "expected_output": "80: high\n50: middle\n20: low"
+      },
+      {
+        "description": "Wrong order: 95 gets C because the first True branch wins",
+        "code": "mark = 95\nif mark >= 60:\n    grade = \"C\"\nelif mark >= 90:\n    grade = \"A\"\nelse:\n    grade = \"Fail\"\nprint(grade)",
+        "expected_output": "C"
+      }
+    ],
+    "success_criteria": [
+      "Your program prints one line per mark (five lines)",
+      "A mark of exactly 90 gets A",
+      "A mark of exactly 60 gets C",
+      "A mark of 59 gets Fail",
+      "The five lines are exactly 96: A, 90: A, 75: B, 60: C, 59: Fail"
+    ],
+    "tests": [
+      {
+        "key": "l12-t1",
+        "label": "Your program prints one line per mark (five lines)",
+        "remediation": "Put the print inside the loop (indented under for) so it runs once for every mark.",
+        "objective": "Repeat an action with a for loop",
+        "remediation_segment": "reading-2",
+        "hidden": false,
+        "definition": {
+          "stdout_min_lines": 5,
+          "description": "Prints five lines"
+        }
+      },
+      {
+        "key": "l12-t2",
+        "label": "A mark of exactly 90 gets A",
+        "remediation": "Use >= 90 (not > 90) for the A branch so that exactly 90 counts as an A, and print it as 90: A.",
+        "objective": "Choose a branch with if, elif and else",
+        "remediation_segment": "example",
+        "hidden": false,
+        "definition": {
+          "stdout_regex": "^90: A\\s*$",
+          "description": "90 is graded A"
+        }
+      },
+      {
+        "key": "l12-t3",
+        "label": "A mark of exactly 60 gets C",
+        "remediation": "Use >= 60 (not > 60) for the C branch and keep the branches in order: 90, then 75, then 60.",
+        "objective": "Choose a branch with if, elif and else",
+        "remediation_segment": "example",
+        "hidden": false,
+        "definition": {
+          "stdout_regex": "^60: C\\s*$",
+          "description": "60 is graded C"
+        }
+      },
+      {
+        "key": "l12-t4",
+        "label": "A mark of 59 gets Fail",
+        "remediation": "The else branch stores \"Fail\" (capital F) for any mark under 60.",
+        "objective": "Choose a branch with if, elif and else",
+        "remediation_segment": "example",
+        "hidden": false,
+        "definition": {
+          "stdout_regex": "^59: Fail\\s*$",
+          "description": "59 is graded Fail"
+        }
+      },
+      {
+        "key": "l12-t5",
+        "label": "The five lines are exactly 96: A, 90: A, 75: B, 60: C, 59: Fail",
+        "remediation": "Print each mark and grade as mark, colon, space, grade: print(f\"{mark}: {grade}\"). Check the branch order: 90 first, then 75, then 60, then else.",
+        "objective": "Choose a branch with if, elif and else",
+        "remediation_segment": "example",
+        "hidden": true
+      }
+    ],
+    "solution": "marks = [96, 90, 75, 60, 59]\nfor mark in marks:\n    if mark >= 90:\n        grade = \"A\"\n    elif mark >= 75:\n        grade = \"B\"\n    elif mark >= 60:\n        grade = \"C\"\n    else:\n        grade = \"Fail\"\n    print(f\"{mark}: {grade}\")\n"
+  }
+}

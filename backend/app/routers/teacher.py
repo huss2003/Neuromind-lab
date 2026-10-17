@@ -129,7 +129,7 @@ def _sub_row(s: dict, titles: dict) -> dict[str, Any]:
         "score": float(s["score"]) if s["score"] is not None else None,
         "raw_score": float(s["raw_score"]) if s.get("raw_score") is not None else None,
         "hints_used": s.get("hints_used") or 0, "passed_tests": s["passed_tests"], "total_tests": s["total_tests"],
-        "infrastructure_failure": s["status"] == "error", "created_at": s["created_at"],
+        "infrastructure_failure": s["status"] == "error", "created_at": s["created_at"], "awaiting_review": s["status"] == "submitted",
     }
 
 
@@ -175,13 +175,80 @@ async def submission_detail(submission_id: str, request: Request, user: CurrentU
     titles = await repo.titles([], [], [sub["exercise_id"]])
     await audit.record(repo, request, user.id, "teacher.view_submission", "submission", sub["id"],
                        {"submission_id": sub["id"]})
+    ex = await repo.get_published_exercise(sub["exercise_id"]) or {}
+    review = await repo.get_review(sub["id"])
     return {**_sub_row(sub, titles), "source_code": sub["source_code"], "max_score": float(sub.get("max_score") or 100),
+            "lab_kind": ex.get("lab_kind") or "code", "rubric": ex.get("rubric") or [], "checklist": ex.get("checklist") or [],
+            "answers": sub.get("answers") if isinstance(sub.get("answers"), dict) else None,
+            "review": {"passed": review["passed"], "feedback": review["feedback"], "scores": review.get("scores") or [], "reviewer_id": review.get("reviewer_id"),
+                       "reviewed_at": review.get("updated_at") or review.get("created_at")} if review else None,
             "pass_threshold": float(sub["pass_threshold"]) if sub.get("pass_threshold") is not None else None,
             "hint_penalty": float(sub.get("hint_penalty") or 0), "criteria": sub.get("criteria_results") or [],
             "feedback_messages": sub["safe_feedback"], "execution_ms": sub["execution_ms"],
             "evidence": {"grader_version": sub.get("grader_version"), "test_suite_version": sub.get("test_suite_version"),
                          "content_version": sub.get("content_version"), "correlation_id": sub.get("correlation_id"),
                          "started_at": sub.get("started_at"), "finished_at": sub.get("finished_at")}}
+
+
+@router.get("/reviews")
+async def pending_reviews(user: CurrentUser = Depends(guard), repo: Repository = Depends(get_repository)):
+    """Written/upload labs waiting for a teacher: assigned learners only (admins see all)."""
+    ids = None if user.role == "admin" else await repo.list_assigned_learner_ids(user.id)
+    subs = await repo.list_submitted(ids)
+    titles = await repo.titles([], [], sorted({s["exercise_id"] for s in subs}))
+    basics = {b["id"]: b for b in await repo.list_exercises_basic(sorted({s["exercise_id"] for s in subs}))}
+    lecture_titles = await repo.titles(sorted({b["lecture_id"] for b in basics.values() if b.get("lecture_id")}), [], [])
+    out = []
+    for s in subs:
+        profile = await repo.get_profile(s["learner_id"]) or {}
+        b = basics.get(s["exercise_id"], {})
+        out.append({"submission_id": s["id"], "learner_id": s["learner_id"], "learner": profile.get("display_name"),
+                    "exercise_id": s["exercise_id"], "exercise": titles["exercises"].get(s["exercise_id"]),
+                    "lecture": lecture_titles["lectures"].get(b.get("lecture_id")), "number": s["submission_number"], "created_at": s["created_at"]})
+    return {"pending": out, "total": len(out)}
+
+
+class RubricScore(BaseModel):
+    criterion: str = Field(min_length=1, max_length=200)
+    points: float = Field(ge=0, le=100)
+
+
+class ReviewBody(BaseModel):
+    passed: bool
+    feedback: str = Field(min_length=1, max_length=4000)
+    scores: list[RubricScore] = Field(default_factory=list, max_length=20)
+
+
+@router.post("/submissions/{submission_id}/review")
+async def review_submission(submission_id: str, body: ReviewBody, request: Request, user: CurrentUser = Depends(guard),
+                            repo: Repository = Depends(get_repository)):
+    """A teacher's rubric decision becomes the official result of a written/upload lab. Re-reviewing replaces the decision."""
+    sub = await repo.get_submission(path_uuid(submission_id))
+    if not sub or not await can_view_learner(user, sub["learner_id"], repo):
+        raise ApiError(404, "NOT_FOUND")
+    ex = await repo.get_published_exercise(sub["exercise_id"])
+    if not ex or (ex.get("lab_kind") or "code") not in ("written", "upload"):
+        raise ApiError(409, "NOT_REVIEWABLE", "Only written and upload labs are marked by a teacher")
+    if sub["status"] not in ("submitted", "passed", "failed"):
+        raise ApiError(409, "NOT_REVIEWABLE", "This attempt cannot be reviewed")
+    rubric = ex.get("rubric") or []
+    max_pts = sum(float(r.get("max_points") or 0) for r in rubric)
+    given = {sc.criterion: sc.points for sc in body.scores}
+    for r in rubric:
+        if r["criterion"] in given and given[r["criterion"]] > float(r.get("max_points") or 0):
+            raise ApiError(422, "VALIDATION_ERROR", details=[{"field": "scores", "issue": f"'{r['criterion']}' is out of {r.get('max_points')} points"}])
+    earned = sum(min(given.get(r["criterion"], 0.0), float(r.get("max_points") or 0)) for r in rubric)
+    score = round(100 * earned / max_pts, 2) if max_pts else (100.0 if body.passed else 0.0)
+    review = await repo.upsert_review({"submission_id": sub["id"], "reviewer_id": user.id, "passed": body.passed, "feedback": body.feedback.strip(),
+                                       "scores": [{"criterion": r["criterion"], "points": given.get(r["criterion"], 0.0), "max_points": r.get("max_points")} for r in rubric]})
+    await repo.update_submission(sub["id"], {
+        "status": "passed" if body.passed else "failed", "score": score, "raw_score": score, "max_score": 100,
+        "passed_tests": sum(1 for r in rubric if given.get(r["criterion"], 0.0) >= float(r.get("max_points") or 0)) if rubric else int(body.passed),
+        "total_tests": len(rubric) or 1, "finished_at": audit_now(),
+        "criteria_results": [{"label": r["criterion"], "hidden": False, "passed": given.get(r["criterion"], 0.0) >= float(r.get("max_points") or 0), "remediation": None} for r in rubric],
+        "safe_feedback": [{"kind": "success" if body.passed else "failure", "message": body.feedback.strip()}]})
+    await audit.record(repo, request, user.id, "teacher.reviewed", "submission", sub["id"], {"submission_id": sub["id"], "status": "passed" if body.passed else "failed", "score": score})
+    return {"submission_id": sub["id"], "status": "passed" if body.passed else "failed", "score": score, "review_id": review["id"]}
 
 
 class FeedbackBody(BaseModel):

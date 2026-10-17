@@ -20,6 +20,9 @@ import { SignUp } from './pages/SignUp';
 import { Certificates, VerifyCertificate } from './pages/Certificates';
 import { Portfolio } from './pages/Portfolio';
 import { TeacherReport } from './pages/TeacherTools';
+import { Labs } from './pages/Labs';
+import { LabPage } from './pages/LabPage';
+import { TeacherReviews } from './pages/TeacherReviews';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminOverview } from './pages/admin/AdminOverview';
 import { AdminUsers } from './pages/admin/AdminUsers';
@@ -58,12 +61,15 @@ export function App() {
           <Route path="/exercises/:exerciseId/attempts" element={<AttemptHistory />} />
           <Route path="/certificates" element={<Certificates />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/labs" element={<Labs />} />
+          <Route path="/labs/:exerciseId" element={<LabPage />} />
         </Route>
         <Route element={<RequireAuth roles={['teacher', 'admin']} />}>
           <Route path="/teacher" element={<TeacherDashboard />} />
           <Route path="/teacher/learners/:learnerId" element={<TeacherLearner />} />
           <Route path="/teacher/submissions/:submissionId" element={<TeacherSubmission />} />
           <Route path="/teacher/report" element={<TeacherReport />} />
+          <Route path="/teacher/reviews" element={<TeacherReviews />} />
         </Route>
         <Route element={<RequireAuth roles={['admin']} />}>
           <Route path="/admin" element={<AdminLayout />}>
