@@ -164,3 +164,14 @@ Open: owner decisions on credentials (not rotated by choice), staging project, l
 - Tests run (this session's last state): backend 182 passed, ruff clean; grader 56 passed, 11 skipped (Docker-backed, run in CI); frontend lint, tsc, 37 unit, 68 UI (incl. axe) passed on commit 6060590/c8d87c8. Fixed today: the admin validate endpoint counted inline-defined visible checks as missing (now shares `missing_definitions` with the importer); a hidden check with an inline definition is now rejected by the validator; tests updated to the v2 packs (a v1-shaped fixture keeps score-mode coverage).
 - NOT done yet: the EC2 worker still runs the previous image/harness, so official server grading of Block 1 labs fails until the host is updated (`git pull`, `docker build -t neuromind-grader-sandbox grader/`, restart `neuromind-worker`) — needs the AWS connector re-authenticated by the owner; browser quick checks work regardless. Block 1 not yet imported to production (import after deploy + backup). Blocks 2–6 pending.
 - Stray: an empty `/lab` directory exists at the root of this development container (created by an early version of `nm_quickcheck` under CPython; harmless, could not be removed by the tool's safety check).
+
+## Session 2026-10-17 — Block 1 live, Block 2 started, blueprint, live lab test
+- Deployed API 86df129 and frontend 94a1664 to production. Backup taken, then lectures 9–24 imported as published (9–12 replaced, 13–24 lab-only).
+- Blueprint written: docs/02-architecture/PRACTICAL_LABS_BLUEPRINT.md.
+- Block 2: lectures 25–28 and 37–40 authored and verified (8 labs, 0 problems), committed, not yet imported. Lectures 29–36 still being authored.
+- Bug found by the live test and fixed: pressing Save & check while Python was still loading skipped the browser check. It now waits. Unit test added (fails without the fix).
+- Bug fixed: when the official checker fails, the popup now keeps the browser's findings.
+- Live test against production (`frontend/e2e/labs.spec.ts`), 3 of 3 passed: catalogue and locks, browser check fails then passes, 3 hints then the 4th refused, Redo keeps history, numpy and the practice API run in the browser, teacher queue, admin sees all checks.
+- NOT working: official server grading of the new labs. The EC2 worker still runs the old image: lecture 9 attempts end as "error", lectures 23–24 as "runtime_error" (no numpy/requests). Needs the host update, which needs the AWS connector re-authenticated. The full official journey (pass → lecture complete → next unlocks) is therefore not yet tested live.
+- Temporary accounts learner1–3, teacher, admin @neuromind.test still exist for the remaining live test; delete them when it is done. learner3 has lectures 9–23 marked completed (test setup).
+- Owner declined: deleting test learners' rows and running a worker without Docker from the dev container.

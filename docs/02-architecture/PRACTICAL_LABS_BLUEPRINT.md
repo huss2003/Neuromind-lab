@@ -276,9 +276,9 @@ frontend lint, typecheck, unit tests, build and the mocked UI suite with accessi
 | Backend pytest | lab rules, hints and Redo, quiz marking, reviews, admin checks view, queue, pack import | 182 passed |
 | Grader pytest | harness, probes, data files, practice API, check kinds, worker loop; Docker-backed tests run in CI | 56 passed, 11 skipped locally |
 | Pack verification | every solution passes, every starter fails, no hidden check inline | lectures 9–28 and 37–40: 0 problems |
-| Frontend unit (Vitest) | components incl. the Save & check popup | 40 passed |
+| Frontend unit (Vitest) | components incl. the Save & check popup and the browser runtime hook | 41 passed |
 | Mocked UI (Playwright + axe) | catalogue, popup, hints and Redo, quiz, written review, upload, admin checks, accessibility | 68 passed |
-| Live (Playwright against production) | catalogue, browser quick check, hints/Redo, requests and numpy labs, teacher and admin views | partly run; see section 13 |
+| Live (Playwright against production, `frontend/e2e/labs.spec.ts`) | catalogue and locks, browser quick check (fail then pass), 3 hints then a refused 4th, Redo with history kept, numpy and the practice API running in the browser, teacher review queue, admin sees all checks | 3 of 3 passed on 2026-10-17; official verdicts were errors because of section 13 |
 
 ## 13. Known gaps (2026-10-17)
 
