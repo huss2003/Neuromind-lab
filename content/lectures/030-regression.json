@@ -1,0 +1,144 @@
+{
+  "schema_version": 2,
+  "lecture_number": 30,
+  "title": "Regression",
+  "summary": "Explain what regression predicts (a continuous number) and distinguish it from classification.",
+  "objectives": [
+    "Fit a LinearRegression model on one feature with model.fit(X, y)",
+    "Read the slope (coef_) and intercept (intercept_) of the best-fit line",
+    "Predict a continuous number for a new, unseen input with model.predict()",
+    "Sanity-check a prediction against the possible range of the answer"
+  ],
+  "duration_minutes": 50,
+  "prerequisites": [
+    29
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nRegression predicts a **number**, such as a price, a temperature or an exam score. That is different from classification, where the answer is a category. Linear regression draws the best-fit straight line through the data: the line that stays as close as possible to every point. In this lab you will load `study_hours.csv` (30 fictional students: hours studied and exam score), fit a `LinearRegression` model and print its slope and intercept, the two numbers that describe the line. You will then predict the score for 7.5 hours of study, a value that is not in the file, and check that the prediction is a sensible mark between 0 and 100. A prediction outside that range would be a warning sign, not a result to trust."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: predict an exam score from study hours"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Predict an exam score from study hours",
+    "objective": "Fit a LinearRegression on hours_studied versus exam_score, predict the score for 7.5 hours and sanity-check the result.",
+    "instructions": "The file study_hours.csv has 30 rows with two columns: hours_studied and exam_score. The starter code already loads it into df.\n\n1. Make X = df[[\"hours_studied\"]] (double brackets: a DataFrame with one column) and y = df[\"exam_score\"].\n2. Create model = LinearRegression() and train it with model.fit(X, y).\n3. Store slope = model.coef_[0] and intercept = model.intercept_. Print them rounded to 2 decimals:\nSlope: <number>\nIntercept: <number>\n4. Predict for new_hours = 7.5, a value that is not in the file: build new_data = pd.DataFrame({\"hours_studied\": [new_hours]}) and store predicted_score = model.predict(new_data)[0]. Print it rounded to 1 decimal:\nPredicted score for 7.5 hours: <number>\n5. Sanity check: an exam score must be between 0 and 100. Store reasonable = 0 <= predicted_score <= 100 and print:\nReasonable: True\n\nRound only when printing, with round(value, 2) and round(value, 1); keep the variables themselves unrounded.",
+    "constraints": "Use LinearRegression from sklearn.linear_model. Keep the names df, X, y, model, slope, intercept, new_hours, new_data, predicted_score and reasonable. Do not type the slope, intercept or prediction in by hand; they must come from the fitted model. No input().",
+    "starter_code": "import pandas as pd\nfrom sklearn.linear_model import LinearRegression\n\ndf = pd.read_csv(\"study_hours.csv\")\n\n# 1. X = df[[\"hours_studied\"]] (double brackets: a one-column DataFrame), y = df[\"exam_score\"]\n\n\n# 2. model = LinearRegression(), then train it with model.fit(X, y)\n\n\n# 3. slope = model.coef_[0] and intercept = model.intercept_\n#    Print them rounded to 2 decimals:\n#    Slope: ...\n#    Intercept: ...\n\n\n# 4. Predict the score for new_hours (a value that is not in the file):\n#    new_data = pd.DataFrame({\"hours_studied\": [new_hours]})\n#    predicted_score = model.predict(new_data)[0]\n#    Print it rounded to 1 decimal:  Predicted score for 7.5 hours: ...\nnew_hours = 7.5\n\n\n# 5. Sanity check: reasonable = True only if predicted_score is between 0 and 100\n#    Print:  Reasonable: True\n",
+    "hints": [
+      "X needs double brackets, df[[\"hours_studied\"]], because scikit-learn wants a table of features even when there is only one. y = df[\"exam_score\"] is a single column.",
+      "model = LinearRegression() then model.fit(X, y) finds the best-fit line. The slope is model.coef_[0] (coef_ holds one number per feature) and the intercept is model.intercept_. Print them with round(slope, 2) and round(intercept, 2).",
+      "To predict, give the model a tiny table with the same column name: new_data = pd.DataFrame({\"hours_studied\": [new_hours]}) and predicted_score = model.predict(new_data)[0]. Then reasonable = 0 <= predicted_score <= 100 and print(\"Reasonable:\", reasonable)."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas",
+      "scikit-learn"
+    ],
+    "assets": [
+      {
+        "name": "study_hours.csv",
+        "content": "hours_studied,exam_score\n2.6,45\n4.4,57\n1.3,35\n5.8,64\n7.4,71\n8.3,80\n3.4,59\n1.5,41\n4.1,64\n5.8,63\n2.8,44\n6.3,67\n8.6,82\n4.0,57\n4.8,61\n7.4,74\n6.0,70\n7.2,73\n5.1,64\n8.4,83\n1.9,44\n5.9,67\n1.3,37\n9.2,88\n4.4,60\n1.6,39\n8.6,92\n8.9,84\n2.6,42\n3.4,45\n",
+        "encoding": "text",
+        "description": "30 fictional students: hours_studied and exam_score (0-100)."
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "A perfect line, y = 2x + 1: the model finds slope 2 and intercept 1",
+        "code": "import pandas as pd\nfrom sklearn.linear_model import LinearRegression\n\ndata = pd.DataFrame({\"x\": [1, 2, 3, 4], \"y\": [3, 5, 7, 9]})\nmodel = LinearRegression()\nmodel.fit(data[[\"x\"]], data[\"y\"])\nprint(\"Slope:\", round(model.coef_[0], 2))\nprint(\"Intercept:\", round(model.intercept_, 2))",
+        "expected_output": "Slope: 2.0\nIntercept: 1.0"
+      },
+      {
+        "description": "Predicting for a new input (x = 10 is not in the data)",
+        "code": "import pandas as pd\nfrom sklearn.linear_model import LinearRegression\n\ndata = pd.DataFrame({\"x\": [1, 2, 3, 4], \"y\": [3, 5, 7, 9]})\nmodel = LinearRegression()\nmodel.fit(data[[\"x\"]], data[\"y\"])\nnew_data = pd.DataFrame({\"x\": [10]})\nprint(\"Prediction:\", round(model.predict(new_data)[0], 1))",
+        "expected_output": "Prediction: 21.0"
+      }
+    ],
+    "success_criteria": [
+      "model is a LinearRegression that has been fitted",
+      "Your output includes the Slope and Intercept lines, rounded to 2 decimals",
+      "Your output includes: Predicted score for 7.5 hours: <number rounded to 1 decimal>",
+      "reasonable is True because the prediction is between 0 and 100",
+      "slope and intercept are the values the model learned from study_hours.csv",
+      "predicted_score comes from the fitted model (it predicts other hours correctly too)"
+    ],
+    "tests": [
+      {
+        "key": "l30-t1",
+        "label": "model is a fitted LinearRegression",
+        "remediation": "Create model = LinearRegression() and call model.fit(X, y) before reading coef_ or predicting.",
+        "objective": "Fit a LinearRegression model",
+        "hidden": false,
+        "definition": {
+          "description": "fitted LinearRegression",
+          "expr": "type(model).__name__ == 'LinearRegression' and hasattr(model, 'coef_')",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l30-t2",
+        "label": "The slope and intercept are printed, rounded to 2 decimals",
+        "remediation": "print(\"Slope:\", round(slope, 2)) and print(\"Intercept:\", round(intercept, 2)), where slope = model.coef_[0] and intercept = model.intercept_ come from the model fitted on X = df[[\"hours_studied\"]] and y = df[\"exam_score\"].",
+        "objective": "Read the slope and intercept of the best-fit line",
+        "hidden": false,
+        "definition": {
+          "description": "Slope and Intercept lines",
+          "stdout_regex": "(?s)Slope: 6[.]26\\b.*Intercept: 29[.]79\\b"
+        }
+      },
+      {
+        "key": "l30-t3",
+        "label": "The prediction for 7.5 hours is printed, rounded to 1 decimal",
+        "remediation": "predicted_score = model.predict(new_data)[0] with new_data = pd.DataFrame({\"hours_studied\": [7.5]}); then print(\"Predicted score for 7.5 hours:\", round(predicted_score, 1)).",
+        "objective": "Predict a number for a new, unseen input",
+        "hidden": false,
+        "definition": {
+          "description": "prediction line",
+          "stdout_contains": "Predicted score for 7.5 hours: 76.8"
+        }
+      },
+      {
+        "key": "l30-t4",
+        "label": "reasonable says whether the prediction is between 0 and 100",
+        "remediation": "reasonable = 0 <= predicted_score <= 100 compares the prediction with the possible range of a mark. Print it with print(\"Reasonable:\", reasonable).",
+        "objective": "Sanity-check a prediction against its possible range",
+        "hidden": false,
+        "definition": {
+          "description": "reasonable matches the range check",
+          "expr": "bool(reasonable) == (0 <= float(predicted_score) <= 100)",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l30-t5",
+        "label": "slope and intercept are the values the model learned",
+        "remediation": "Do not type the numbers in. slope = model.coef_[0] and intercept = model.intercept_ after model.fit(X, y) on all 30 rows of study_hours.csv. Keep the variables unrounded; round only inside print().",
+        "objective": "Read the slope and intercept of the best-fit line",
+        "hidden": true
+      },
+      {
+        "key": "l30-t6",
+        "label": "predicted_score comes from the fitted model",
+        "remediation": "predicted_score must be model.predict(new_data)[0] for new_hours = 7.5, not a typed number, and the model must be fitted on study_hours.csv so it predicts other hours correctly too.",
+        "objective": "Predict a number for a new, unseen input",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\nfrom sklearn.linear_model import LinearRegression\n\ndf = pd.read_csv(\"study_hours.csv\")\n\nX = df[[\"hours_studied\"]]\ny = df[\"exam_score\"]\n\nmodel = LinearRegression()\nmodel.fit(X, y)\n\nslope = model.coef_[0]\nintercept = model.intercept_\nprint(\"Slope:\", round(slope, 2))\nprint(\"Intercept:\", round(intercept, 2))\n\nnew_hours = 7.5\nnew_data = pd.DataFrame({\"hours_studied\": [new_hours]})\npredicted_score = model.predict(new_data)[0]\nprint(\"Predicted score for 7.5 hours:\", round(predicted_score, 1))\n\nreasonable = 0 <= predicted_score <= 100\nprint(\"Reasonable:\", reasonable)\n"
+  }
+}

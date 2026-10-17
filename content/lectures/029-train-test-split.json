@@ -1,0 +1,153 @@
+{
+  "schema_version": 2,
+  "lecture_number": 29,
+  "title": "Data preparation and train/test splits",
+  "summary": "Split a dataset into training and test sets correctly, and explain why testing on unseen data matters.",
+  "objectives": [
+    "Separate a DataFrame into features X and a label y",
+    "Split X and y 80/20 with train_test_split and a fixed random_state",
+    "Read the shape of each split to confirm the 80/20 proportion",
+    "Explain why the test set must never be used during training"
+  ],
+  "duration_minutes": 45,
+  "prerequisites": [
+    28
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nA model that is tested on the same rows it learned from can look perfect while knowing nothing, like a student who only practises the exact questions that will be on the exam. The fix is to hold back part of the data as a **test set** that the model never sees during training. In this lab you will load `students.csv` (40 fictional students: hours studied, attendance, sleep hours and whether they passed), separate the features `X` from the label `y`, and split them 80/20 with `train_test_split` using `random_state=0` so the split is the same every run. You will print the shape of each of the four pieces to confirm that 32 rows went to training and 8 to testing, and write one sentence explaining why the test rows must stay unseen until the very end."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: split the student data 80/20"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Split the student data 80/20",
+    "objective": "Separate features from the label, split them 80/20 with a fixed random_state, print the four shapes and explain why the test set stays unseen.",
+    "instructions": "The file students.csv has 40 rows and four columns: hours_studied, attendance, sleep_hours and passed (1 = passed, 0 = failed). The starter code already loads it into df.\n\n1. Make X = df[[\"hours_studied\", \"attendance\", \"sleep_hours\"]] (the features) and y = df[\"passed\"] (the label).\n2. Split them with X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0).\n3. Print the four shapes, one per line, exactly like this:\nX_train: (32, 3)\nX_test: (8, 3)\ny_train: (32,)\ny_test: (8,)\n4. Store one sentence (at least 8 words) in why_split that explains why the test set must never be used during training. Mention the test set and say that it must stay unseen (new to the model), so its score is honest.\n\nprint(\"X_train:\", X_train.shape) prints a shape in the right form; .shape gives (rows, columns) for a DataFrame and (rows,) for a Series.",
+    "constraints": "Use train_test_split from sklearn.model_selection with test_size=0.2 and random_state=0. Keep the names df, X, y, X_train, X_test, y_train, y_test and why_split. Do not change students.csv. No input().",
+    "starter_code": "import pandas as pd\nfrom sklearn.model_selection import train_test_split\n\ndf = pd.read_csv(\"students.csv\")\n\n# 1. X = the three feature columns hours_studied, attendance, sleep_hours (a DataFrame)\n#    y = the label column passed (a Series)\n\n\n# 2. Split X and y with train_test_split(..., test_size=0.2, random_state=0)\n#    into X_train, X_test, y_train, y_test (in that order)\n\n\n# 3. Print the four shapes, one per line, like:\n#    X_train: (32, 3)\n#    X_test: (8, 3)\n#    y_train: (32,)\n#    y_test: (8,)\n\n\n# 4. One sentence (at least 8 words) explaining why the test set must never be used during training\nwhy_split = \"\"\n",
+    "hints": [
+      "Columns come out of a DataFrame with square brackets: a list of names gives a DataFrame, X = df[[\"hours_studied\", \"attendance\", \"sleep_hours\"]], and one name gives a Series, y = df[\"passed\"].",
+      "train_test_split returns four things in this order: X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0). test_size=0.2 keeps 20% (8 of the 40 rows) for testing and random_state=0 makes the shuffle the same every run.",
+      "Print each shape with its name, for example print(\"X_train:\", X_train.shape). Then write the sentence, for example why_split = \"The test set must stay unseen during training so its score is an honest check on new data.\""
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas",
+      "scikit-learn"
+    ],
+    "assets": [
+      {
+        "name": "students.csv",
+        "content": "hours_studied,attendance,sleep_hours,passed\n1.5,90,6.7,0\n5.6,62,5.0,0\n5.7,55,4.8,0\n3.4,85,5.9,0\n2.2,65,6.8,0\n1.2,65,5.1,0\n4.5,75,8.9,0\n4.4,98,4.8,0\n1.2,92,5.8,0\n3.1,95,7.9,0\n8.1,87,5.3,1\n6.6,80,5.2,1\n9.8,88,5.6,1\n8.8,84,5.0,1\n6.7,100,7.0,1\n2.7,93,6.7,0\n8.6,74,7.5,1\n4.8,63,8.7,0\n1.3,85,7.2,0\n9.6,63,7.1,1\n9.5,92,7.8,1\n3.9,57,5.9,0\n5.4,87,6.1,1\n3.5,78,7.7,0\n7.8,59,6.1,1\n9.7,76,6.2,1\n6.5,71,6.2,1\n6.5,64,6.9,1\n3.1,58,5.9,0\n3.4,96,8.7,1\n4.4,82,6.9,0\n6.1,99,6.7,1\n7.6,56,5.1,0\n1.4,100,7.3,0\n6.1,66,6.6,1\n9.7,95,8.2,1\n3.0,89,5.4,0\n4.8,75,5.2,0\n1.4,80,4.6,0\n8.1,68,9.0,1\n",
+        "encoding": "text",
+        "description": "40 fictional students: hours_studied, attendance (%), sleep_hours and passed (1 or 0)."
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Splitting a tiny list 80/20 (1 of 5 rows goes to the test set)",
+        "code": "from sklearn.model_selection import train_test_split\n\nX = [[1], [2], [3], [4], [5]]\ny = [10, 20, 30, 40, 50]\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)\nprint(len(X_train), len(X_test))\nprint(X_test, y_test)",
+        "expected_output": "4 1\n[[3]] [30]"
+      },
+      {
+        "description": "Features and label from a DataFrame, and their shapes",
+        "code": "import pandas as pd\n\ndf = pd.DataFrame({\"size\": [1, 2, 3], \"age\": [4, 5, 6], \"label\": [0, 1, 0]})\nX = df[[\"size\", \"age\"]]\ny = df[\"label\"]\nprint(\"X:\", X.shape)\nprint(\"y:\", y.shape)",
+        "expected_output": "X: (3, 2)\ny: (3,)"
+      }
+    ],
+    "success_criteria": [
+      "X holds the three feature columns and y holds the passed column",
+      "Your output includes the line: X_train: (32, 3)",
+      "Your output includes the line: y_test: (8,)",
+      "why_split is one sentence of at least 8 words about keeping the test set unseen",
+      "The split uses test_size=0.2 and random_state=0 (the same 8 test rows every run)",
+      "All four pieces have the right shape and the rows of X_train and y_train line up"
+    ],
+    "tests": [
+      {
+        "key": "l29-t1",
+        "label": "X holds the three feature columns and y holds the passed column",
+        "remediation": "Make X = df[[\"hours_studied\", \"attendance\", \"sleep_hours\"]] (a list of names inside the brackets) and y = df[\"passed\"] (one name, so y is a Series with shape (40,)).",
+        "objective": "Separate features (X) from the label (y)",
+        "hidden": false,
+        "definition": {
+          "description": "X columns and y shape",
+          "expr": "[list(X.columns), list(y.shape)]",
+          "expected": [
+            [
+              "hours_studied",
+              "attendance",
+              "sleep_hours"
+            ],
+            [
+              40
+            ]
+          ]
+        }
+      },
+      {
+        "key": "l29-t2",
+        "label": "The X_train shape is printed",
+        "remediation": "After the split, print(\"X_train:\", X_train.shape). With 40 rows and test_size=0.2 the training set has 32 rows and 3 columns.",
+        "objective": "Read the shape of a split",
+        "hidden": false,
+        "definition": {
+          "description": "X_train shape line",
+          "stdout_contains": "X_train: (32, 3)"
+        }
+      },
+      {
+        "key": "l29-t3",
+        "label": "The y_test shape is printed",
+        "remediation": "print(\"y_test:\", y_test.shape). y is a Series, so its shape has one number: (8,).",
+        "objective": "Read the shape of a split",
+        "hidden": false,
+        "definition": {
+          "description": "y_test shape line",
+          "stdout_contains": "y_test: (8,)"
+        }
+      },
+      {
+        "key": "l29-t4",
+        "label": "why_split explains why the test set must stay unseen",
+        "remediation": "Write a full sentence of at least 8 words in why_split. Mention the test set and say it must stay unseen (new to the model, never seen in training) so the score is honest.",
+        "objective": "Explain why the test set must never be used during training",
+        "hidden": false,
+        "definition": {
+          "description": "why_split sentence",
+          "expr": "isinstance(why_split, str) and len(why_split.split()) >= 8 and 'test' in why_split.lower() and any(w in why_split.lower() for w in ['unseen', 'never seen', 'not seen', 'new', 'honest', 'memor', 'cheat', 'fair', 'real'])",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l29-t5",
+        "label": "The split is 80/20 with random_state=0",
+        "remediation": "Call train_test_split(X, y, test_size=0.2, random_state=0). A different test_size or random_state picks different rows for the test set.",
+        "objective": "Split with train_test_split and a fixed random_state",
+        "hidden": true
+      },
+      {
+        "key": "l29-t6",
+        "label": "All four pieces have the right shape and X_train lines up with y_train",
+        "remediation": "Unpack the four results in this order: X_train, X_test, y_train, y_test. Split X and y in the same train_test_split call so their rows stay matched.",
+        "objective": "Split with train_test_split",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\nfrom sklearn.model_selection import train_test_split\n\ndf = pd.read_csv(\"students.csv\")\n\nX = df[[\"hours_studied\", \"attendance\", \"sleep_hours\"]]\ny = df[\"passed\"]\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)\n\nprint(\"X_train:\", X_train.shape)\nprint(\"X_test:\", X_test.shape)\nprint(\"y_train:\", y_train.shape)\nprint(\"y_test:\", y_test.shape)\n\nwhy_split = \"The test set must stay unseen during training so that its score is an honest check of how the model does on new data.\"\n"
+  }
+}
