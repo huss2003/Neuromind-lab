@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import sys
 import traceback
 
 import nm_evaluate
@@ -33,9 +34,18 @@ def _plain(v, depth=0):
     return repr(v)[:200]
 
 
+def _workdir():
+    """/lab inside the browser runtime (Pyodide's own in-memory filesystem). Anywhere else (tests, tools) a private
+    temporary folder, so nothing is written to the machine's root and no special permission is needed."""
+    if sys.platform == "emscripten":
+        os.makedirs("/lab", exist_ok=True)
+        return "/lab"
+    import tempfile
+    return tempfile.mkdtemp(prefix="nm-lab-")
+
+
 def write_files(files):
-    os.makedirs("/lab", exist_ok=True)
-    os.chdir("/lab")
+    os.chdir(_workdir())
     for name, spec in (files or {}).items():
         if not name or "/" in name or name.startswith("."):
             continue
