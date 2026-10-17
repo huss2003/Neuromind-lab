@@ -36,6 +36,15 @@ function failedLines(outcome: CheckOutcome): string[] {
   return lines.filter(Boolean);
 }
 
+/** The browser's own verdict lines (exception, then failed visible checks), used when the official checker could not answer. */
+function quickLines(quick: QuickCheckResult | null | undefined): string[] {
+  if (!quick) return [];
+  const lines: string[] = [];
+  if (quick.error) lines.push(`Your program raised ${quick.error.type}${quick.error.line ? ` on line ${quick.error.line}` : ''}: ${quick.error.message}`);
+  for (const c of quick.criteria) if (!c.passed) lines.push(`Not passed: ${c.label}`);
+  return lines;
+}
+
 /** The Save & check popup: instant browser verdict first, then the official server verdict replaces it. */
 export function CheckDialog({ open, outcome, showFix, hintsLeft, redoAvailable, onDismiss, onShowHint, onBulbHint, onRedo, onContinue }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -77,7 +86,19 @@ export function CheckDialog({ open, outcome, showFix, hintsLeft, redoAvailable, 
           {showFix && remediation.length === 0 && <p className="muted">Read the error above: it names the line to look at.</p>}
         </div>
       )}
-      {officialFinal && fault && <p role="status">{official.feedback[0]?.message ?? 'Please try again.'}</p>}
+      {officialFinal && fault && (
+        <div role="status">
+          <p>{official.feedback[0]?.message ?? 'Please try again.'}</p>
+          {outcome?.quick && outcome.quick.status !== 'unavailable' && (
+            <div className="notice notice-info" data-testid="quick-summary">
+              <strong>What your browser found</strong>
+              {quickPassed
+                ? <p style={{ margin: '4px 0 0' }}>The visible checks passed in your browser. Your result is not recorded until the official checker works again.</p>
+                : <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{quickLines(outcome.quick).map((l) => <li key={l}>{l}</li>)}</ul>}
+            </div>
+          )}
+        </div>
+      )}
       {passed && <p role="status">All checks passed. Your result is recorded.</p>}
       <div className="actions">
         {passed ? (

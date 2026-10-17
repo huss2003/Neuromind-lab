@@ -53,14 +53,16 @@ async function labRows(page: Page): Promise<LabRow[]> {
   return r.json.courses[0].modules.flatMap((m: { labs: LabRow[] }) => m.labs);
 }
 
+/** Runs Save & check and returns the BROWSER verdict, whichever arrives first: the live quick result, or the browser summary the popup
+ * keeps when the official checker answers with a problem (the grader host may still run the previous image). */
 async function quickCheck(page: Page, code: string): Promise<'passed' | 'failed'> {
   await setCode(page, code);
   await page.getByRole('button', { name: 'Save & check' }).click();
   const dialog = page.getByTestId('check-dialog');
-  const passed = dialog.getByText(/Looks right in the browser/);
-  const failed = dialog.getByRole('heading', { name: 'Not quite right yet' });
+  const passed = dialog.getByText(/Looks right in the browser/).or(dialog.getByText(/visible checks passed in your browser/));
+  const failed = dialog.getByRole('heading', { name: 'Not quite right yet' }).or(dialog.getByTestId('quick-summary').locator('li'));
   await expect(passed.or(failed).first()).toBeVisible({ timeout: 180_000 }); // the first run downloads Pyodide and the lab's packages
-  return (await passed.isVisible()) ? 'passed' : 'failed';
+  return (await passed.first().isVisible()) ? 'passed' : 'failed';
 }
 
 /** Waits (bounded) for the official verdict and logs it; never fails the test on it. */
@@ -90,10 +92,11 @@ test('learner: Block 1 catalogue, lecture 9 lab opens after its knowledge checks
   expect(nine.state).toBe('not_started');
   expect(rows.find((r) => r.lecture_number === 13)!.state).toBe('locked');
 
-  // before the lecture's knowledge checks the lab page says what to do, and the API refuses the lab (400)
+  // before the lecture's knowledge checks the lab page says what to do (the API marks the exercise as not unlocked)
   await page.getByRole('link', { name: 'Open lab' }).first().click();
-  await expect(page.getByText(/opens after the knowledge checks/)).toBeVisible();
-  expect((await apiJson(page, 'GET', `/exercises/${nine.exercise_id}`)).status).toBe(400);
+  await expect(page.getByText(/unlocks after you complete the earlier knowledge checks/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'open the lecture' })).toBeVisible();
+  expect((await apiJson(page, 'GET', `/exercises/${nine.exercise_id}`)).json.unlocked).toBe(false);
 
   // walk the lecture (answers the checks) and open the lab from Practical labs
   await page.goto('/');
@@ -110,8 +113,9 @@ test('learner: Block 1 catalogue, lecture 9 lab opens after its knowledge checks
   // wrong code: the browser check names what failed; Dismiss closes the popup
   expect(await quickCheck(page, BAD)).toBe('failed');
   const dialog = page.getByTestId('check-dialog');
-  await expect(dialog.locator('.check-errors li').first()).toContainText('Not passed:');
-  console.log('QUICK CHECK (bad code):', (await dialog.locator('.check-errors li').allInnerTexts()).join(' | '));
+  const failedLines = dialog.locator('.check-errors li, [data-testid="quick-summary"] li');
+  await expect(failedLines.first()).toContainText('Not passed:');
+  console.log('QUICK CHECK (bad code):', (await failedLines.allInnerTexts()).join(' | '));
   await officialVerdict(page, nine.exercise_id);
 
   // the bulb gives 3 hints, the 4th is refused by the server, then Redo starts a fresh cycle with the starter code
