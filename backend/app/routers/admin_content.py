@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from app.auth import CurrentUser, require_roles
-from app.content_pack import WRITE_ORDER, PackError, build_rows, check_pack
+from app.content_pack import WRITE_ORDER, PackError, build_rows, check_pack, missing_definitions
 from app.errors import ApiError
 from app.repository import Repository, get_repository
 from app.services import audit
@@ -36,7 +36,7 @@ def _check_size(body: PackBody) -> None:
 
 def _report(body: PackBody) -> tuple[Any, dict[str, Any]]:
     pack, problems = check_pack(body.pack)
-    missing = sorted(t.key for t in pack.lab.tests if t.key not in body.tests) if pack else []
+    missing = missing_definitions(pack, body.tests) if pack else []
     summary = {"valid": pack is not None and not missing, "problems": problems, "missing_tests": missing}
     if pack:
         summary["summary"] = {"lecture_number": pack.lecture_number, "title": pack.title, "segments": len(pack.segments),

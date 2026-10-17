@@ -75,6 +75,12 @@ class LabTest(_Strict):
     hidden: bool = False
     definition: dict[str, Any] | None = Field(default=None, description="Visible checks may carry their definition in the pack")
 
+    @model_validator(mode="after")
+    def _hidden_stays_private(self) -> "LabTest":
+        if self.hidden and self.definition is not None:
+            raise ValueError(f"hidden check {self.key!r} must not carry its definition in the pack; keep it in the private tests file")
+        return self
+
 
 PACKAGES = ("numpy", "pandas", "matplotlib", "scikit-learn", "pillow", "requests")
 
@@ -274,6 +280,11 @@ def check_collection(packs: list[LecturePack]) -> list[str]:
     return [f"lecture number {n} appears {c} times" for n, c in sorted(seen.items()) if c > 1]
 
 
+
+def missing_definitions(pack: "LecturePack", tests: dict[str, Any]) -> list[str]:
+    """Keys of lab checks that have neither an inline definition (visible checks) nor an entry in the private tests file."""
+    return sorted(t.key for t in pack.lab.tests if t.definition is None and t.key not in tests)
+
 def build_rows(pack: LecturePack, tests: dict[str, dict], *, course_id: str, module_id: str,
                prerequisite_ids: dict[int, str] | None = None, publish: bool = False,
                published_at: str = "2026-10-13T00:00:00Z", content_version: int = 1, lecture_id: str | None = None) -> dict[str, list[dict]]:
@@ -285,7 +296,7 @@ def build_rows(pack: LecturePack, tests: dict[str, dict], *, course_id: str, mod
     for p in pack.prerequisites:
         pid = prereq_ids.get(p) or uid(f"lecture{p}")
         prereqs.append(pid)
-    missing = [t.key for t in pack.lab.tests if t.key not in tests and t.definition is None]
+    missing = missing_definitions(pack, tests)
     if missing:
         raise PackError(f"missing hidden test definitions for: {', '.join(missing)}")
     status = "published" if publish else "draft"

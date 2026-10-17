@@ -15,7 +15,12 @@ def load(path: Path) -> dict:
 
 
 def fake_tests(pack) -> dict:
-    return {t.key: {"kind": "stdout_equals", "expected": "x"} for t in pack.lab.tests}
+    """Private definitions for the checks that do not carry one inline (the hidden ones)."""
+    return {t.key: {"kind": "stdout_equals", "expected": "x"} for t in pack.lab.tests if t.definition is None}
+
+
+def segment_key(d: dict, kind: str) -> str:
+    return next(s["key"] for s in d["segments"] if s["type"] == kind)
 
 
 def valid() -> dict:
@@ -42,9 +47,21 @@ def test_committed_packs_are_valid_and_numbered_once():
 
 def test_packs_never_contain_hidden_test_definitions():
     for p in PACKS:
-        text = p.read_text()
-        assert '"definition"' not in text and "expected_output_hash" not in text
-        assert "correct_option" in text  # answers to questions live in the pack; hidden lab tests do not
+        data = load(p)
+        for t in data["lab"]["tests"]:
+            if t.get("hidden"):
+                assert "definition" not in t, f"{p.name}: hidden check {t['key']} carries its definition"
+        assert "expected_output_hash" not in p.read_text()
+        if data.get("checkpoints"):
+            assert "correct_option" in p.read_text()  # answers to questions live in the pack; hidden lab tests do not
+
+
+def test_hidden_check_with_inline_definition_is_rejected():
+    def mutate(d):
+        hidden = next(t for t in d["lab"]["tests"] if t.get("hidden"))
+        hidden["definition"] = {"match": "non_empty"}
+
+    assert any("private" in e for e in errors_for(mutate))
 
 
 def test_rows_are_deterministic_and_link_up():
@@ -74,7 +91,7 @@ def test_draft_by_default_and_publish_flag():
 
 
 def test_prerequisite_ids_can_be_overridden():
-    pack, _ = check_pack(valid())
+    pack, _ = check_pack(next(load(p) for p in PACKS if load(p).get("prerequisites")))
     rows = build_rows(pack, fake_tests(pack), course_id=COURSE, module_id=MODULE, prerequisite_ids={pack.prerequisites[0]: "fixed-id"})
     assert rows["lectures"][0]["prerequisites"] == ["fixed-id"]
 
@@ -82,7 +99,7 @@ def test_prerequisite_ids_can_be_overridden():
 def test_missing_hidden_definitions_are_reported_by_key():
     pack, _ = check_pack(valid())
     tests = fake_tests(pack)
-    dropped = next(iter(tests))
+    dropped = next(t.key for t in pack.lab.tests if t.hidden)
     del tests[dropped]
     with pytest.raises(PackError, match=dropped):
         build_rows(pack, tests, course_id=COURSE, module_id=MODULE)
@@ -128,7 +145,7 @@ def test_checkpoint_type_must_match_segment_type():
 
 def test_every_checkpoint_must_be_used():
     def mutate(d):
-        d["segments"] = [s for s in d["segments"] if s["key"] != "check-1"]
+        d["segments"] = [s for s in d["segments"] if s["key"] != segment_key(d, "checkpoint")]
 
     assert any("checkpoint" in e for e in errors_for(mutate))
 
@@ -150,7 +167,7 @@ def test_lab_needs_a_hidden_test():
 
 def test_remediation_must_point_before_the_lab():
     def mutate(d):
-        d["lab"]["tests"][0]["remediation_segment"] = "exit"
+        d["lab"]["tests"][0]["remediation_segment"] = segment_key(d, "exit_check")
 
     assert any("before the lab" in e for e in errors_for(mutate))
 

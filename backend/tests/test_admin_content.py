@@ -8,7 +8,7 @@ from tests.fakes import CID
 ROOT = Path(__file__).resolve().parents[2]
 PACK = json.loads((ROOT / "content" / "lectures" / "010-numbers-text-fstrings.json").read_text())
 SECRET = {"kind": "stdout_equals", "expected": "SECRET-ANSWER-60"}
-TESTS = {t["key"]: SECRET for t in PACK["lab"]["tests"]}
+TESTS = {t["key"]: SECRET for t in PACK["lab"]["tests"] if t.get("hidden")}  # visible checks carry their definition inline
 URL = "/api/v1/admin/content/packs"
 
 
@@ -34,9 +34,8 @@ def test_validate_reports_problems_and_missing_tests(env):
     ok = post(c, "validate", {"pack": PACK, "tests": TESTS}).json()
     assert ok["valid"] and ok["summary"]["lecture_number"] == 10 and ok["missing_tests"] == []
     assert "SECRET-ANSWER" not in json.dumps(ok)
-    partial = dict(list(TESTS.items())[:1])
-    r = post(c, "validate", {"pack": PACK, "tests": partial}).json()
-    assert not r["valid"] and len(r["missing_tests"]) == 2
+    r = post(c, "validate", {"pack": PACK, "tests": {}}).json()
+    assert not r["valid"] and r["missing_tests"] == sorted(TESTS)  # inline-defined visible checks are never "missing"
     bad = copy.deepcopy(PACK)
     bad["checkpoints"][0]["question"]["correct_option_id"] = "z"
     r = post(c, "validate", {"pack": bad, "tests": TESTS}).json()
@@ -50,7 +49,7 @@ def test_import_writes_a_draft_and_is_idempotent(env):
     assert r.status_code == 200, r.text
     first = r.json()
     assert first["status"] == "draft" and first["created"] is True
-    assert first["rows"] == {"lectures": 1, "mcq_questions": 3, "lecture_checkpoints": 3, "lecture_exercises": 1, "lecture_segments": 8, "exercise_tests": 3, "lab_questions": 0}
+    assert first["rows"] == {"lectures": 1, "mcq_questions": 3, "lecture_checkpoints": 3, "lecture_exercises": 1, "lecture_segments": 8, "exercise_tests": len(PACK["lab"]["tests"]), "lab_questions": 0}
     lecture = repo.content["lectures"][0]
     assert lecture["status"] == "draft" and lecture["published_at"] is None
     assert {q["status"] for q in repo.content["mcq_questions"]} == {"draft"}
@@ -64,7 +63,9 @@ def test_hidden_definitions_are_stored_but_never_returned_or_audited(env):
     prep(repo)
     r = post(c, "import", {"pack": PACK, "tests": TESTS})
     assert "SECRET-ANSWER" not in r.text
-    assert {t["definition"]["expected"] for t in repo.content["exercise_tests"]} == {"SECRET-ANSWER-60"}
+    hidden = [t for t in repo.content["exercise_tests"] if t["is_hidden"]]
+    assert hidden and {t["definition"]["expected"] for t in hidden} == {"SECRET-ANSWER-60"}
+    assert all("SECRET" not in json.dumps(t["definition"]) for t in repo.content["exercise_tests"] if not t["is_hidden"])
     assert "SECRET-ANSWER" not in json.dumps(repo.audit)
     assert any(a["event_type"] == "admin.content_pack_imported" for a in repo.audit)
     listing = c.get("/api/v1/admin/audit", headers=H("admin"))
@@ -108,7 +109,7 @@ def test_prerequisites_resolve_to_existing_lectures(env):
     c, repo, _ = env
     prep(repo)
     pack11 = json.loads((ROOT / "content" / "lectures" / "011-decisions-with-if.json").read_text())
-    tests = {t["key"]: SECRET for t in pack11["lab"]["tests"]}
+    tests = {t["key"]: SECRET for t in pack11["lab"]["tests"] if t.get("hidden")}
     post(c, "import", {"pack": PACK, "tests": TESTS})
     post(c, "import", {"pack": pack11, "tests": tests})
     ten = next(x for x in repo.content["lectures"] if x["lecture_number"] == 10)

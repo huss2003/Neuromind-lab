@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "lecture_number": 10,
+  "title": "Numbers, text and f-strings",
+  "summary": "Do arithmetic, work with text, and build readable messages from your data with f-strings.",
+  "objectives": [
+    "Use + - * / // % and ** and predict the result",
+    "Join, repeat and measure text",
+    "Build a message with an f-string"
+  ],
+  "duration_minutes": 35,
+  "prerequisites": [
+    9
+  ],
+  "checkpoints": [
+    {
+      "key": "cp1",
+      "type": "mcq",
+      "question": {
+        "prompt": "What does `7 // 2` evaluate to?",
+        "options": [
+          {
+            "id": "a",
+            "text": "3.5"
+          },
+          {
+            "id": "b",
+            "text": "3"
+          },
+          {
+            "id": "c",
+            "text": "4"
+          }
+        ],
+        "correct_option_id": "b",
+        "explanation_correct": "`//` is floor division: it divides and drops everything after the decimal point, so `7 // 2` is 3. Use `/` if you want 3.5.",
+        "explanation_incorrect": "Not quite. `/` would give 3.5, but `//` rounds the result down to a whole number, giving 3.",
+        "shuffle_options": false
+      }
+    },
+    {
+      "key": "cp2",
+      "type": "mcq",
+      "question": {
+        "prompt": "If item is \"tea\" and price is 3, what does f\"{item} costs {price}\" produce?",
+        "options": [
+          {
+            "id": "a",
+            "text": "tea costs 3"
+          },
+          {
+            "id": "b",
+            "text": "{item} costs {price}"
+          },
+          {
+            "id": "c",
+            "text": "\"tea\" costs \"3\""
+          }
+        ],
+        "correct_option_id": "a",
+        "explanation_correct": "An f-string replaces each name in curly brackets with that variable's value, so you get tea costs 3.",
+        "explanation_incorrect": "Not quite. The curly brackets are replaced by the values of the variables. They only appear literally when the f is missing.",
+        "shuffle_options": true
+      }
+    },
+    {
+      "key": "cp3",
+      "type": "exit_check",
+      "question": {
+        "prompt": "What does \"ab\" * 3 give?",
+        "options": [
+          {
+            "id": "a",
+            "text": "ababab"
+          },
+          {
+            "id": "b",
+            "text": "ab3"
+          },
+          {
+            "id": "c",
+            "text": "An error"
+          }
+        ],
+        "correct_option_id": "a",
+        "explanation_correct": "Multiplying text by a whole number repeats it, so \"ab\" * 3 is ababab.",
+        "explanation_incorrect": "Not quite. Text can be repeated with *, so \"ab\" * 3 gives ababab. It is joining text with a number using + that causes an error.",
+        "shuffle_options": false
+      }
+    }
+  ],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will do today",
+      "body": "## What you will do today\n\nPython is a calculator that can also handle words. Today you will do arithmetic, work with text, and combine both into a readable message.\n\n- Use the arithmetic operators and know what each one returns\n- Join and repeat text\n- Put values inside a sentence with an f-string\n\nThe lab asks you to build a receipt line from a price and a quantity."
+    },
+    {
+      "key": "reading-1",
+      "type": "reading",
+      "title": "Numbers and arithmetic",
+      "body": "## Two kinds of number\n\nWhole numbers such as `7` are **integers**. Numbers with a decimal point such as `3.5` are **floats**.\n\n## The operators\n\n- `+` add, `-` subtract, `*` multiply\n- `/` divide, always giving a float: `7 / 2` is `3.5`\n- `//` divide and round down to a whole number: `7 // 2` is `3`\n- `%` the remainder: `7 % 2` is `1`\n- `**` power: `2 ** 3` is `8`\n\nMultiplication and division happen before addition and subtraction, as in maths. Use brackets to be explicit: `(2 + 3) * 4` is `20`.\n\n```\nprice = 12\nquantity = 5\ntotal = price * quantity\nprint(total)\n```\n\nThis prints `60`."
+    },
+    {
+      "key": "check-1",
+      "type": "checkpoint",
+      "title": "Check: numbers and arithmetic",
+      "checkpoint": "cp1"
+    },
+    {
+      "key": "reading-2",
+      "type": "reading",
+      "title": "Text and f-strings",
+      "body": "## Strings\n\nText in quotes is a **string**. You can use single or double quotes, as long as they match.\n\n- `\"ab\" + \"cd\"` joins them: `abcd`\n- `\"ab\" * 3` repeats: `ababab`\n- `len(\"hello\")` counts characters: `5`\n- `\"tea\".upper()` gives `TEA`\n\n## f-strings\n\nPut an `f` before the opening quote and write variable names inside curly brackets. Python replaces each one with its value.\n\n```\nitem = \"tea\"\nprice = 3\nprint(f\"{item} costs {price}\")\n```\n\nThis prints `tea costs 3`. You can even calculate inside the brackets: `f\"{price * 2}\"` gives `6`.\n\nWithout the `f`, Python prints the brackets exactly as written."
+    },
+    {
+      "key": "check-2",
+      "type": "checkpoint",
+      "title": "Check: text and f-strings",
+      "checkpoint": "cp2"
+    },
+    {
+      "key": "example",
+      "type": "example",
+      "title": "A receipt line",
+      "body": "## Putting it together\n\nA shop sells 5 notebooks at 12 each. We want one line of output that says the total.\n\n```\nprice = 12\nquantity = 5\ntotal = price * quantity\nmessage = f\"Total: {total}\"\nprint(message)\n```\n\nOutput:\n\n```\nTotal: 60\n```\n\n## Why a variable for the message\n\nStoring the sentence in `message` first lets you print it, save it, or change it later without repeating the calculation.\n\n## Common mistakes\n\n- Forgetting the `f` prints `Total: {total}` literally.\n- Using `\"Total: \" + total` fails, because you cannot add text and a number. Use an f-string or `str(total)`.\n- `/` always gives a float, so `10 / 2` is `5.0`, not `5`.",
+      "opens_exercise": true
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: build a receipt line"
+    },
+    {
+      "key": "exit",
+      "type": "exit_check",
+      "title": "Exit check",
+      "checkpoint": "cp3"
+    }
+  ],
+  "lab": {
+    "title": "Build a receipt line",
+    "objective": "Calculate a total and report it in a sentence built with an f-string.",
+    "instructions": "The variables price and quantity are already set. Create total as price times quantity. Create message as an f-string that reads Total: followed by the total. Print message.",
+    "constraints": "Keep the variable names total and message. Use an f-string for message. Print only message.",
+    "starter_code": "price = 12\nquantity = 5\n\n# 1. Create total: the price multiplied by the quantity\n# 2. Create message: an f-string that says Total: and then the total\n# 3. Print message\n",
+    "hints": [
+      "Multiply the two given variables: total = price * quantity.",
+      "Start the f-string with f and put the variable in curly brackets, like f\"Total: {total}\".",
+      "Print the variable message with print(message). Do not put quotes around message."
+    ],
+    "hint_penalty_percent": 10,
+    "pass_threshold": 80,
+    "practice_mode": "both",
+    "visible_examples": [
+      {
+        "description": "A different shop",
+        "code": "price = 4\nquantity = 3\ntotal = price * quantity\nmessage = f\"Total: {total}\"\nprint(message)",
+        "expected_output": "Total: 12"
+      }
+    ],
+    "success_criteria": [
+      "Your program prints a line of text",
+      "total equals price times quantity",
+      "The printed text is exactly Total: 60"
+    ],
+    "tests": [
+      {
+        "key": "l10-t1",
+        "label": "Your program prints something",
+        "remediation": "Add a print(...) line so your program shows a result.",
+        "objective": "Print output with print()",
+        "remediation_segment": "example",
+        "hidden": false
+      },
+      {
+        "key": "l10-t2",
+        "label": "total equals price times quantity",
+        "remediation": "Create total with total = price * quantity.",
+        "objective": "Arithmetic with variables",
+        "remediation_segment": "reading-1",
+        "hidden": false
+      },
+      {
+        "key": "l10-t3",
+        "label": "",
+        "remediation": "Check the message: it must read Total: followed by the total, built with an f-string and printed.",
+        "objective": "Build text with f-strings",
+        "remediation_segment": "reading-2",
+        "hidden": true
+      }
+    ],
+    "scoring": "score",
+    "solution": "price = 12\nquantity = 5\ntotal = price * quantity\nmessage = f\"Total: {total}\"\nprint(message)\n"
+  }
+}

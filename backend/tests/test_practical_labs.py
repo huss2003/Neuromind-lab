@@ -296,8 +296,17 @@ def test_lab_only_pack_cannot_carry_checkpoints_and_full_pack_still_needs_exit_c
     assert any("checkpoint" in e for e in errs)
 
 
-@pytest.mark.parametrize("name", ["010-numbers-text-fstrings.json", "011-decisions-with-if.json", "012-lists-and-loops.json"])
-def test_existing_packs_still_validate_as_score_mode(name):
+def test_schema_v1_pack_with_explicit_score_mode_still_validates():
+    from pathlib import Path
+    pack, errs = check_pack(json.loads((Path(__file__).parent / "fixtures" / "v1_pack_010.json").read_text()))
+    assert errs == [] and pack.schema_version == 1 and pack.lab.kind == "code"
+    assert pack.lab.scoring == "score" and pack.lab.effective_threshold == 80 and pack.lab.hints_max == 3
+
+
+@pytest.mark.parametrize("name", ["009-python-setup-first-program.json", "010-numbers-text-fstrings.json", "011-decisions-with-if.json", "012-lists-and-loops.json"])
+def test_block1_lecture_packs_are_pass_fail_labs_with_visible_checks_inline(name):
     from pathlib import Path
     pack, errs = check_pack(json.loads((Path(__file__).resolve().parents[2] / "content" / "lectures" / name).read_text()))
-    assert errs == [] and pack.lab.scoring == "score" and pack.lab.effective_threshold == 80
+    assert errs == [] and pack.lab.scoring == "pass_fail" and pack.lab.kind == "code" and not pack.lab_only
+    assert all(t.definition is not None for t in pack.lab.tests if not t.hidden)
+    assert all(t.definition is None for t in pack.lab.tests if t.hidden)
