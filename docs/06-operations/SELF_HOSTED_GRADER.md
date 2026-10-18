@@ -219,3 +219,23 @@ Until a PC or VPS grader exists, `.github/workflows/grader-worker.yml` runs the 
   days without repository activity. If either happens, grading stops (attempts stay queued, then expire, never marked failed):
   start a run by hand, or move to a VM/VPS with `install.sh` (section 12).
 - **Check it:** the run log shows `sandbox ready: runtime=runsc ...` and no `WARNING: the API refuses ...` line.
+
+## 15. Primary host now: dedicated WSL2 distribution on Hussain-PC (2026-10-18)
+
+Hyper-V could not be enabled (component store corruption), so the grader runs in its own WSL2 distribution
+`NeuroMind-Grader` (Ubuntu 24.04), separate from the owner's everyday `Ubuntu` distribution.
+
+- **Sealed off:** `/etc/wsl.conf` from `infra/selfhost/wsl.conf` (no Windows drive mounts, no Windows programs, systemd on).
+  Checked: nothing is mounted at `/mnt/c`, and interop is off. Installed with the unchanged `install.sh`; `verify.sh` passed on
+  2026-10-18: runtime runsc, 78 passed / 3 skipped (host-side tests that need numpy or requests in the worker venv), all 32 lab
+  solutions graded in the sandbox (PARTIAL: hidden checks are not in Git), service active, no refusal.
+- **Kept running:** WSL stops a distribution nobody uses, so the Windows scheduled task `NeuroMind-Grader-KeepAlive`
+  (`infra/selfhost/windows-keepalive.ps1`, current user, no admin) holds it open from sign-in. Sleep on AC power is off.
+  The PC must be on and signed in for grading to happen.
+- **Remaining risk vs a VM:** all WSL2 distributions share one Linux kernel. A learner would need to escape gVisor, the
+  container and that kernel to reach the owner's other distribution, which can see C:. Accepted by the owner for now.
+- **Memory:** `%USERPROFILE%\.wslconfig` caps all of WSL at 3 GB; enough for `WORKER_CONCURRENCY=2`.
+- **Operations:** logs `wsl -d NeuroMind-Grader -u root -- journalctl -u neuromind-worker -f`; update
+  `wsl -d NeuroMind-Grader -u root -- bash /opt/neuromind/infra/selfhost/update.sh`; stop with
+  `Unregister-ScheduledTask NeuroMind-Grader-KeepAlive` and `wsl --terminate NeuroMind-Grader`.
+- The GitHub Actions worker (section 14) stays as a backup; both can run at once (leases prevent double grading).

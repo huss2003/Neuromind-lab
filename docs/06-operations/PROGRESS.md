@@ -192,3 +192,11 @@ Open: owner decisions on credentials (not rotated by choice), staging project, l
 - New isolation tests: home-network/private ranges, Docker host, API and Supabase unreachable; only loopback interface; no files shared between jobs; hidden expected answer never visible; lab libraries work; practice API works while real hosts stay blocked.
 - Tests run here: backend 183 passed; grader 65 passed, 16 skipped (Docker tests need Docker: they run in CI and on the machine); verify_labs 32 labs, 0 problems (full and partial modes). Docker/gVisor tests NOT run in this environment.
 - Not done: the API change is not deployed yet (deploying it stops the old AWS worker from taking jobs); VM not installed (owner); token rotation and cut-over pending.
+
+## Session 2026-10-17/18 (d) — Grader cut-over: GitHub Actions backup, then Hussain-PC (WSL2)
+- Hyper-V could not be enabled (Windows component store corruption); VM plan dropped. Disk on C: freed from 8.7 GB to ~80 GB.
+- Added `.github/workflows/grader-worker.yml` (same Docker + gVisor sandbox, ~5 h 40 min runs chained by schedule) as an interim/backup host; design doc §14 lists the GitHub-terms risk the owner accepted.
+- Production deployed from the branch (API and frontend). New worker token set in Vercel, the GitHub secret and the PC grader; the old AWS worker can no longer authenticate. API redeployed after the rotation; health ok.
+- Grader now runs in dedicated WSL2 distro `NeuroMind-Grader` (design doc §15): sealed `wsl.conf`, `install.sh` + `verify.sh` ALL CHECKS PASSED (runsc; 78 passed, 3 skipped; 32 labs graded, PARTIAL for hidden checks); service active, no refusal; Windows keep-alive task installed.
+- Local test run on Windows: backend 183 passed; grader suite fails on Windows (POSIX-only harness), passes in CI and in the WSL grader.
+- **Not done:** live production journey (nobody has the temporary users' password: reset it in Supabase or run an API-level check); lecture 25–40 import (hidden checks now in local `private/`); stopping EC2; deleting temporary accounts; PR 6 description; merge (needs owner approval).
