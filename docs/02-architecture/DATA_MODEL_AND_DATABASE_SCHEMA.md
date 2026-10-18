@@ -61,3 +61,13 @@ Courses 1:N modules; modules 1:N lectures; lectures 1:N segments/checkpoints/exe
 
 ## Migration strategy
 Numbered SQL migrations; commit all changes; separate idempotent seed data; test from empty database; use staging first; no undocumented dashboard-only schema edits; no destructive migration without backup and explicit approval; regenerate types after schema changes.
+
+## Migration 0009 — practical labs (applied to production 2026-10-16, additive)
+- `lecture_exercises` gains `lab_kind CHECK code|quiz|written|upload` (default `code`), `scoring CHECK score|pass_fail` (default `score`; new labs are imported as `pass_fail`), `packages jsonb` (allowed: numpy, pandas, matplotlib, scikit-learn, pillow, requests), `assets jsonb` (lab data files written into the learner's working directory; text or base64, 2 MB in total per lab), `limits jsonb` (`memory_mb`, `timeout_seconds`; defaults 128 MB / 5 s, 384 MB / 20 s when a scientific package is used), `rubric jsonb` (written/upload: `{criterion, description, max_points}`), `checklist jsonb` (upload), `hints_max int` (0 to 10, default 3).
+- `exercise_hint_reveals` gains `cycle int` (default 1); the unique key becomes `(learner_id, exercise_id, cycle, attempt_number, hint_index)`.
+- New `lab_hint_state (learner_id, exercise_id) PK; cycle int; redo_count int; updated_at` — the learner's current hint cycle for a pass/fail lab; `Redo` increments both.
+- New `lab_questions`: `id uuid PK; exercise_id FK; question_order int; prompt text; options jsonb; correct_option_id text; explanation text; points numeric`. Unique `(exercise_id, question_order)`. `correct_option_id` is server-only, like `mcq_questions`.
+- `lab_submissions` gains `answers jsonb` (quiz responses or upload link/notes/checklist) and the status `submitted` (written/upload attempt waiting for a teacher).
+- New `lab_reviews`: `id uuid PK; submission_id FK unique; reviewer_id FK nullable; scores jsonb; passed bool; feedback text (≤ 4000); created_at; updated_at`. One review per attempt; re-reviewing updates the row. Indexes: `lab_reviews(reviewer_id, created_at desc)`, partial `lab_submissions(status, created_at) where status = 'submitted'`.
+- RLS is enabled on the three new tables; the API uses the service role, learners never query them directly. Learner-facing views are built in the API and never include hidden check definitions or correct option ids.
+- `exercise_tests.definition` may now describe probes (`expr`), `stdout_contains`, `stdout_regex`, `stdout_min_lines`, `expected_stdout_lines`, `variable_type` and the earlier kinds (see docs/06-operations/LAB_AUTHORING_GUIDE.md). The `GET /admin/exercises/{id}/tests` route is the only place definitions leave the server, for administrators.

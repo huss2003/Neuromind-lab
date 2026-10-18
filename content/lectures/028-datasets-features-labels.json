@@ -1,0 +1,147 @@
+{
+  "schema_version": 2,
+  "lecture_number": 28,
+  "title": "Datasets, Features and Labels",
+  "summary": "Load a small fictional housing dataset, inspect it with .columns and .head(), mark every column as a feature or the label, and justify which column is the label.",
+  "objectives": [
+    "Inspect a dataset with .columns, .head() and len()",
+    "Tell features (what we know) from the label (what we want to predict)",
+    "Split a DataFrame into a feature table X and a label column y",
+    "Explain that every row is one training example"
+  ],
+  "duration_minutes": 50,
+  "prerequisites": [
+    27
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nA machine-learning model learns how some columns of a table relate to one special column. The columns we know are the **features**; the column we want to predict is the **label**; every row is one **example** the model learns from. In this lab you load `houses.csv`, a fictional table of 30 houses with their size in square feet, number of bedrooms, location and price, and inspect it with `.columns` and `.head()`. You then mark each column as a feature or the label in a dictionary, split the table into the feature table `X` and the label column `y`, and write one or two sentences explaining why `price` is the label. The next lectures use exactly this X and y to train and test real models."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: features and the label in a housing dataset"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Features and the label in a housing dataset",
+    "objective": "Load houses.csv, inspect it, mark every column as a feature or the label, split it into X and y, and justify the label choice.",
+    "instructions": "The file houses.csv (columns size_sqft, bedrooms, location, price; 30 rows) is in your working directory. Write a program that:\n\n1. Loads it with pd.read_csv() into df.\n2. Inspects it: prints Columns: followed by df.columns.tolist(), then print(df.head()), then Rows (examples): followed by len(df). Every row is one example the model will learn from.\n3. Makes labels, a dictionary with one entry per column: the value is \"feature\" for a column we know in advance and \"label\" for the one we want to predict. Also make features, the list of the feature column names in file order, and label_column, the name of the label column.\n4. Splits the table: X = df[features] (the feature table) and y = df[label_column] (the label column). Prints Features: followed by the list, Label: followed by the label name, X shape: followed by X.shape and y shape: followed by y.shape.\n5. Stores justification, one or two sentences (at least 15 words) that say why that column is the label; use the word predict. Prints it as Why: <text>.\n\nThe first and last lines of the expected output are:\nColumns: ['size_sqft', 'bedrooms', 'location', 'price']\n...\nWhy: <your sentences>",
+    "constraints": "Use pandas. Keep the names df, labels, features, label_column, X, y and justification. labels must have exactly one \"label\" entry. No input().",
+    "starter_code": "import pandas as pd\n\n# 1. Load houses.csv into df\n\n\n# 2. Inspect: print \"Columns:\" followed by df.columns.tolist(), then print(df.head()),\n#    then print \"Rows (examples):\" followed by the number of rows\n\n\n# 3. labels = a dictionary with every column name as a key and \"feature\" or \"label\" as the value\n#    features = the list of feature column names (in file order)\n#    label_column = the name of the label column\n\n\n# 4. X = df[features] and y = df[label_column]. Print Features:, Label:, X shape: and y shape:\n\n\n# 5. justification = one or two sentences (at least 15 words) saying why that column is the label\n#    (use the word predict). Print it as \"Why: <text>\"\n",
+    "hints": [
+      "df.columns.tolist() gives the column names as a list and df.head() shows the first five rows. Ask yourself: which column would be unknown for a brand-new house? That one is the label.",
+      "labels = {\"size_sqft\": \"feature\", \"bedrooms\": \"feature\", \"location\": \"feature\", \"price\": \"label\"}. features is the list of the three feature names and label_column = \"price\".",
+      "X = df[features] selects several columns (a DataFrame, shape (30, 3)); y = df[label_column] selects one column (a Series, shape (30,)). Then write justification = \"price is the label because it is the value we want the model to predict ...\"."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas"
+    ],
+    "assets": [
+      {
+        "name": "houses.csv",
+        "content": "size_sqft,bedrooms,location,price\n600,2,city,78.0\n730,2,suburb,60.9\n870,2,village,62.1\n1010,2,city,93.4\n1140,3,suburb,81.3\n1280,3,village,81.6\n1420,3,city,121.9\n1550,3,suburb,102.8\n1690,4,village,103.0\n1830,4,city,135.3\n1970,4,suburb,130.6\n600,2,village,45.0\n740,2,city,76.3\n880,2,suburb,71.6\n1010,2,village,66.4\n1150,3,city,101.8\n1290,3,suburb,93.0\n1420,3,village,90.9\n1560,3,city,121.2\n1700,4,suburb,114.5\n1840,4,village,110.8\n1970,4,city,141.6\n610,2,suburb,61.5\n750,2,village,49.8\n880,2,city,88.6\n1020,2,suburb,78.9\n1160,3,village,70.2\n1290,3,city,110.0\n1430,3,suburb,100.3\n1570,3,village,91.6\n",
+        "encoding": "text",
+        "description": "30 fictional houses: size_sqft, bedrooms, location (city, suburb or village) and price in lakh rupees."
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Looking at the columns of a tiny dataset",
+        "code": "import pandas as pd\n\ndf = pd.DataFrame({\"hours_studied\": [2, 5, 8], \"attendance_pct\": [60, 85, 95], \"passed\": [\"no\", \"yes\", \"yes\"]})\nprint(\"Columns:\", df.columns.tolist())\nprint(\"Rows (examples):\", len(df))",
+        "expected_output": "Columns: ['hours_studied', 'attendance_pct', 'passed']\nRows (examples): 3"
+      },
+      {
+        "description": "Marking roles and selecting the feature columns",
+        "code": "import pandas as pd\n\ndf = pd.DataFrame({\"hours_studied\": [2, 5, 8], \"attendance_pct\": [60, 85, 95], \"passed\": [\"no\", \"yes\", \"yes\"]})\nroles = {\"hours_studied\": \"feature\", \"attendance_pct\": \"feature\", \"passed\": \"label\"}\nfeatures = [col for col, role in roles.items() if role == \"feature\"]\nX = df[features]\nprint(\"Features:\", features)\nprint(\"X shape:\", X.shape)",
+        "expected_output": "Features: ['hours_studied', 'attendance_pct']\nX shape: (3, 2)"
+      }
+    ],
+    "success_criteria": [
+      "Your output starts with: Columns: ['size_sqft', 'bedrooms', 'location', 'price']",
+      "labels marks size_sqft, bedrooms and location as features and price as the label",
+      "Your output includes the line: Label: price",
+      "Your output includes the line: Rows (examples): 30",
+      "X is the 30 x 3 feature table and y is the 30-value price column, matching features and label_column",
+      "justification is at least 15 words, names price and uses the word predict"
+    ],
+    "tests": [
+      {
+        "key": "l28-t1",
+        "label": "The column names are printed",
+        "remediation": "Load the file with df = pd.read_csv(\"houses.csv\") and print(\"Columns:\", df.columns.tolist()).",
+        "objective": "Inspect a dataset with .columns",
+        "hidden": false,
+        "definition": {
+          "description": "Columns line",
+          "stdout_contains": "Columns: ['size_sqft', 'bedrooms', 'location', 'price']"
+        }
+      },
+      {
+        "key": "l28-t2",
+        "label": "labels marks each column as feature or label",
+        "remediation": "labels must be a dictionary with the four column names as keys; size_sqft, bedrooms and location are \"feature\" and price is \"label\" (it is the value we want to predict).",
+        "objective": "Tell features from the label",
+        "hidden": false,
+        "definition": {
+          "description": "labels dictionary",
+          "expr": "labels",
+          "expected": {
+            "size_sqft": "feature",
+            "bedrooms": "feature",
+            "location": "feature",
+            "price": "label"
+          }
+        }
+      },
+      {
+        "key": "l28-t3",
+        "label": "The label is printed",
+        "remediation": "Set label_column = \"price\" and print(\"Label:\", label_column).",
+        "objective": "Tell features from the label",
+        "hidden": false,
+        "definition": {
+          "description": "Label: price is printed",
+          "stdout_contains": "Label: price"
+        }
+      },
+      {
+        "key": "l28-t4",
+        "label": "Every row is counted as one example",
+        "remediation": "Print the number of rows with print(\"Rows (examples):\", len(df)); the file has 30 houses, so 30 examples.",
+        "objective": "Rows are training examples",
+        "hidden": false,
+        "definition": {
+          "description": "Rows (examples): 30",
+          "stdout_contains": "Rows (examples): 30"
+        }
+      },
+      {
+        "key": "l28-t5",
+        "label": "X and y match features and label_column",
+        "remediation": "features must be [\"size_sqft\", \"bedrooms\", \"location\"] and label_column \"price\". Then X = df[features] has shape (30, 3) and y = df[label_column] has shape (30,).",
+        "objective": "Split a DataFrame into features X and label y",
+        "hidden": true
+      },
+      {
+        "key": "l28-t6",
+        "label": "justification explains the label choice",
+        "remediation": "justification must be one string of at least 15 words that names price and uses the word predict: the label is the value we want the model to predict.",
+        "objective": "Justify which column is the label",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\n\n# 1. Load the dataset\ndf = pd.read_csv(\"houses.csv\")\n\n# 2. Inspect it\nprint(\"Columns:\", df.columns.tolist())\nprint(df.head())\nprint(\"Rows (examples):\", len(df))\n\n# 3. The role of every column\nlabels = {\"size_sqft\": \"feature\", \"bedrooms\": \"feature\", \"location\": \"feature\", \"price\": \"label\"}\nfeatures = [\"size_sqft\", \"bedrooms\", \"location\"]\nlabel_column = \"price\"\n\n# 4. Split the table into features (X) and the label (y)\nX = df[features]\ny = df[label_column]\nprint(\"Features:\", features)\nprint(\"Label:\", label_column)\nprint(\"X shape:\", X.shape)\nprint(\"y shape:\", y.shape)\n\n# 5. Why price is the label\njustification = (\n    \"price is the label because it is the value we want the model to predict for a new house; \"\n    \"size_sqft, bedrooms and location are features because we already know them before the sale.\"\n)\nprint(\"Why:\", justification)\n"
+  }
+}

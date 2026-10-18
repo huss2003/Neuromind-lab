@@ -12,6 +12,7 @@ export const STATUS_LABEL: Record<Submission['status'], [BadgeKind, string]> = {
   error: ['danger', 'System error — not your fault'],
   expired: ['danger', 'Expired — not your fault'],
   cancelled: ['neutral', 'Cancelled'],
+  submitted: ['info', 'Awaiting teacher review'],
 };
 
 export const STATUS_HELP: Partial<Record<Submission['status'], string>> = {
@@ -21,4 +22,5 @@ export const STATUS_HELP: Partial<Record<Submission['status'], string>> = {
   error: 'This was a problem with the grading system, not your code. This attempt was not judged and your best score is unchanged. Please try again.',
   expired: 'Grading took too long and was stopped, not because of your code. Your best score is unchanged. Please submit again.',
   cancelled: 'This submission was cancelled before it finished. You can submit again.',
+  submitted: 'Your teacher will mark this against the rubric. You will see the outcome here.',
 };

@@ -1,0 +1,124 @@
+{
+  "schema_version": 2,
+  "lecture_number": 39,
+  "title": "Natural Language Processing Fundamentals",
+  "summary": "Explain tokenisation and why text must be converted to numbers before any model can process it.",
+  "objectives": [
+    "Tokenise text with a provided tokeniser",
+    "Read a token list and its numeric ids",
+    "Spot sub-word splits of long or rare words",
+    "Explain why text becomes numbers before a model can use it"
+  ],
+  "duration_minutes": 50,
+  "prerequisites": [
+    38
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nA model cannot read letters; it works with numbers. A tokeniser splits text into pieces called tokens and gives every piece a number, its id. In this lab you write three sentences of your own and run them through the lab's tokeniser, `tokenize` from `labmock`. You print the tokens and the ids for each sentence, then collect every word that was split into smaller pieces in a list called `surprising_splits`. Those splits show how a model copes with long or rare words: it builds them from smaller parts it already knows."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: Tokenise your own sentences"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Tokenise your own sentences",
+    "objective": "Run three sentences of your own through the lab tokeniser, print the tokens and their ids, and collect the words that were split into sub-word pieces.",
+    "instructions": "The lab tokeniser is tokenize from labmock (from labmock import tokenize). tokenize(\"AI is powerful\") returns a list of dictionaries, one per token: [{\"token\": \"AI\", \"id\": ...}, {\"token\": \"is\", \"id\": ...}, {\"token\": \"powe\", \"id\": ...}, {\"token\": \"##rful\", \"id\": ...}]. A piece that starts with ## continues the word before it. The id is a number from a fixed vocabulary: the same piece always gets the same id.\n\n1. Fill in sentence_1, sentence_2 and sentence_3 with three different sentences of your own, at least 4 words each. Use plain words, spaces and a full stop (no hyphens or apostrophes), and include at least one long word so that something gets split.\n2. For each sentence, call tokenize(sentence). Make a list of the token strings and a list of the ids. Print three lines: Sentence: <the sentence>, Tokens: <list of token strings>, IDs: <list of ids>. Append the token list to token_lists and the id list to id_lists, so each holds three lists in sentence order.\n3. Find the surprising splits: for every word in every sentence, remove end punctuation with word.strip(\".,!?\") and call tokenize(word). If it returns more than one token, the word was broken into pieces: add the word to the list surprising_splits.\n4. Print Split words: followed by surprising_splits, and Total tokens: followed by the total number of tokens in all three sentences.\n\nExample lines for the sentence \"AI is powerful.\":\nTokens: ['AI', 'is', 'powe', '##rful', '.']\nSplit words: ['powerful']",
+    "constraints": "Use tokenize from labmock for every token and id; do not split text yourself. Keep the names sentence_1, sentence_2, sentence_3, token_lists, id_lists and surprising_splits. Sentences must be your own, different from each other, at least 4 words each. No input().",
+    "starter_code": "from labmock import tokenize\n\n# 1. Write three different sentences of your own, at least 4 words each. Use plain words, spaces\n#    and a full stop (no hyphens or apostrophes). Make sure at least one word is longer than\n#    5 letters, for example \"powerful\" or \"unbelievable\".\nsentence_1 = \"\"\nsentence_2 = \"\"\nsentence_3 = \"\"\nsentences = [sentence_1, sentence_2, sentence_3]\n\n# 2. For each sentence: tokens = tokenize(sentence) gives a list of dicts like\n#    {\"token\": \"powe\", \"id\": 12345}. Build the list of token strings and the list of ids.\n#    Print \"Sentence:\", then \"Tokens:\" followed by the token list, then \"IDs:\" followed by the ids.\n#    Append the token list to token_lists and the id list to id_lists.\ntoken_lists = []\nid_lists = []\n\n\n# 3. Find the words that were split: for each word in each sentence, strip punctuation with\n#    word.strip(\".,!?\") and call tokenize(word). If it gives MORE than one token, the word was\n#    split into sub-word pieces: add the word to surprising_splits.\nsurprising_splits = []\n\n\n# 4. Print \"Split words:\" followed by surprising_splits, and \"Total tokens:\" followed by the\n#    total number of tokens across the three sentences.\n",
+    "hints": [
+      "tokenize(sentence) gives a list of dicts. A list comprehension pulls out one key: pieces = [t[\"token\"] for t in tokens] and ids = [t[\"id\"] for t in tokens].",
+      "Loop with for sentence in sentences: inside, print the three lines and then token_lists.append(pieces) and id_lists.append(ids).",
+      "For the splits use two loops: for sentence in sentences: for word in sentence.split(): word = word.strip(\".,!?\") and then if len(tokenize(word)) > 1: surprising_splits.append(word). The total is sum(len(p) for p in token_lists)."
+    ],
+    "packages": [
+      "requests"
+    ],
+    "assets": [],
+    "visible_examples": [
+      {
+        "description": "A long word is split into 4-letter pieces",
+        "code": "from labmock import tokenize\n\nfor t in tokenize(\"AI is powerful\"):\n    print(t[\"token\"])",
+        "expected_output": "AI\nis\npowe\n##rful"
+      },
+      {
+        "description": "The same piece always gets the same id",
+        "code": "from labmock import tokenize\n\na = tokenize(\"cake\")[0][\"id\"]\nb = tokenize(\"I like cake\")[2][\"id\"]\nprint(a == b)\nprint(len(tokenize(\"unbelievable\")))",
+        "expected_output": "True\n3"
+      }
+    ],
+    "success_criteria": [
+      "sentence_1, sentence_2 and sentence_3 are three different sentences of at least 4 words each",
+      "token_lists holds the token strings of each sentence, exactly as tokenize() returns them",
+      "Your output has a Tokens: line for each sentence",
+      "id_lists holds the ids of each sentence, exactly as tokenize() returns them",
+      "surprising_splits lists every word from your sentences that the tokeniser broke into pieces (at least one)"
+    ],
+    "tests": [
+      {
+        "key": "l39-t1",
+        "label": "Three different sentences of at least 4 words",
+        "remediation": "Put your own sentences in sentence_1, sentence_2 and sentence_3 (strings of at least 4 words, all different).",
+        "objective": "Prepare text input",
+        "hidden": false,
+        "definition": {
+          "description": "three sentences",
+          "expr": "all(isinstance(s, str) and len(s.split()) >= 4 for s in [sentence_1, sentence_2, sentence_3]) and len({sentence_1, sentence_2, sentence_3}) == 3",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l39-t2",
+        "label": "token_lists matches tokenize() for your sentences",
+        "remediation": "token_lists must hold three lists (one per sentence, in order) of the \"token\" strings from tokenize(sentence).",
+        "objective": "Tokenise text with a provided tokeniser",
+        "hidden": false,
+        "definition": {
+          "description": "token lists",
+          "expr": "token_lists == [[t['token'] for t in __import__('labmock').tokenize(s)] for s in [sentence_1, sentence_2, sentence_3]]",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l39-t3",
+        "label": "A Tokens: line is printed for each sentence",
+        "remediation": "Print \"Tokens:\" followed by the list of token strings for every sentence, for example print(\"Tokens:\", pieces).",
+        "objective": "Inspect token output",
+        "hidden": false,
+        "definition": {
+          "description": "Tokens lines",
+          "stdout_regex": "^Tokens: \\[.*\\]$"
+        }
+      },
+      {
+        "key": "l39-t4",
+        "label": "id_lists matches the ids from tokenize()",
+        "remediation": "id_lists must hold three lists (one per sentence, in order) of the \"id\" numbers from tokenize(sentence).",
+        "objective": "Map tokens to numeric ids",
+        "hidden": true
+      },
+      {
+        "key": "l39-t5",
+        "label": "surprising_splits holds exactly the words that were split",
+        "remediation": "For every word of every sentence, strip punctuation with word.strip(\".,!?\") and add it to surprising_splits only if tokenize(word) gives more than one token. At least one sentence needs a word longer than 5 letters.",
+        "objective": "Recognise sub-word splits",
+        "hidden": true
+      }
+    ],
+    "solution": "from labmock import tokenize\n\nsentence_1 = \"Tokenisation is surprisingly powerful.\"\nsentence_2 = \"My grandmother bakes unbelievable chocolate cake.\"\nsentence_3 = \"The model reads numbers, not words.\"\nsentences = [sentence_1, sentence_2, sentence_3]\n\ntoken_lists = []\nid_lists = []\nfor sentence in sentences:\n    tokens = tokenize(sentence)\n    pieces = [t[\"token\"] for t in tokens]\n    ids = [t[\"id\"] for t in tokens]\n    token_lists.append(pieces)\n    id_lists.append(ids)\n    print(\"Sentence:\", sentence)\n    print(\"Tokens:\", pieces)\n    print(\"IDs:\", ids)\n\nsurprising_splits = []\nfor sentence in sentences:\n    for word in sentence.split():\n        word = word.strip(\".,!?\")\n        if len(tokenize(word)) > 1:\n            surprising_splits.append(word)\n\nprint(\"Split words:\", surprising_splits)\nprint(\"Total tokens:\", sum(len(pieces) for pieces in token_lists))\n",
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "limits": {}
+  }
+}

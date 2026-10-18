@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "lecture_number": 19,
+  "title": "Functions, Scope and Modular Programming",
+  "summary": "Explain variable scope (local vs global) and organise code into separate, importable modules.",
+  "objectives": [
+    "Explain why assigning to a global name inside a function causes UnboundLocalError",
+    "Pass values into functions with parameters and get results back with return",
+    "Organise a program into helper functions and a main() function run under if __name__ == \"__main__\""
+  ],
+  "duration_minutes": 50,
+  "prerequisites": [
+    18
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build today",
+      "body": "## What you will build today\n\nA tidy program is split into parts: **helper functions** that each do one job, and a **main()** function that uses them. In a real project the helpers live in their own file (a module such as `helpers.py`) and `main.py` imports them. The lab editor holds one file, so today the two files become two clearly marked **sections** of one file: helpers at the top, `main()` below, started by the line `if __name__ == \"__main__\":`.\n\nThe starter program also has a deliberate **scope bug**: a helper tries to change a variable that lives outside the function and Python stops with an `UnboundLocalError`. You will fix it the clean way, by passing values in through parameters and getting results back with `return`, so `main()` keeps its own running total."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: helpers, main() and the scope bug"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Word tools: helpers, main() and a scope bug",
+    "objective": "Fix an UnboundLocalError by returning values instead of changing a global, and organise the program into helper functions and a main() function.",
+    "instructions": "The starter file has two sections. Section 1 holds the helper functions (in a real project this would be `helpers.py`); section 2 holds `main()` (this would be `main.py`). Running it crashes with `UnboundLocalError` because `count_words` tries to change `total_words`, a variable outside the function.\n\n1. Fix `count_words(sentence)` so it simply **returns** the number of words in the sentence: `len(sentence.split())`. Do not change any variable outside the function. You can delete the `total_words = 0` line.\n2. Finish `longest_word(sentence)` so it returns the longest word in the sentence.\n3. In `main()`, keep a local `total` that starts at 0 and add `count_words(sentence)` to it for each sentence.\n4. For each sentence print one line, then print the total after the loop, so the output is exactly:\n\n```\nPython is fun: 3 words, longest: Python\nFunctions keep code tidy: 4 words, longest: Functions\nScope matters: 2 words, longest: matters\nTotal words: 9\n```\n\nKeep `main()` running under `if __name__ == \"__main__\":` at the bottom.",
+    "constraints": "Keep the function names count_words, longest_word and main. Helpers must return values, not print and not change variables outside themselves. Do not use the global keyword. Print exactly four lines. No input().",
+    "starter_code": "# ===== SECTION 1: helper functions =====\n# In a real project this section would be its own file, helpers.py,\n# and section 2 would start with: import helpers\n\ntotal_words = 0\n\n\ndef count_words(sentence):\n    # BUG: this line tries to change total_words, a variable OUTSIDE the function.\n    # Inside a function, assigning to a name makes it local, and the local has no\n    # value yet, so Python raises UnboundLocalError. Fix it: return the count instead.\n    total_words = total_words + len(sentence.split())\n    return total_words\n\n\ndef longest_word(sentence):\n    # 1. Return the longest word in the sentence (split it, keep the longest)\n    return \"\"\n\n\n# ===== SECTION 2: main program =====\n# In a real project this section would be main.py.\n\ndef main():\n    sentences = [\"Python is fun\", \"Functions keep code tidy\", \"Scope matters\"]\n    # 2. Keep a LOCAL running total here: total = 0, then add count_words(sentence) for each sentence\n    # 3. Print one line per sentence: <sentence>: <n> words, longest: <word>\n    # 4. After the loop print: Total words: <total>\n    for sentence in sentences:\n        count_words(sentence)\n\n\nif __name__ == \"__main__\":\n    main()\n",
+    "hints": [
+      "The crash happens because count_words assigns to total_words, which makes Python treat it as a new local variable. Do not touch total_words inside the function: just return len(sentence.split()).",
+      "In main(), write total = 0 before the loop and total = total + count_words(sentence) inside it. For longest_word, start with longest = \"\" and loop over sentence.split(); when len(word) > len(longest), set longest = word, then return longest.",
+      "Inside the loop: n = count_words(sentence) and print(sentence + \": \" + str(n) + \" words, longest: \" + longest_word(sentence)). After the loop: print(\"Total words: \" + str(total))."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Return a result instead of changing a variable outside the function",
+        "code": "def add_points(score, points):\n    return score + points\n\ntotal = 0\ntotal = add_points(total, 5)\ntotal = add_points(total, 3)\nprint(total)",
+        "expected_output": "8"
+      },
+      {
+        "description": "A helper plus a main() run under the guard",
+        "code": "def shout(word):\n    return word.upper() + \"!\"\n\ndef main():\n    print(shout(\"hello\"))\n\nif __name__ == \"__main__\":\n    main()",
+        "expected_output": "HELLO!"
+      }
+    ],
+    "success_criteria": [
+      "count_words returns the number of words in a sentence",
+      "longest_word returns the longest word in a sentence",
+      "main is a function and prints the total line",
+      "count_words gives the same answer every time it is called (no global counter)",
+      "Your program prints exactly the four lines"
+    ],
+    "tests": [
+      {
+        "key": "l19-t1",
+        "label": "count_words returns the number of words in a sentence",
+        "remediation": "Make count_words return len(sentence.split()) and nothing else; do not assign to total_words inside it.",
+        "objective": "Return a value from a function",
+        "hidden": false,
+        "definition": {
+          "description": "count_words('one two three') is 3",
+          "expr": "count_words('one two three')",
+          "expected": 3
+        }
+      },
+      {
+        "key": "l19-t2",
+        "label": "longest_word returns the longest word in a sentence",
+        "remediation": "Loop over sentence.split(), keep the word whose len() is the biggest so far, and return it at the end.",
+        "objective": "Write a helper function with a parameter and a return value",
+        "hidden": false,
+        "definition": {
+          "description": "longest_word('a quick fox') is quick",
+          "expr": "longest_word('a quick fox')",
+          "expected": "quick"
+        }
+      },
+      {
+        "key": "l19-t3",
+        "label": "main is a function and prints the total line",
+        "remediation": "Keep def main(): with the loop inside it, print(\"Total words: \" + str(total)) after the loop, and call main() under if __name__ == \"__main__\":.",
+        "objective": "Organise a program into a main() function",
+        "hidden": false,
+        "definition": {
+          "description": "Total words line is printed",
+          "stdout_contains": "Total words: 9"
+        }
+      },
+      {
+        "key": "l19-t4",
+        "label": "count_words gives the same answer every time it is called (no global counter)",
+        "remediation": "count_words must not add to a variable outside the function. Return the count of this sentence only; let main() do the adding up with its own total.",
+        "objective": "Fix a global-vs-local scope bug by returning values",
+        "hidden": true
+      },
+      {
+        "key": "l19-t5",
+        "label": "Your program prints exactly the four lines",
+        "remediation": "Print one line per sentence in the form <sentence>: <n> words, longest: <word>, then Total words: 9. Build the number parts with str().",
+        "objective": "Call helper functions from main()",
+        "hidden": true
+      }
+    ],
+    "solution": "# ===== SECTION 1: helper functions =====\n\ndef count_words(sentence):\n    return len(sentence.split())\n\n\ndef longest_word(sentence):\n    longest = \"\"\n    for word in sentence.split():\n        if len(word) > len(longest):\n            longest = word\n    return longest\n\n\n# ===== SECTION 2: main program =====\n\ndef main():\n    sentences = [\"Python is fun\", \"Functions keep code tidy\", \"Scope matters\"]\n    total = 0\n    for sentence in sentences:\n        n = count_words(sentence)\n        total = total + n\n        print(sentence + \": \" + str(n) + \" words, longest: \" + longest_word(sentence))\n    print(\"Total words: \" + str(total))\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  }
+}

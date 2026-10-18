@@ -35,6 +35,7 @@ export function TeacherDashboard() {
   return (
     <main className="page">
       <h1>Teacher dashboard</h1>
+      <p><Link to="/teacher/reviews">Reviews waiting for you</Link> · <Link to="/teacher/report">Progress report and tools</Link></p>
       {summary.isError && <ErrorMessage message={errorMessage(summary.error)} onRetry={() => void summary.refetch()} />}
       <div className="grid grid-4" aria-busy={summary.isPending}>
         {tiles.map(([label, value, hint]) => (

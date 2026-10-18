@@ -1,0 +1,132 @@
+{
+  "schema_version": 2,
+  "lecture_number": 31,
+  "title": "Classification",
+  "summary": "Explain what classification predicts (a category) and build a simple classifier.",
+  "objectives": [
+    "Tell classification (predicting a category) apart from regression (predicting a number)",
+    "Train a KNeighborsClassifier with n_neighbors=3 on a small labelled dataset",
+    "Predict the class of a new, unseen example",
+    "Explain a prediction with the nearest-neighbours idea"
+  ],
+  "duration_minutes": 50,
+  "prerequisites": [
+    30
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nIn the last lab the model predicted a number. A **classifier** predicts a category instead: spam or not spam, cat or dog, lemon, apple or mango. K-Nearest-Neighbours is the simplest classifier to picture: to label a new point it finds the K closest points in the training data and takes a majority vote. In this lab you will load `fruits.csv` (30 fictional fruits with their weight in grams, a sweetness score from 1 to 10 and their kind), train a `KNeighborsClassifier` with `n_neighbors=3`, and predict the kind of a new fruit that weighs 150 g with sweetness 6. You will then write one sentence that explains the answer using its three nearest neighbours."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: which fruit is it?"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Which fruit is it? A 3-nearest-neighbours classifier",
+    "objective": "Train a KNeighborsClassifier(n_neighbors=3) on weight and sweetness, predict the kind of a new fruit and explain the prediction.",
+    "instructions": "The file fruits.csv has 30 rows with three columns: weight_g, sweetness (1 to 10) and fruit (lemon, apple or mango). The starter code already loads it into df.\n\n1. Make X = df[[\"weight_g\", \"sweetness\"]] (the two features) and y = df[\"fruit\"] (the label).\n2. Create model = KNeighborsClassifier(n_neighbors=3) and train it with model.fit(X, y).\n3. new_fruit is a one-row table for a fruit of 150 g with sweetness 6. Store prediction = model.predict(new_fruit)[0] and print:\nPrediction: <fruit>\n4. Store one sentence (at least 8 words) in explanation that explains the prediction with the nearest-neighbours idea: name the predicted fruit and say that the 3 nearest neighbours of the new fruit in the data are that fruit, so the majority vote wins.\n\nYou can print(df.head()) while you work to see what the rows look like.",
+    "constraints": "Use KNeighborsClassifier from sklearn.neighbors with n_neighbors=3. Keep the names df, X, y, model, new_fruit, prediction and explanation. The prediction must come from model.predict, not be typed in by hand. No input().",
+    "starter_code": "import pandas as pd\nfrom sklearn.neighbors import KNeighborsClassifier\n\ndf = pd.read_csv(\"fruits.csv\")\n\n# 1. X = the two feature columns weight_g and sweetness, y = the fruit column\n\n\n# 2. model = KNeighborsClassifier(n_neighbors=3), then model.fit(X, y)\n\n\n# 3. A new fruit: 150 g with sweetness 6. Predict its kind:\n#    prediction = model.predict(new_fruit)[0]\n#    Print:  Prediction: <fruit>\nnew_fruit = pd.DataFrame({\"weight_g\": [150], \"sweetness\": [6]})\n\n\n# 4. One sentence (at least 8 words) explaining the prediction with the nearest-neighbours\n#    idea: name the predicted fruit and its 3 nearest neighbours\nexplanation = \"\"\n",
+    "hints": [
+      "X = df[[\"weight_g\", \"sweetness\"]] picks the two feature columns and y = df[\"fruit\"] the labels. A classifier learns from pairs of (features, label) exactly like the regression model did, but the label is a word, not a number.",
+      "model = KNeighborsClassifier(n_neighbors=3) and model.fit(X, y). model.predict(new_fruit) returns a list with one answer, so take [0] to get the fruit name as text: prediction = model.predict(new_fruit)[0].",
+      "Print with print(\"Prediction:\", prediction). For the sentence, look at which fruits in the file are closest to 150 g and sweetness 6: explanation = \"The 3 nearest neighbours of a 150 g fruit with sweetness 6 are apples, so the majority vote predicts apple.\""
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "pandas",
+      "scikit-learn"
+    ],
+    "assets": [
+      {
+        "name": "fruits.csv",
+        "content": "weight_g,sweetness,fruit\n163,5,apple\n85,1,lemon\n251,9,mango\n305,9,mango\n278,9,mango\n179,7,apple\n90,1,lemon\n316,10,mango\n89,3,lemon\n258,7,mango\n98,1,lemon\n159,5,apple\n279,9,mango\n87,3,lemon\n282,9,mango\n78,3,lemon\n95,1,lemon\n64,2,lemon\n169,5,apple\n240,10,mango\n130,5,apple\n148,6,apple\n173,7,apple\n299,9,mango\n105,3,lemon\n136,5,apple\n146,6,apple\n133,7,apple\n69,1,lemon\n223,9,mango\n",
+        "encoding": "text",
+        "description": "30 fictional fruits: weight_g, sweetness (1-10) and fruit (lemon, apple or mango)."
+      }
+    ],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Small or big? KNN on one feature",
+        "code": "import pandas as pd\nfrom sklearn.neighbors import KNeighborsClassifier\n\ndata = pd.DataFrame({\"size\": [1, 2, 3, 10, 11, 12], \"kind\": [\"small\", \"small\", \"small\", \"big\", \"big\", \"big\"]})\nmodel = KNeighborsClassifier(n_neighbors=3)\nmodel.fit(data[[\"size\"]], data[\"kind\"])\nnew_item = pd.DataFrame({\"size\": [9]})\nprint(model.predict(new_item)[0])",
+        "expected_output": "big"
+      },
+      {
+        "description": "Two features: the 3 closest points vote",
+        "code": "import pandas as pd\nfrom sklearn.neighbors import KNeighborsClassifier\n\ndata = pd.DataFrame({\"x\": [0, 1, 0, 8, 9, 8], \"y\": [0, 0, 1, 8, 8, 9],\n                     \"label\": [\"left\", \"left\", \"left\", \"right\", \"right\", \"right\"]})\nmodel = KNeighborsClassifier(n_neighbors=3)\nmodel.fit(data[[\"x\", \"y\"]], data[\"label\"])\nprint(model.predict(pd.DataFrame({\"x\": [2], \"y\": [1]}))[0])\nprint(model.predict(pd.DataFrame({\"x\": [7], \"y\": [9]}))[0])",
+        "expected_output": "left\nright"
+      }
+    ],
+    "success_criteria": [
+      "model is a KNeighborsClassifier with n_neighbors=3",
+      "Your output includes: Prediction: <the fruit the model chose>",
+      "explanation is one sentence of at least 8 words that names the predicted fruit and its nearest neighbours",
+      "prediction comes from the fitted model (the model classifies other new fruits correctly too)",
+      "X holds weight_g and sweetness and y holds the 30 fruit labels"
+    ],
+    "tests": [
+      {
+        "key": "l31-t1",
+        "label": "model is a KNeighborsClassifier with n_neighbors=3",
+        "remediation": "Create it with model = KNeighborsClassifier(n_neighbors=3) and train it with model.fit(X, y).",
+        "objective": "Train a KNeighborsClassifier",
+        "hidden": false,
+        "definition": {
+          "description": "KNN with k=3",
+          "expr": "type(model).__name__ == 'KNeighborsClassifier' and model.n_neighbors == 3",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l31-t2",
+        "label": "The prediction for the new fruit is printed",
+        "remediation": "prediction = model.predict(new_fruit)[0], then print(\"Prediction:\", prediction). If you see a different fruit, check that X has weight_g then sweetness, that y is df[\"fruit\"] and that n_neighbors=3.",
+        "objective": "Predict the class of a new, unseen example",
+        "hidden": false,
+        "definition": {
+          "description": "prediction line",
+          "stdout_contains": "Prediction: apple"
+        }
+      },
+      {
+        "key": "l31-t3",
+        "label": "explanation names the predicted fruit and its nearest neighbours",
+        "remediation": "Write a full sentence of at least 8 words in explanation. Use the word neighbours and name the fruit the model predicted, for example: its 3 nearest neighbours are apples, so the majority vote says apple.",
+        "objective": "Explain a prediction with the nearest-neighbours idea",
+        "hidden": false,
+        "definition": {
+          "description": "explanation sentence",
+          "expr": "isinstance(explanation, str) and len(explanation.split()) >= 8 and 'neighbo' in explanation.lower() and str(prediction).lower() in explanation.lower()",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l31-t4",
+        "label": "prediction comes from the fitted model",
+        "remediation": "prediction must be model.predict(new_fruit)[0], not a typed word, and the model must be fitted on all 30 rows with X = df[[\"weight_g\", \"sweetness\"]] and y = df[\"fruit\"] so it also classifies other new fruits correctly.",
+        "objective": "Predict the class of a new, unseen example",
+        "hidden": true
+      },
+      {
+        "key": "l31-t5",
+        "label": "X holds the two features and y the 30 fruit labels",
+        "remediation": "X = df[[\"weight_g\", \"sweetness\"]] (both columns, in this order) and y = df[\"fruit\"]. Do not drop or filter any rows.",
+        "objective": "Separate features from the label",
+        "hidden": true
+      }
+    ],
+    "solution": "import pandas as pd\nfrom sklearn.neighbors import KNeighborsClassifier\n\ndf = pd.read_csv(\"fruits.csv\")\n\nX = df[[\"weight_g\", \"sweetness\"]]\ny = df[\"fruit\"]\n\nmodel = KNeighborsClassifier(n_neighbors=3)\nmodel.fit(X, y)\n\nnew_fruit = pd.DataFrame({\"weight_g\": [150], \"sweetness\": [6]})\nprediction = model.predict(new_fruit)[0]\nprint(\"Prediction:\", prediction)\n\nexplanation = \"The 3 nearest neighbours of a 150 g fruit with sweetness 6 are all apples, so the majority vote predicts apple.\"\n"
+  }
+}

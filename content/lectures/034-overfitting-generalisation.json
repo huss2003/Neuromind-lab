@@ -1,0 +1,133 @@
+{
+  "schema_version": 2,
+  "lecture_number": 34,
+  "title": "Overfitting and Generalisation",
+  "summary": "Identify overfitting from a train-vs-test performance gap and describe at least one way to reduce it.",
+  "objectives": [
+    "Compute the train-test gap for a model",
+    "Diagnose a model as overfit, underfit or well-generalised from its train and test accuracy",
+    "Propose one specific fix for an overfit model and one for an underfit model",
+    "Choose which model to deploy, using the test score and the diagnosis"
+  ],
+  "duration_minutes": 45,
+  "prerequisites": [
+    33
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nThree teams trained a model on the same task and sent you their train and test accuracy. Your job is the one a reviewer does every day: look at the two numbers, work out the gap between them, and say whether each model has **overfit** (memorised the training data), **underfit** (too simple to learn the pattern) or **generalised well**. You will store the diagnosis for each model in a dictionary, suggest one concrete fix for each problem model, and name the model you would deploy. No scikit-learn is needed: this lab is about reading the numbers correctly, which is the skill you will use on every model you ever train."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: diagnose three models"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Diagnose three models",
+    "objective": "Use the train-test gap to diagnose three models as overfit, underfit or well-generalised, propose fixes and pick one to deploy.",
+    "instructions": "The dictionary results gives, for three models, the accuracy on the training data and on the test data (as decimals: 0.99 means 99%).\n\nUse this rule from class:\n- gap = train - test, rounded to 2 decimals\n- if the gap is bigger than 0.10, the model is overfit\n- otherwise, if the test accuracy is below 0.70, the model is underfit\n- otherwise the model is well-generalised\n\n1. Build gaps: a dictionary from model name to its gap (rounded to 2 decimals).\n2. Build diagnosis: a dictionary from model name to exactly one of the strings \"overfit\", \"underfit\" or \"well-generalised\".\n3. Print one line per model, in the order model_a, model_b, model_c, in exactly this shape:\nmodel_a: train 0.99, test 0.61, gap 0.38 -> <diagnosis>\n4. Build fixes: a dictionary with one entry for each model that is NOT well-generalised. Each value is one specific fix of at least 5 words. For an overfit model suggest a simpler model, more training data or regularisation. For an underfit model suggest a more complex or flexible model, or adding more features.\n5. Set chosen_model to the name of the model you would deploy: the best test accuracy among the models that are not overfit. Print it as the last line: Deploy: <chosen_model>",
+    "constraints": "Apply the rule with if/elif/else inside a loop, so the code would still work if the numbers changed. Keep the names results, gaps, diagnosis, fixes and chosen_model. Use the exact strings overfit, underfit and well-generalised. No input().",
+    "starter_code": "# Train and test accuracy for three models (decimals: 0.99 means 99%)\nresults = {\n    \"model_a\": {\"train\": 0.99, \"test\": 0.61},\n    \"model_b\": {\"train\": 0.58, \"test\": 0.55},\n    \"model_c\": {\"train\": 0.90, \"test\": 0.87},\n}\n\ngaps = {}\ndiagnosis = {}\n\n# 1. For each model, gap = train - test rounded to 2 decimals; store it in gaps\n# 2. Apply the rule from the instructions; store \"overfit\", \"underfit\" or \"well-generalised\" in diagnosis\n# 3. Print one line per model, for example:\n#    print(f\"{name}: train {scores['train']}, test {scores['test']}, gap {gaps[name]} -> {diagnosis[name]}\")\nfor name, scores in results.items():\n    pass\n\n# 4. fixes: one specific fix (5+ words) for each model that is not well-generalised\nfixes = {}\n\n# 5. chosen_model: the model you would deploy, then print it as  Deploy: <name>\nchosen_model = \"\"\n",
+    "hints": [
+      "Loop with for name, scores in results.items(): and compute gap = round(scores[\"train\"] - scores[\"test\"], 2). Store it with gaps[name] = gap.",
+      "The rule is an if/elif/else chain inside the loop: if gap > 0.10: diagnosis[name] = \"overfit\" elif scores[\"test\"] < 0.70: diagnosis[name] = \"underfit\" else: diagnosis[name] = \"well-generalised\". Print the line in the same loop.",
+      "model_a is overfit and model_b is underfit, so fixes needs those two keys, e.g. fixes[\"model_a\"] = \"use a simpler model or collect more training data\". The best test accuracy among the models that are not overfit belongs to model_c, so chosen_model = \"model_c\"."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "The gap for one model",
+        "code": "train = 0.95\ntest = 0.62\ngap = round(train - test, 2)\nprint(\"Gap:\", gap)\nif gap > 0.10:\n    print(\"overfit\")\nelse:\n    print(\"not overfit\")",
+        "expected_output": "Gap: 0.33\noverfit"
+      },
+      {
+        "description": "Looping over a dictionary of dictionaries",
+        "code": "scores = {\"model_x\": {\"train\": 0.80, \"test\": 0.78}}\nfor name, s in scores.items():\n    print(f\"{name}: train {s['train']}, test {s['test']}\")",
+        "expected_output": "model_x: train 0.8, test 0.78"
+      }
+    ],
+    "success_criteria": [
+      "gaps holds the train-test gap of each model, rounded to 2 decimals",
+      "One line per model is printed in the required shape",
+      "The Deploy: line names a model",
+      "diagnosis gives each model the right label",
+      "fixes gives a specific fix for each problem model",
+      "chosen_model is the model to deploy"
+    ],
+    "tests": [
+      {
+        "key": "l34-t1",
+        "label": "gaps holds the three rounded gaps",
+        "remediation": "gap = round(train - test, 2) for every model; store it in gaps under the model name (gaps[name] = gap).",
+        "objective": "Compute the train-test gap",
+        "hidden": false,
+        "definition": {
+          "description": "gaps",
+          "expr": "[round(float(gaps[m]), 2) for m in ('model_a', 'model_b', 'model_c')]",
+          "expected": [
+            0.38,
+            0.03,
+            0.03
+          ]
+        }
+      },
+      {
+        "key": "l34-t2",
+        "label": "One line per model is printed in the required shape",
+        "remediation": "Print inside the loop: print(f\"{name}: train {scores['train']}, test {scores['test']}, gap {gaps[name]} -> {diagnosis[name]}\"), so there are three lines, model_a first.",
+        "objective": "Report a diagnosis per model",
+        "hidden": false,
+        "definition": {
+          "description": "three model lines",
+          "stdout_regex": "^model_a: train 0\\.\\d+, test 0\\.\\d+, gap 0\\.\\d+ -> [a-z-]+\\nmodel_b: train 0\\.\\d+, test 0\\.\\d+, gap 0\\.\\d+ -> [a-z-]+\\nmodel_c: train 0\\.\\d+, test 0\\.\\d+, gap 0\\.\\d+ -> [a-z-]+$"
+        }
+      },
+      {
+        "key": "l34-t3",
+        "label": "The Deploy: line names a model",
+        "remediation": "Finish with print(\"Deploy:\", chosen_model) where chosen_model is one of the model names.",
+        "objective": "Choose a model to deploy",
+        "hidden": false,
+        "definition": {
+          "description": "Deploy line",
+          "stdout_regex": "^Deploy: model_[abc]$"
+        }
+      },
+      {
+        "key": "l34-t4",
+        "label": "diagnosis gives each model the right label",
+        "remediation": "Apply the rule in order: gap > 0.10 means overfit; otherwise test < 0.70 means underfit; otherwise well-generalised. Use the exact spellings overfit, underfit and well-generalised.",
+        "objective": "Diagnose overfitting and underfitting from train/test scores",
+        "hidden": true
+      },
+      {
+        "key": "l34-t5",
+        "label": "fixes gives a specific fix for each problem model",
+        "remediation": "fixes needs exactly the keys model_a and model_b (the two models that are not well-generalised), each with a fix of at least 5 words. For the overfit model mention a simpler model, more data or regularisation; for the underfit model mention a more complex or flexible model, or more features.",
+        "objective": "Propose a specific fix for overfitting and underfitting",
+        "hidden": true
+      },
+      {
+        "key": "l34-t6",
+        "label": "chosen_model is the model to deploy",
+        "remediation": "Deploy the model with the best test accuracy among those that are not overfit. Compare the test scores, not the train scores.",
+        "objective": "Choose a model to deploy",
+        "hidden": true
+      }
+    ],
+    "solution": "results = {\n    \"model_a\": {\"train\": 0.99, \"test\": 0.61},\n    \"model_b\": {\"train\": 0.58, \"test\": 0.55},\n    \"model_c\": {\"train\": 0.90, \"test\": 0.87},\n}\n\ngaps = {}\ndiagnosis = {}\nfor name, scores in results.items():\n    gap = round(scores[\"train\"] - scores[\"test\"], 2)\n    gaps[name] = gap\n    if gap > 0.10:\n        diagnosis[name] = \"overfit\"\n    elif scores[\"test\"] < 0.70:\n        diagnosis[name] = \"underfit\"\n    else:\n        diagnosis[name] = \"well-generalised\"\n    print(f\"{name}: train {scores['train']}, test {scores['test']}, gap {gaps[name]} -> {diagnosis[name]}\")\n\nfixes = {\n    \"model_a\": \"use a simpler model or collect more training data so it cannot memorise the examples\",\n    \"model_b\": \"use a more complex model or add more features so it can learn the real pattern\",\n}\n\ncandidates = [name for name in results if diagnosis[name] != \"overfit\"]\nchosen_model = max(candidates, key=lambda name: results[name][\"test\"])\nprint(\"Deploy:\", chosen_model)\n"
+  }
+}

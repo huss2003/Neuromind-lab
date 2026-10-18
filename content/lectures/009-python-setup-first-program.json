@@ -1,0 +1,255 @@
+{
+  "schema_version": 2,
+  "lecture_number": 9,
+  "title": "Python setup, notebooks and the first program",
+  "summary": "Set up Python, run your first notebook cell, and write a program that stores and prints information.",
+  "objectives": [
+    "Check that Python is installed and working",
+    "Run code cells and text cells in a notebook",
+    "Store a value in a variable with =",
+    "Show a result with print()"
+  ],
+  "duration_minutes": 35,
+  "prerequisites": [],
+  "lab_only": false,
+  "checkpoints": [
+    {
+      "key": "cp1",
+      "type": "mcq",
+      "question": {
+        "prompt": "Which command prints the version of Python installed on your computer?",
+        "options": [
+          {
+            "id": "a",
+            "text": "python -v"
+          },
+          {
+            "id": "b",
+            "text": "python --version"
+          },
+          {
+            "id": "c",
+            "text": "python --check"
+          }
+        ],
+        "correct_option_id": "b",
+        "explanation_correct": "`python --version` prints the installed version. On macOS and Linux you may need `python3 --version`.",
+        "explanation_incorrect": "Not quite. `python -v` turns on verbose mode, which traces every import. The command that prints the version is `python --version`.",
+        "shuffle_options": false
+      }
+    },
+    {
+      "key": "cp2",
+      "type": "mcq",
+      "question": {
+        "prompt": "Which statement about notebook cells is true?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Each cell can be run on its own, and all cells share the same variables while the kernel is running"
+          },
+          {
+            "id": "b",
+            "text": "Every cell has its own separate set of variables"
+          },
+          {
+            "id": "c",
+            "text": "Cells run automatically from top to bottom whenever you open the notebook"
+          }
+        ],
+        "correct_option_id": "a",
+        "explanation_correct": "Cells share one kernel, so a variable created in one cell can be used by any cell you run afterwards.",
+        "explanation_incorrect": "Not quite. Cells are separate to run but share the same kernel, so variables carry over. You choose when each cell runs.",
+        "shuffle_options": true
+      }
+    },
+    {
+      "key": "cp3",
+      "type": "exit_check",
+      "question": {
+        "prompt": "After running `price = 20` and then `price = price + 5`, what does `print(price)` show?",
+        "options": [
+          {
+            "id": "a",
+            "text": "25"
+          },
+          {
+            "id": "b",
+            "text": "20"
+          },
+          {
+            "id": "c",
+            "text": "price + 5"
+          }
+        ],
+        "correct_option_id": "a",
+        "explanation_correct": "Python works out the right side first using the old value (20 + 5), then stores 25 back under `price`.",
+        "explanation_incorrect": "Not quite. The second line reads the old value of `price`, adds 5, and stores the answer back, so `price` is now 25.",
+        "shuffle_options": false
+      }
+    }
+  ],
+  "segments": [
+    {
+      "key": "seg-1",
+      "type": "intro",
+      "title": "What you will do today",
+      "body": "## What you will do today\n\nBy the end of this lecture you will have Python running, you will know how a notebook works, and you will have written and submitted your first program.\n\n- Set up Python and check that it works\n- Run code and text in a notebook\n- Store information in a variable and show it with `print()`\n\nThe lecture has three short readings, two knowledge checks, one coding lab and a short exit check. Leave whenever you need to; you resume where you stopped.\n\nKnowledge checks show you how you are doing. The lab and the exit check decide whether the lecture is complete. In the lab you can try as often as you like and your best score is the one that counts."
+    },
+    {
+      "key": "seg-2",
+      "type": "reading",
+      "title": "Set up Python",
+      "body": "## Two ways to start\n\nYou need Python 3 to run the code in this course. Pick one route.\n\n**On your own computer.** Download Python 3.12 or newer from python.org and run the installer. On Windows, tick *Add python.exe to PATH* before you click Install.\n\n**In your browser.** If you cannot install software, use a hosted notebook service such as Google Colab. Python is already installed there.\n\n## Check that it works\n\nOpen a terminal (Command Prompt or PowerShell on Windows, Terminal on macOS and Linux) and run:\n\n```\npython --version\n```\n\nYou should see something like `Python 3.12.4`. On macOS and Linux the command is often `python3 --version`.\n\nIf the terminal says the command was not found, Python is installed but your computer cannot find it yet. Close the terminal, open a new one and try again. If it still fails on Windows, run the installer again, choose *Modify*, and tick the PATH option."
+    },
+    {
+      "key": "seg-3",
+      "type": "checkpoint",
+      "title": "Check: Python setup",
+      "checkpoint": "cp1"
+    },
+    {
+      "key": "seg-4",
+      "type": "reading",
+      "title": "Notebooks and cells",
+      "body": "## What a notebook is\n\nA notebook is a document that mixes code, the output of that code, and text. People use notebooks because you can run a small piece, look at the result, and change your mind.\n\n## Cells\n\nA notebook is made of cells. You will use two kinds:\n\n- **Code cells** hold Python. When you run one, its output appears directly beneath it.\n- **Text cells** (Markdown) hold notes and headings. They do not run as code.\n\nTo run the selected cell, press `Shift + Enter`. The notebook runs it and moves to the next cell.\n\n## The kernel remembers\n\nBehind the notebook is a running Python process called the kernel. Every cell shares it. If one cell contains:\n\n```\nx = 5\n```\n\nthen a later cell containing `print(x)` shows `5`, for as long as the kernel is running.\n\nOrder matters. Cells run in the order you run them, which is not always top to bottom. When a result looks wrong, restart the kernel and run every cell from the top."
+    },
+    {
+      "key": "seg-5",
+      "type": "checkpoint",
+      "title": "Check: notebooks",
+      "checkpoint": "cp2"
+    },
+    {
+      "key": "seg-6",
+      "type": "example",
+      "title": "Variables and print()",
+      "body": "## Your first program\n\nA program is a list of instructions that Python follows one line at a time. Here is a complete one:\n\n```\nstudent_name = \"Aarav\"\nprint(student_name)\n```\n\nRunning it shows:\n\n```\nAarav\n```\n\n## What each line does\n\n- `student_name = \"Aarav\"` creates a **variable**. The name goes on the left, the value on the right, and `=` stores the value under that name. Text must be wrapped in quotes.\n- `print(student_name)` shows the value on screen. There are no quotes around `student_name`, because you are printing what the variable holds, not the word itself.\n\n## Changing a variable\n\nA variable can be given a new value at any time. Python works out the right-hand side first:\n\n```\nprice = 20\nprice = price + 5\nprint(price)\n```\n\nThis prints `25`. Python reads `price + 5` using the old value (20), then stores the answer back under `price`.\n\n## Joining text with +\n\nTwo pieces of text can be joined with `+`:\n\n```\nname = \"Aarav\"\ngreeting = \"Hello, my name is \" + name\nprint(greeting)\n```\n\nThis prints `Hello, my name is Aarav`. Notice the space at the end of `\"Hello, my name is \"`. Without it the words run together.\n\n## Reading an error message\n\nPrograms do not always work the first time. Try this:\n\n```\nname = \"Aarav\"\nprint(nme)\n```\n\nPython stops and shows:\n\n```\nNameError: name 'nme' is not defined\n```\n\nRead it from the end. Python looked for a variable called `nme` and did not find one, because the variable is called `name`. The message also tells you the line number. Fix the spelling, run again, and it works. Reading an error calmly and fixing it is a skill you will use every day.\n\n## Common mistakes\n\n- `print(\"student_name\")` with quotes prints the words, not the value.\n- A misspelled variable name causes a `NameError`. Check the spelling against the line where you created the variable.\n- One `=` stores a value. Two, `==`, compare two values; you will use that later.\n- A missing closing quote or bracket causes a `SyntaxError`. Python tells you which line.\n\nIn the lab you will write hello.py: a greeting with your own name and two facts about you. One line is broken on purpose so that you can read the error and fix it yourself.",
+      "opens_exercise": true
+    },
+    {
+      "key": "seg-7",
+      "type": "exercise",
+      "title": "Lab: print your name"
+    },
+    {
+      "key": "seg-8",
+      "type": "exit_check",
+      "title": "Exit check",
+      "checkpoint": "cp3"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "hello.py: a greeting and a fixed typo",
+    "objective": "Write hello.py: a greeting with your own name and two facts, and fix a broken line by reading its error message.",
+    "instructions": "Write your first program, hello.py. Store your name in name and build greeting from the words Hello, my name is and your name. The print line in step 3 has a typo on purpose: press Run, read the NameError, then fix it. Store two facts about yourself in fact_1 and fact_2 and print them, one per line, after the greeting. Finally, store the corrected print line from step 3 as text between quotes in fixed_line.",
+    "constraints": "Keep the variable names name, greeting, fact_1, fact_2 and fixed_line. Print each line with print(). No input() and no imports.",
+    "starter_code": "# hello.py - my first program\n\n# 1. Put your own name between the quotes\nname = \"\"\n\n# 2. Build the greeting: the words \"Hello, my name is \" followed by your name\ngreeting = \"Hello, my name is \" + name\n\n# 3. Print the greeting.\n#    This line has a typo on purpose. Press Run, read the NameError, then fix it.\nprint(greting)\n\n# 4. Store two facts about yourself, in quotes, for example \"I am 13 years old\"\nfact_1 = \"\"\nfact_2 = \"\"\n\n# 5. Print fact_1, then fact_2, each on its own line\n\n\n# 6. Write the corrected line from step 3 as text between the quotes\nfixed_line = \"\"\n",
+    "hints": [
+      "Press Run first. The NameError tells you the line number and the name Python cannot find. Compare that name with the variable you created in step 2.",
+      "The variable is spelled greeting, so the print line must be print(greeting). Then fill in name, fact_1 and fact_2, and print both facts with print(fact_1) and print(fact_2).",
+      "The last step is text, not code: fixed_line = \"print(greeting)\" is the corrected line written between quotes."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "Joining text with +",
+        "code": "city = \"Pune\"\nmessage = \"I live in \" + city\nprint(message)",
+        "expected_output": "I live in Pune"
+      },
+      {
+        "description": "Several lines, one print() each",
+        "code": "pet = \"a dog\"\nprint(\"I have \" + pet)\nprint(\"It is brown\")",
+        "expected_output": "I have a dog\nIt is brown"
+      }
+    ],
+    "success_criteria": [
+      "Your program runs without an error and prints something",
+      "name holds your name (text, not empty)",
+      "A printed line reads Hello, my name is followed by your name",
+      "fact_1 and fact_2 each hold a different fact (text, not empty)",
+      "At least three lines are printed: the greeting and the two facts",
+      "fixed_line holds the corrected print line from step 3, as text"
+    ],
+    "tests": [
+      {
+        "key": "l9-t1",
+        "label": "Your program runs without an error and prints something",
+        "remediation": "If you see NameError: name 'greting' is not defined, the typo is still there: the variable is called greeting, so the line must be print(greeting). Then make sure the program prints at least one line.",
+        "objective": "Run a program and read an error message",
+        "remediation_segment": "seg-6",
+        "hidden": false,
+        "definition": {
+          "match": "non_empty",
+          "description": "Runs and prints something"
+        }
+      },
+      {
+        "key": "l9-t2",
+        "label": "name holds your name (text, not empty)",
+        "remediation": "Put your name between the quotes in step 1, like name = \"Aarav\".",
+        "objective": "Store text in a variable",
+        "remediation_segment": "seg-6",
+        "hidden": false,
+        "definition": {
+          "expr": "isinstance(name, str) and name.strip() != \"\"",
+          "truthy": true,
+          "description": "name holds non-empty text"
+        }
+      },
+      {
+        "key": "l9-t3",
+        "label": "A printed line reads Hello, my name is followed by your name",
+        "remediation": "Keep greeting = \"Hello, my name is \" + name and print it with print(greeting). The name must not be empty.",
+        "objective": "Join text with + and print it",
+        "remediation_segment": "seg-6",
+        "hidden": false,
+        "definition": {
+          "stdout_regex": "^Hello, my name is \\S",
+          "description": "Prints the greeting with a name"
+        }
+      },
+      {
+        "key": "l9-t4",
+        "label": "fact_1 and fact_2 each hold a different fact (text, not empty)",
+        "remediation": "Write a different fact in each variable, in quotes, like fact_1 = \"I am 13 years old\" and fact_2 = \"I like cricket\".",
+        "objective": "Store text in a variable",
+        "remediation_segment": "seg-6",
+        "hidden": false,
+        "definition": {
+          "expr": "isinstance(fact_1, str) and isinstance(fact_2, str) and fact_1.strip() != \"\" and fact_2.strip() != \"\" and fact_1.strip() != fact_2.strip()",
+          "truthy": true,
+          "description": "fact_1 and fact_2 hold two different non-empty facts"
+        }
+      },
+      {
+        "key": "l9-t5",
+        "label": "At least three lines are printed: the greeting and the two facts",
+        "remediation": "After the greeting, add print(fact_1) and print(fact_2) so each fact is on its own line.",
+        "objective": "Print several lines with print()",
+        "remediation_segment": "seg-6",
+        "hidden": false,
+        "definition": {
+          "stdout_min_lines": 3,
+          "description": "Prints at least three lines"
+        }
+      },
+      {
+        "key": "l9-t6",
+        "label": "fixed_line holds the corrected print line from step 3, as text",
+        "remediation": "fixed_line must hold the corrected line exactly, as text between quotes: fixed_line = \"print(greeting)\".",
+        "objective": "Fix a NameError by correcting a variable name",
+        "remediation_segment": "seg-6",
+        "hidden": true
+      }
+    ],
+    "solution": "name = \"Aarav\"\ngreeting = \"Hello, my name is \" + name\nprint(greeting)\nfact_1 = \"I am 13 years old\"\nfact_2 = \"I like cricket\"\nprint(fact_1)\nprint(fact_2)\nfixed_line = \"print(greeting)\"\n"
+  }
+}

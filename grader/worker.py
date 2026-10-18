@@ -16,17 +16,19 @@ from typing import Any
 
 import httpx
 
-from grader_service.evaluate import GRADER_VERSION, evaluate, required_vars
-from grader_service.runner import DockerRunner
+from grader_service.evaluate import GRADER_VERSION, HARNESS_VERSION, evaluate, probe_exprs, required_vars
+from grader_service.runner import DockerRunner, probe_image
 
 FAST_POLL, BUSY_WINDOW = 1.0, 60.0  # seconds; adaptive polling keeps idle API traffic low
 SLOW_POLL = float(os.getenv("WORKER_IDLE_POLL", "5"))  # idle poll: 5 s is about 520k API calls a month, inside the Vercel free allowance
 
 
 class Worker:
-    def __init__(self, client: httpx.AsyncClient, runner: Any, worker_id: str) -> None:
+    def __init__(self, client: httpx.AsyncClient, runner: Any, worker_id: str, capabilities: dict | None = None) -> None:
         self.http, self.runner, self.id = client, runner, worker_id
+        self.caps = capabilities or {}
         self.last_job = -1e9
+        self.refused = False
 
     async def _post(self, path: str, body: dict) -> httpx.Response:
         return await self.http.post(path, json={"worker_id": self.id, **body})
@@ -45,7 +47,10 @@ class Worker:
         beat = asyncio.create_task(self._heartbeat(sub_id, max(5.0, job["lease_seconds"] / 3)))
         try:
             tests = job["tests"]
-            run = await self.runner.run(job["source_code"], required_vars(tests), float(job["timeout_seconds"]))
+            limits = job.get("limits") or {}
+            run = await self.runner.run(job["source_code"], required_vars(tests), float(limits.get("timeout_seconds") or job["timeout_seconds"]),
+                                        files=job.get("files") or {}, probes=probe_exprs(tests), memory_mb=limits.get("memory_mb"),
+                                        lab_api="requests" in (job.get("packages") or []))
             result = evaluate(tests, run, float(job["pass_threshold"]))
             result.setdefault("criteria", [])
             result.setdefault("grader_version", GRADER_VERSION)
@@ -59,8 +64,13 @@ class Worker:
             beat.cancel()
 
     async def run_once(self) -> bool:
-        r = await self._post("/claim", {})
+        r = await self._post("/claim", {"harness_version": HARNESS_VERSION, "packages": self.caps.get("packages", {}),
+                                        "runtime": self.caps.get("runtime"), "python": self.caps.get("python")})
         if r.status_code == 204:
+            reason = r.headers.get("X-Claim-Refused")
+            if reason and not self.refused:
+                print(f"WARNING: the API refuses to give this worker jobs ({reason}). Rebuild the sandbox image and update the worker.", flush=True)
+            self.refused = bool(reason)
             return False
         r.raise_for_status()
         self.last_job = asyncio.get_event_loop().time()
@@ -108,8 +118,10 @@ async def main() -> None:
         asyncio.get_running_loop().add_signal_handler(sig, stop.set)
     runner = DockerRunner(memory_mb=int(os.getenv("GRADING_MEMORY_MB", "128")), cpus=float(os.getenv("GRADING_CPU_LIMIT", "1")),
                           max_output=int(os.getenv("MAX_OUTPUT_BYTES", "20000")))
+    caps = probe_image()  # refuses to start (and systemd retries) if the sandbox image or runtime is unusable
+    print(f"sandbox ready: runtime={caps['runtime']} python={caps['python']} packages={caps['packages']}", flush=True)
     async with httpx.AsyncClient(base_url=base, headers={"X-Worker-Token": token}, timeout=30) as client:
-        await asyncio.gather(*[Worker(client, runner, f"{wid}-{i}").run_forever(stop) for i in range(n)])
+        await asyncio.gather(*[Worker(client, runner, f"{wid}-{i}", caps).run_forever(stop) for i in range(n)])
 
 
 if __name__ == "__main__":

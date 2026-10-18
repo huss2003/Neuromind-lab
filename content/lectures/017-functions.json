@@ -1,0 +1,122 @@
+{
+  "schema_version": 2,
+  "lecture_number": 17,
+  "title": "Functions and Parameters",
+  "summary": "Write reusable functions with parameters, default values and return values.",
+  "objectives": [
+    "Define a function with def and call it by name",
+    "Give a parameter a default value and override it with a keyword argument",
+    "Return a value from a function instead of printing inside it"
+  ],
+  "duration_minutes": 45,
+  "prerequisites": [
+    16
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build today",
+      "body": "## What you will build today\n\nThe starter program works, but the same grade code is copied three times, once per student. When code is copy-pasted, every fix has to be made three times, and one copy always gets forgotten.\n\nToday you will fold the three copies into **one function** called `grade_for`. It takes a mark and a pass mark, and it *returns* the word `pass` or `fail` instead of printing it. The pass mark gets a **default value** of 50, so most calls only need the mark. Then you call the function three times with different arguments and print the results."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: one function, three students"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "One grade function for every student",
+    "objective": "Replace three copies of the same grade code with one function that has a default parameter and a return value.",
+    "instructions": "The starter program grades three students with the same code copied three times.\n\n1. Write a function `grade_for(mark, pass_mark=50)`. Inside it, return `\"pass\"` when `mark` is `pass_mark` or more, otherwise return `\"fail\"`. The function must **return** the word, not print it.\n2. Delete the three copied blocks.\n3. Call the function three times and print one line per student, exactly like this:\n\n```\nAsha: pass\nBen: fail\nChen: pass\n```\n\nAsha has mark 72. Ben has mark 45. Chen has mark 45 but an easier pass mark of 40, so call `grade_for(45, pass_mark=40)` for Chen. Asha and Ben use the default pass mark, so their calls need only the mark.",
+    "constraints": "Name the function grade_for with parameters mark and pass_mark (default 50). Use return inside the function, not print. Print exactly three lines. No input().",
+    "starter_code": "# Three copies of the SAME grade code, one per student. Your job: turn them into ONE function.\n\n# Student 1: Asha\nmark = 72\npass_mark = 50\nif mark >= pass_mark:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(\"Asha: \" + grade)\n\n# Student 2: Ben\nmark = 45\npass_mark = 50\nif mark >= pass_mark:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(\"Ben: \" + grade)\n\n# Student 3: Chen (an easier test, so the pass mark is 40)\nmark = 45\npass_mark = 40\nif mark >= pass_mark:\n    grade = \"pass\"\nelse:\n    grade = \"fail\"\nprint(\"Chen: \" + grade)\n\n# 1. Above the three copies, write def grade_for(mark, pass_mark=50): that RETURNS \"pass\" or \"fail\"\n# 2. Delete the three copies\n# 3. Print the three lines again, this time by calling grade_for:\n#    grade_for(72), grade_for(45) and grade_for(45, pass_mark=40)\n",
+    "hints": [
+      "Start with the line def grade_for(mark, pass_mark=50): and move ONE copy of the if/else under it, indented by four spaces.",
+      "Inside the function write return \"pass\" in the if block and return \"fail\" in the else block. A return hands the word back to whoever called the function; the function itself should not print.",
+      "At the bottom, print the three lines by calling the function: print(\"Asha: \" + grade_for(72)), print(\"Ben: \" + grade_for(45)) and print(\"Chen: \" + grade_for(45, pass_mark=40))."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "A default parameter and a keyword argument",
+        "code": "def greeting(name, word=\"Hello\"):\n    return word + \", \" + name + \"!\"\n\nprint(greeting(\"Asha\"))\nprint(greeting(\"Ben\", word=\"Hi\"))",
+        "expected_output": "Hello, Asha!\nHi, Ben!"
+      },
+      {
+        "description": "A function that returns one of two words",
+        "code": "def size_of(n):\n    if n > 10:\n        return \"big\"\n    return \"small\"\n\nprint(size_of(3))\nprint(size_of(20))",
+        "expected_output": "small\nbig"
+      }
+    ],
+    "success_criteria": [
+      "grade_for is a function",
+      "grade_for(72) returns pass (the default pass mark of 50 is used)",
+      "grade_for(45, pass_mark=40) returns pass",
+      "grade_for(45) returns fail",
+      "Your program prints exactly the three student lines"
+    ],
+    "tests": [
+      {
+        "key": "l17-t1",
+        "label": "grade_for is a function",
+        "remediation": "Define the function with def grade_for(mark, pass_mark=50): above the place where you call it.",
+        "objective": "Define a function with def",
+        "hidden": false,
+        "definition": {
+          "description": "grade_for is defined and callable",
+          "expr": "callable(grade_for)",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l17-t2",
+        "label": "grade_for(72) returns pass",
+        "remediation": "Give pass_mark a default of 50 in the def line, and use return \"pass\" when mark >= pass_mark.",
+        "objective": "Use a default parameter value and return a value",
+        "hidden": false,
+        "definition": {
+          "description": "grade_for(72) is pass",
+          "expr": "grade_for(72)",
+          "expected": "pass"
+        }
+      },
+      {
+        "key": "l17-t3",
+        "label": "grade_for(45, pass_mark=40) returns pass",
+        "remediation": "Compare mark with the pass_mark parameter, not with the number 50, so a different pass mark changes the answer.",
+        "objective": "Override a default with a keyword argument",
+        "hidden": false,
+        "definition": {
+          "description": "grade_for(45, pass_mark=40) is pass",
+          "expr": "grade_for(45, pass_mark=40)",
+          "expected": "pass"
+        }
+      },
+      {
+        "key": "l17-t4",
+        "label": "grade_for(45) returns fail",
+        "remediation": "The function must return \"fail\" when the mark is below the pass mark. Check the else branch returns \"fail\".",
+        "objective": "Return a value from a function",
+        "hidden": true
+      },
+      {
+        "key": "l17-t5",
+        "label": "Your program prints exactly the three student lines",
+        "remediation": "Print exactly three lines: Asha: pass, Ben: fail, Chen: pass. The function should only return the word; print it where you call the function, not inside the function.",
+        "objective": "Call a function with different arguments",
+        "hidden": true
+      }
+    ],
+    "solution": "def grade_for(mark, pass_mark=50):\n    if mark >= pass_mark:\n        return \"pass\"\n    return \"fail\"\n\n\nprint(\"Asha: \" + grade_for(72))\nprint(\"Ben: \" + grade_for(45))\nprint(\"Chen: \" + grade_for(45, pass_mark=40))\n"
+  }
+}

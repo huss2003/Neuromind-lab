@@ -1,0 +1,8 @@
+# Libraries the practical labs may import, pinned to the sandbox runtime (see requirements-sandbox.lock, the full lock).
+# Install these into a local or CI environment to verify lab packs with the SubprocessRunner (scripts/verify_labs.py).
+numpy==2.5.4
+pandas==2.3.3
+matplotlib==3.11.2
+scikit-learn==1.9.1
+pillow==11.3.0
+requests==2.34.2

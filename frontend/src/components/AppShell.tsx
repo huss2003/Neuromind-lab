@@ -23,6 +23,7 @@ export function AppShell() {
             <nav className="sidenav" aria-label="Main">
               <NavLink to="/" end><Icon name="home" /> Dashboard</NavLink>
               <NavLink to="/progress"><Icon name="chart" /> My progress</NavLink>
+              <NavLink to="/labs"><Icon name="code" /> Practical labs</NavLink>
               {learner && <NavLink to="/certificates"><Icon name="trophy" /> Certificates</NavLink>}
               {learner && <NavLink to="/portfolio"><Icon name="book" /> Portfolio</NavLink>}
               {teacher && <NavLink to="/teacher"><Icon name="book" /> Teacher</NavLink>}

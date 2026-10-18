@@ -56,7 +56,8 @@ def build_data() -> dict[str, Any]:
         "questions": {Q1: q(Q1, "b"), Q2: q(Q2, "a"), Q3: q(Q3, "c")},
         "exercise": {"id": EX, "lecture_id": LID, "title": "Print", "instructions": "Do it", "language": "python",
                      "starter_code": "x=1", "practice_mode": "both", "pass_threshold": 80, "max_attempts": None, "status": "published",
-                     "test_suite_version": 1, "hints": ["hint one", "hint two", "hint three"], "hint_penalty_percent": 10},
+                     "test_suite_version": 1, "hints": ["hint one", "hint two", "hint three"], "hint_penalty_percent": 10,
+                     "lab_kind": "code", "scoring": "score", "packages": [], "assets": [], "limits": {}, "rubric": [], "checklist": [], "hints_max": 3},
         "tests": [
             {"id": "t1", "exercise_id": EX, "test_order": 1, "test_type": "stdout", "definition": {"secret": "HIDDEN-EXPECTED"},
              "points": 1, "is_hidden": True, "criterion_label": "SECRET-LABEL", "remediation": "Review how print works.",
@@ -86,13 +87,21 @@ class InMemoryRepository:
             "11111111-1111-4111-8111-111111111111": {CID}, "22222222-2222-4222-8222-222222222222": {CID}}
         self.roles: dict[str, str] = {}
         self.tables: dict[str, list[dict]] = {}
+        self.content: dict[str, list[dict]] = {}  # rows written by content imports
+        self.hint_state: dict[tuple, dict] = {}
+        self.questions_by_exercise: dict[str, list[dict]] = {}
+        self.reviews: dict[str, dict] = {}
+        self.extra_exercises: dict[str, dict] = {}  # practical labs of other kinds, keyed by id
 
     # content
     async def list_published_courses(self): return [self.d["course"]]
     async def get_published_course(self, i): return self.d["course"] if i == CID else None
     async def list_published_lectures(self, c): return [self.d["lecture"]]
     async def get_published_lecture(self, i): return copy.deepcopy(self.d["lecture"]) if i == LID else None
-    async def list_segments(self, lecture_id): return copy.deepcopy(self.d["segments"]) if lecture_id == LID else []
+    async def list_segments(self, lecture_id):
+        if lecture_id == LID:
+            return copy.deepcopy(self.d["segments"])
+        return sorted((copy.deepcopy(x) for x in self.content.get("lecture_segments", []) if x["lecture_id"] == lecture_id), key=lambda x: x["segment_order"])
 
     async def get_checkpoint_with_question(self, cid):
         cp = self.d["checkpoints"].get(cid)
@@ -104,7 +113,11 @@ class InMemoryRepository:
 
     async def get_checkpoint(self, cid): return copy.deepcopy(self.d["checkpoints"].get(cid))
     async def get_question_full(self, qid): return copy.deepcopy(self.d["questions"].get(qid))
-    async def get_published_exercise(self, eid): return copy.deepcopy(self.d["exercise"]) if eid == EX else None
+    async def get_published_exercise(self, eid):
+        if eid == EX:
+            return copy.deepcopy(self.d["exercise"])
+        ex = self.extra_exercises.get(eid) or next((x for x in self.content.get("lecture_exercises", []) if x["id"] == eid), None)
+        return copy.deepcopy(ex) if ex and ex.get("status") == "published" else None
     async def list_exercise_tests(self, eid): return copy.deepcopy(self.d["tests"])
 
     # state
@@ -211,8 +224,41 @@ class InMemoryRepository:
                        and r["attempt_number"] == number], key=lambda r: r["hint_index"])
 
     async def insert_hint_reveal(self, row):
-        self.reveals.append(dict(row))
-        return dict(row)
+        r = {"cycle": 1, "revealed_at": now(), **row}
+        self.reveals.append(r)
+        return dict(r)
+
+    async def list_hint_reveals_cycle(self, learner, exercise, cycle):
+        return [r for r in self.reveals if r["learner_id"] == learner and r["exercise_id"] == exercise and r.get("cycle", 1) == cycle]
+
+    async def get_hint_state(self, learner, exercise):
+        return copy.deepcopy(self.hint_state.get((learner, exercise)))
+
+    async def upsert_hint_state(self, learner, exercise, cycle, redo_count):
+        self.hint_state[(learner, exercise)] = {"learner_id": learner, "exercise_id": exercise, "cycle": cycle, "redo_count": redo_count, "updated_at": now()}
+
+    async def delete_draft(self, learner, exercise):
+        self.drafts.pop((learner, exercise), None)
+
+    async def list_lab_questions(self, exercise):
+        rows = self.questions_by_exercise.get(exercise) or [q for q in self.content.get("lab_questions", []) if q["exercise_id"] == exercise]
+        return sorted(copy.deepcopy(rows), key=lambda q: q["question_order"])
+
+    async def list_published_exercises(self, lecture_ids):
+        rows = [self.d["exercise"], *self.extra_exercises.values(), *self.content.get("lecture_exercises", [])]
+        return [{k: r.get(k) for k in ("id", "lecture_id", "title", "lab_kind", "scoring", "hints_max", "packages")} for r in rows
+                if r["lecture_id"] in lecture_ids and r.get("status") == "published"]
+
+    async def get_review(self, submission_id):
+        return copy.deepcopy(self.reviews.get(submission_id))
+
+    async def upsert_review(self, row):
+        r = {"id": str(uuid.uuid4()), "created_at": now(), **(self.reviews.get(row["submission_id"]) or {}), **row, "updated_at": now()}
+        self.reviews[row["submission_id"]] = r
+        return copy.deepcopy(r)
+
+    async def list_submitted(self, learner_ids):
+        return copy.deepcopy([s for s in self.submissions if s["status"] == "submitted" and (learner_ids is None or s["learner_id"] in learner_ids)])
 
     async def get_draft(self, learner, exercise):
         d = self.drafts.get((learner, exercise))
@@ -256,9 +302,9 @@ class InMemoryRepository:
         if table == "profiles":
             return list(self.profiles.values())
         if table == "lectures":
-            return [self.d["lecture"]]
+            return [self.d["lecture"], *self.content.setdefault(table, [])]
         if table == "lecture_exercises":
-            return [self.d["exercise"]]
+            return [self.d["exercise"], *self.content.setdefault(table, [])]
         if table == "courses":
             return [self.d["course"]]
         if table == "enrollments":
@@ -314,6 +360,24 @@ class InMemoryRepository:
         for r in hit:
             rows.remove(r)
         return len(hit)
+
+    async def upsert_content(self, table, rows):
+        store = self.content.setdefault(table, [])
+        for row in rows:
+            hit = next((r for r in store if r["id"] == row["id"]), None)
+            if hit:
+                hit.update(copy.deepcopy(row))
+            else:
+                store.append(copy.deepcopy(row))
+
+    async def set_content_status(self, lecture_id, status):
+        qids = {c["question_id"] for c in self.content.get("lecture_checkpoints", []) if c["lecture_id"] == lecture_id}
+        for r in self.content.get("lecture_exercises", []):
+            if r["lecture_id"] == lecture_id:
+                r["status"] = status
+        for r in self.content.get("mcq_questions", []):
+            if r["id"] in qids:
+                r["status"] = status
 
     async def list_teacher_ids_for_learner(self, learner):
         return sorted(t for t, ls in self.assignments.items() if learner in ls)

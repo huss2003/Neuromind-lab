@@ -1,0 +1,123 @@
+{
+  "schema_version": 2,
+  "lecture_number": 15,
+  "title": "Lists and tuples",
+  "summary": "Build a to-do list you can change with append, remove and sort, and see why a tuple refuses to change.",
+  "objectives": [
+    "Add, remove and sort items in a list",
+    "Explain that a tuple is immutable (it cannot be changed)",
+    "Catch an error with try and except and print a friendly message"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    14
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nA list is a collection you can change: you can add items, take them out and sort them. A tuple looks similar but is immutable, which means that once it is made, nothing inside it can be changed. In this lab you build a small task tracker with a list: add a task, remove a finished one, sort the rest and print the final list. Then you take a tuple holding an RGB colour, try to change one of its numbers, and catch the `TypeError` Python raises so your program can explain it in a friendly message instead of crashing."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: task tracker and a fixed colour"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Task tracker and a fixed colour",
+    "objective": "Change a list with append, remove and sort, then show that a tuple cannot be changed by catching the TypeError.",
+    "instructions": "Part 1: the task tracker. The list tasks starts with three tasks.\n\n1. Add \"walk the dog\" to the end with .append().\n2. Remove \"buy milk\" with .remove().\n3. Sort the list into alphabetical order with .sort().\n4. Print the list. It should show ['call grandma', 'do homework', 'walk the dog'].\n\nPart 2: the fixed colour. The tuple colour holds an RGB colour (0, 128, 255).\n\n5. Inside a try block, try to change the first number: colour[0] = 255. Python refuses and raises a TypeError.\n6. In an except TypeError block, print a friendly one-line message that contains the word TypeError, for example: TypeError: a tuple cannot be changed.\n7. Print colour to show it is unchanged.",
+    "constraints": "Keep the variable names tasks and colour. Use the list methods .append(), .remove() and .sort(); do not retype the list. Keep colour as the tuple (0, 128, 255). Do not use input().",
+    "starter_code": "# Part 1: a task tracker built on a list\ntasks = [\"do homework\", \"buy milk\", \"call grandma\"]\n\n# 1. Add \"walk the dog\" to the end of the list with .append()\n\n# 2. Remove \"buy milk\" with .remove()\n\n# 3. Sort the list with .sort()\n\n# 4. Print the final list\nprint(tasks)\n\n# Part 2: a tuple that cannot be changed\ncolour = (0, 128, 255)\n\n# 5. Inside a try block, try to change the first value: colour[0] = 255\n# 6. In an except TypeError block, print a friendly message\n#    that contains the word TypeError\n\n# 7. Print colour to show it did not change\nprint(colour)\n",
+    "hints": [
+      "List methods change the list in place: tasks.append(\"walk the dog\") adds to the end, tasks.remove(\"buy milk\") takes that item out, tasks.sort() puts the items in order. Each goes on its own line, before print(tasks).",
+      "A try block runs code that might fail; the except block runs only when that error happens. Write try: then colour[0] = 255 indented underneath, then except TypeError: and an indented print under that.",
+      "Inside except TypeError: write print(\"TypeError: a tuple cannot be changed\"). After the whole try/except, print(colour) shows it is still (0, 128, 255)."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "visible_examples": [
+      {
+        "description": "A shopping list that changes",
+        "code": "items = [\"pen\", \"book\"]\nitems.append(\"bag\")\nitems.remove(\"pen\")\nitems.sort()\nprint(items)",
+        "expected_output": "['bag', 'book']"
+      },
+      {
+        "description": "Catching an error instead of crashing",
+        "code": "try:\n    number = int(\"abc\")\nexcept ValueError:\n    print(\"ValueError: that is not a number\")\nprint(\"The program carries on\")",
+        "expected_output": "ValueError: that is not a number\nThe program carries on"
+      }
+    ],
+    "success_criteria": [
+      "tasks ends as ['call grandma', 'do homework', 'walk the dog']",
+      "Your friendly message contains the word TypeError",
+      "colour is still a tuple",
+      "colour still holds (0, 128, 255)",
+      "The final task list is printed"
+    ],
+    "tests": [
+      {
+        "key": "l15-t1",
+        "label": "tasks ends as ['call grandma', 'do homework', 'walk the dog']",
+        "remediation": "Call tasks.append(\"walk the dog\"), then tasks.remove(\"buy milk\"), then tasks.sort(), each on its own line before print(tasks).",
+        "objective": "Add, remove and sort list items",
+        "hidden": false,
+        "definition": {
+          "description": "tasks ends as ['call grandma', 'do homework', 'walk the dog']",
+          "expr": "tasks",
+          "expected": [
+            "call grandma",
+            "do homework",
+            "walk the dog"
+          ]
+        }
+      },
+      {
+        "key": "l15-t2",
+        "label": "Your friendly message contains the word TypeError",
+        "remediation": "Put colour[0] = 255 inside a try block and, under except TypeError:, print a message that includes the word TypeError. Without try/except the program crashes instead.",
+        "objective": "Catch an error with try and except",
+        "hidden": false,
+        "definition": {
+          "description": "Your friendly message contains the word TypeError",
+          "stdout_contains": "TypeError"
+        }
+      },
+      {
+        "key": "l15-t3",
+        "label": "colour is still a tuple",
+        "remediation": "Keep colour = (0, 128, 255) with round brackets. Do not turn it into a list to get around the error.",
+        "objective": "Know that a tuple is immutable",
+        "hidden": false,
+        "definition": {
+          "description": "colour is still a tuple",
+          "check": "variable_type",
+          "name": "colour",
+          "type": "tuple"
+        }
+      },
+      {
+        "key": "l15-t4",
+        "label": "colour still holds (0, 128, 255)",
+        "remediation": "A tuple cannot be changed, so do not build a new colour either. Leave colour = (0, 128, 255) exactly as given.",
+        "objective": "Know that a tuple is immutable",
+        "hidden": true
+      },
+      {
+        "key": "l15-t5",
+        "label": "The final task list is printed",
+        "remediation": "Keep print(tasks) after the append, remove and sort lines so the printed list is the finished one.",
+        "objective": "Add, remove and sort list items",
+        "hidden": true
+      }
+    ],
+    "solution": "tasks = [\"do homework\", \"buy milk\", \"call grandma\"]\n\ntasks.append(\"walk the dog\")\ntasks.remove(\"buy milk\")\ntasks.sort()\nprint(tasks)\n\ncolour = (0, 128, 255)\n\ntry:\n    colour[0] = 255\nexcept TypeError:\n    print(\"TypeError: a tuple cannot be changed\")\n\nprint(colour)\n"
+  }
+}

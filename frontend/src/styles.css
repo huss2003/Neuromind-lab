@@ -244,3 +244,12 @@ details.card > summary { cursor: pointer; list-style: none; } details.card > sum
   .certificate-inner { break-inside: avoid; border-color: #000; background: #fff; }
   table { font-size: 11pt; } a { color: inherit; text-decoration: none; }
 }
+
+/* Practical labs */
+.check-dialog { max-width: 560px; } .check-errors { margin: var(--s2) 0 var(--s4); padding-left: 20px; } .check-errors li { margin: 4px 0; }
+.lab-files { list-style: none; padding: 0; } .lab-files li { display: flex; gap: var(--s3); align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--mist); } .lab-files code { font-weight: 600; }
+.bulb-button { display: inline-flex; align-items: center; gap: 6px; }
+.lab-catalogue .lecture-list li { align-items: center; } .lab-kind { text-transform: capitalize; }
+.quiz-question { margin: var(--s4) 0; padding: var(--s4); border: 1px solid var(--line); border-radius: 12px; } .quiz-question legend { font-weight: 600; }
+.quiz-question label { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; } .quiz-result-ok { color: var(--mint-ink); } .quiz-result-bad { color: var(--coral); }
+.rubric-table td input { width: 80px; }

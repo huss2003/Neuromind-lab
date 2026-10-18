@@ -79,7 +79,7 @@ def test_docker_command_is_locked_down():
     cmd = docker_command("nm-test", 128, 1.0)
     joined = " ".join(cmd)
     assert "--network none" in joined and "--read-only" in cmd and "--cap-drop=ALL" in cmd
-    assert "--pids-limit=32" in cmd and "--memory=128m" in cmd and "--user 65534:65534" in joined
+    assert "--pids-limit=48" in cmd and "--memory=128m" in cmd and "--user 65534:65534" in joined
     assert "no-new-privileges" in joined
     assert "-v" not in cmd and "--volume" not in cmd and "--mount" not in cmd and "--privileged" not in cmd
     assert "docker.sock" not in joined and "-e PYTHONDONTWRITEBYTECODE=1" in joined
@@ -96,8 +96,9 @@ class StubRunner:
         self.result = result
         self.seen = None
 
-    async def run(self, code, capture_vars, timeout):
+    async def run(self, code, capture_vars, timeout, **kwargs):
         self.seen = (code, capture_vars)
+        self.kwargs = kwargs
         return self.result
 
 

@@ -1,0 +1,120 @@
+{
+  "schema_version": 2,
+  "lecture_number": 13,
+  "title": "Loops",
+  "summary": "Repeat work with for loops and while loops, use range(), and learn to spot and fix a loop that never ends.",
+  "objectives": [
+    "Repeat an action a fixed number of times with for and range()",
+    "Repeat an action while a condition is True with a while loop",
+    "Recognise and fix an infinite loop"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    12
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nIn this lab you add up the numbers 1 to 100 twice: once with a `for` loop and `range()`, and once with a `while` loop. Both loops must give the same answer, 5050, and your program prints both totals and whether they match. The `while` loop in the starter has a bug: its counter never goes up, so the loop never ends. You will see what a real infinite loop looks like, then fix it by adding one line. By the end you will know when to reach for `for` and when to reach for `while`."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: sum 1 to 100 two ways"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Sum 1 to 100 two ways",
+    "objective": "Add the numbers 1 to 100 with a for loop and with a while loop, fix the infinite loop, and show both totals agree.",
+    "instructions": "Two loops, one job: add up every whole number from 1 to 100.\n\n1. Finish the for loop. It uses range(1, 101) to visit each number n; inside the loop add n to for_total.\n2. Fix the while loop. Right now count never changes, so the loop never ends. If you press Run before fixing it, your program is stopped after a few seconds for taking too long: that is an infinite loop. Add a line inside the loop that increases count by 1 each time round.\n3. Print three lines, exactly like this:\n\nFor loop total: 5050\nWhile loop total: 5050\nSame answer: True\n\nThe third line prints the comparison for_total == while_total.",
+    "constraints": "Keep the variable names for_total, while_total and count. Keep count = 1 and while count <= 100: as given. Do not type 5050 yourself; let the loops work it out. Do not use input().",
+    "starter_code": "# Part 1: the for loop version\nfor_total = 0\nfor n in range(1, 101):\n    # 1. Add n to for_total\n    pass\n\n# Part 2: the while loop version\n# 2. This loop never ends because count never changes. Fix it!\nwhile_total = 0\ncount = 1\nwhile count <= 100:\n    while_total = while_total + count\n\n# 3. Print the three lines (see the instructions)\n",
+    "hints": [
+      "Inside the for loop, replace pass with for_total = for_total + n. In the while loop, ask yourself: what has to change so that count <= 100 eventually becomes False?",
+      "A while loop only ends when its condition becomes False. Add count = count + 1 as the last line inside the while loop, indented like the line above it.",
+      "After both loops: print(\"For loop total:\", for_total), print(\"While loop total:\", while_total) and print(\"Same answer:\", for_total == while_total)."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "visible_examples": [
+      {
+        "description": "Adding 1 to 5 with a for loop",
+        "code": "total = 0\nfor n in range(1, 6):\n    total = total + n\nprint(\"Total:\", total)",
+        "expected_output": "Total: 15"
+      },
+      {
+        "description": "A while loop that counts to 3 (note the line that changes count)",
+        "code": "count = 1\nwhile count <= 3:\n    print(\"count is\", count)\n    count = count + 1\nprint(\"Done\")",
+        "expected_output": "count is 1\ncount is 2\ncount is 3\nDone"
+      }
+    ],
+    "success_criteria": [
+      "for_total is 5050",
+      "while_total is 5050 (so the while loop ends)",
+      "Your program prints Same answer: True",
+      "The three lines are printed exactly as shown",
+      "The while loop's counter finishes at 101"
+    ],
+    "tests": [
+      {
+        "key": "l13-t1",
+        "label": "for_total is 5050",
+        "remediation": "Inside the for loop, replace pass with for_total = for_total + n so every number from 1 to 100 is added.",
+        "objective": "Repeat with for and range()",
+        "hidden": false,
+        "definition": {
+          "description": "for_total is 5050",
+          "check": "variable_equals",
+          "name": "for_total",
+          "value": 5050
+        }
+      },
+      {
+        "key": "l13-t2",
+        "label": "while_total is 5050 (the while loop ends)",
+        "remediation": "Add count = count + 1 as the last line inside the while loop so the loop ends, and keep adding count to while_total before that line.",
+        "objective": "Repeat with while and fix an infinite loop",
+        "hidden": false,
+        "definition": {
+          "description": "while_total is 5050 (the while loop ends)",
+          "check": "variable_equals",
+          "name": "while_total",
+          "value": 5050
+        }
+      },
+      {
+        "key": "l13-t3",
+        "label": "Your program prints Same answer: True",
+        "remediation": "Add print(\"Same answer:\", for_total == while_total) after both loops. It prints True only when both totals match.",
+        "objective": "Compare two results",
+        "hidden": false,
+        "definition": {
+          "description": "Your program prints Same answer: True",
+          "stdout_contains": "Same answer: True"
+        }
+      },
+      {
+        "key": "l13-t4",
+        "label": "The three lines are printed exactly as shown",
+        "remediation": "Print exactly three lines: For loop total: 5050, While loop total: 5050 and Same answer: True. Check spelling, capital letters and the colons.",
+        "objective": "Print results clearly",
+        "hidden": true
+      },
+      {
+        "key": "l13-t5",
+        "label": "The while loop's counter finishes at 101",
+        "remediation": "Keep count = 1 and while count <= 100: as given, and increase count by exactly 1 each time round. When the loop ends, count is 101.",
+        "objective": "Repeat with while and fix an infinite loop",
+        "hidden": true
+      }
+    ],
+    "solution": "for_total = 0\nfor n in range(1, 101):\n    for_total = for_total + n\n\nwhile_total = 0\ncount = 1\nwhile count <= 100:\n    while_total = while_total + count\n    count = count + 1\n\nprint(\"For loop total:\", for_total)\nprint(\"While loop total:\", while_total)\nprint(\"Same answer:\", for_total == while_total)\n"
+  }
+}

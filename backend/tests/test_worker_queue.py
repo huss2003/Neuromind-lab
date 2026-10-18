@@ -30,8 +30,26 @@ def submit(c, code="GOOD", token="learner1"):
     return r.json()["submission_id"]
 
 
-def claim(c, worker="w-1"):
-    return c.post(f"{BASE}/claim", headers=W, json={"worker_id": worker})
+CAPS = {"harness_version": 2, "runtime": "runsc", "python": "3.13.16",
+        "packages": {"numpy": "2.5.4", "pandas": "2.3.3", "matplotlib": "3.11.2", "scikit-learn": "1.9.1", "pillow": "11.3.0", "requests": "2.34.2"}}
+
+
+def claim(c, worker="w-1", caps=None):
+    return c.post(f"{BASE}/claim", headers=W, json={"worker_id": worker, **(CAPS if caps is None else caps)})
+
+
+def test_outdated_or_incomplete_workers_get_no_job_and_the_job_stays_queued(env):
+    c, repo, _ = env
+    sid = submit(c)
+    old = claim(c, caps={})  # a worker from before the practical labs sends no capabilities
+    assert old.status_code == 204 and old.headers["X-Claim-Refused"] == "worker-too-old"
+    no_pandas = claim(c, caps={**CAPS, "packages": {k: v for k, v in CAPS["packages"].items() if k != "pandas"}})
+    assert no_pandas.status_code == 204 and no_pandas.headers["X-Claim-Refused"] == "missing-packages:pandas"
+    sub = c.get(f"/api/v1/submissions/{sid}", headers=H()).json()
+    assert sub["status"] == "queued"  # never claimed, never failed: a capable worker still gets it
+    assert next(s for s in repo.submissions if s["id"] == sid).get("claim_count", 0) == 0
+    job = claim(c)
+    assert job.status_code == 200 and job.json()["submission_id"] == sid
 
 
 def test_api_does_not_grade_in_queue_mode_and_submission_waits_as_queued(env):

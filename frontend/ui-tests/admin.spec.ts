@@ -133,3 +133,43 @@ test('teacher tools: cohorts, announcements, and the progress report as CSV and 
   await expect(page.getByRole('button', { name: 'Print or save as PDF' })).toBeVisible();
   expect(IDS.course).toBeTruthy();
 });
+
+const packJson = (n: number, extra: object = {}) => JSON.stringify({ schema_version: 1, lecture_number: n, title: 'Imported lecture', segments: [1, 2, 3], checkpoints: [1], lab: { tests: [{ key: 'k1' }, { key: 'k2' }] }, ...extra });
+const file = (name: string, text: string) => ({ name, mimeType: 'application/json', buffer: Buffer.from(text) });
+
+test('content: check a lecture pack, see problems, then import it as a draft', async ({ page }) => {
+  const state = await asRole(page, 'admin');
+  await page.goto('/admin/content');
+  await expect(page.getByRole('heading', { name: 'Import a lecture' })).toBeVisible();
+  await page.getByRole('button', { name: 'Check pack' }).click();
+  await expect(page.getByText('Choose the lecture pack file first.')).toBeVisible();
+  await page.getByLabel('Lecture pack (JSON)').setInputFiles(file('p.json', packJson(13)));
+  await page.getByLabel('Hidden tests (JSON)').setInputFiles(file('t.json', JSON.stringify({ k1: { a: 1 } })));
+  await page.getByRole('button', { name: 'Check pack' }).click();
+  await expect(page.getByText('Hidden test definition missing: k2')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Import/ })).toHaveCount(0);
+  await page.getByLabel('Hidden tests (JSON)').setInputFiles(file('t.json', JSON.stringify({ k1: { a: 1 }, k2: { a: 2 } })));
+  await page.getByRole('button', { name: 'Check pack' }).click();
+  await expect(page.getByText(/Valid: lecture 13/)).toBeVisible();
+  await page.getByRole('button', { name: 'Import as draft' }).click();
+  await expect(page.getByText('Lecture 13 created as draft.')).toBeVisible();
+  expect(state.ext.imports).toEqual([{ lecture_number: 13, publish: false, replace: false }]);
+});
+
+test('content: bad JSON is explained and a published lecture is protected from a draft import', async ({ page }) => {
+  const state = await asRole(page, 'admin');
+  await page.goto('/admin/content');
+  await page.getByLabel('Lecture pack (JSON)').setInputFiles(file('p.json', '{not json'));
+  await page.getByLabel('Hidden tests (JSON)').setInputFiles(file('t.json', '{}'));
+  await page.getByRole('button', { name: 'Check pack' }).click();
+  await expect(page.getByText('The lecture pack file is not valid JSON.')).toBeVisible();
+  await page.getByLabel('Lecture pack (JSON)').setInputFiles(file('p.json', packJson(9)));
+  await page.getByLabel('Hidden tests (JSON)').setInputFiles(file('t.json', JSON.stringify({ k1: {}, k2: {} })));
+  await page.getByRole('button', { name: 'Check pack' }).click();
+  await page.getByRole('button', { name: 'Import as draft' }).click();
+  await expect(page.getByText(/Lecture 9 is published/)).toBeVisible();
+  expect(state.ext.imports).toEqual([]);
+  await page.getByLabel(/Allow replacing a lecture that is already published/).check();
+  await page.getByRole('button', { name: 'Import as draft' }).click();
+  await expect(page.getByText('Lecture 9 created as draft.')).toBeVisible();
+});

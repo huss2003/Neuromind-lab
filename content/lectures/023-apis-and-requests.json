@@ -1,0 +1,124 @@
+{
+  "schema_version": 2,
+  "lecture_number": 23,
+  "title": "APIs, HTTP and requests",
+  "summary": "Make a basic HTTP GET request to the NeuroMind practice API using Python's requests library and extract data from the JSON response.",
+  "objectives": [
+    "Send a GET request with requests.get() and params",
+    "Check response.status_code before using the result",
+    "Turn a JSON response into a dictionary with .json()",
+    "Print one field from the response in a readable sentence"
+  ],
+  "duration_minutes": 40,
+  "prerequisites": [
+    22
+  ],
+  "lab_only": true,
+  "checkpoints": [],
+  "segments": [
+    {
+      "key": "intro",
+      "type": "intro",
+      "title": "What you will build",
+      "body": "## What you will build\n\nMany programs get their data from an API: you send a request to a web address and get JSON back. In this lab you will ask the NeuroMind practice API for the weather in a city with `requests.get()`, check that `response.status_code` is 200 before trusting the answer, read the JSON with `.json()` and print the temperature in a readable sentence. The practice API at `https://api.neuromind.lab/v1` is simulated inside the lab and deterministic: the same city always gives the same answer, and no other website can be reached. Asking for a city the API does not know gives status 404, and your program must handle that politely instead of crashing."
+    },
+    {
+      "key": "lab",
+      "type": "exercise",
+      "title": "Lab: ask the weather API"
+    }
+  ],
+  "lab": {
+    "kind": "code",
+    "scoring": "pass_fail",
+    "title": "Ask the weather API",
+    "objective": "Send a GET request to the practice API, check the status code, parse the JSON and print one field in a sentence.",
+    "instructions": "Write a function weather_sentence(city) that:\n\n1. Sends a GET request to https://api.neuromind.lab/v1/weather with params={\"city\": city}.\n2. If response.status_code == 200: reads the JSON with response.json() and returns the sentence: The temperature in <city> is <temperature_c> degrees.\n3. Otherwise returns: Sorry, <city> was not found.\n\nThe JSON for a known city looks like {\"city\": \"Pune\", \"temperature_c\": 25, \"condition\": \"cloudy\", \"humidity\": 93}.\n\nThen print weather_sentence(\"Pune\") and, on the next line, weather_sentence(\"Atlantis\") (a city the API does not know).\n\nExpected output:\nThe temperature in Pune is 25 degrees.\nSorry, Atlantis was not found.",
+    "constraints": "Use requests.get() with params. Only https://api.neuromind.lab/v1 is reachable. Check response.status_code before calling .json(). weather_sentence must return the sentence, not print it. No input().",
+    "starter_code": "import requests\n\nURL = \"https://api.neuromind.lab/v1/weather\"\n\n\ndef weather_sentence(city):\n    # 1. Send a GET request to URL with params={\"city\": city}\n\n    # 2. If the status code is 200, read response.json() and\n    #    return \"The temperature in <city> is <temperature_c> degrees.\"\n\n    # 3. Otherwise return \"Sorry, <city> was not found.\"\n    pass\n\n\n# 4. Print weather_sentence(\"Pune\"), then weather_sentence(\"Atlantis\")\n",
+    "hints": [
+      "requests.get(URL, params={\"city\": city}) sends the request and gives you back a response object. Store it in a variable called response.",
+      "Use if response.status_code == 200: for the good case. Inside it, data = response.json() gives you a dictionary; the temperature is data[\"temperature_c\"].",
+      "Return f\"The temperature in {city} is {data['temperature_c']} degrees.\" inside the if block and f\"Sorry, {city} was not found.\" in the else block. Then print(weather_sentence(\"Pune\")) and print(weather_sentence(\"Atlantis\"))."
+    ],
+    "hints_max": 3,
+    "hint_penalty_percent": 0,
+    "practice_mode": "both",
+    "packages": [
+      "requests"
+    ],
+    "assets": [],
+    "limits": {},
+    "visible_examples": [
+      {
+        "description": "A request for Mumbai, printing a different field",
+        "code": "import requests\n\nresponse = requests.get(\"https://api.neuromind.lab/v1/weather\", params={\"city\": \"Mumbai\"})\nprint(response.status_code)\ndata = response.json()\nprint(data[\"condition\"])",
+        "expected_output": "200\nsunny"
+      },
+      {
+        "description": "An unknown city gives status 404",
+        "code": "import requests\n\nresponse = requests.get(\"https://api.neuromind.lab/v1/weather\", params={\"city\": \"Narnia\"})\nprint(response.status_code)\nif response.status_code == 200:\n    print(\"found\")\nelse:\n    print(\"no such city\")",
+        "expected_output": "404\nno such city"
+      }
+    ],
+    "success_criteria": [
+      "weather_sentence is a function you can call with a city name",
+      "Your program prints: The temperature in Pune is 25 degrees.",
+      "For Atlantis your program prints a message saying it was not found, without crashing",
+      "weather_sentence works for other known cities too (it must really ask the API)",
+      "weather_sentence gives a not-found message for any unknown city"
+    ],
+    "tests": [
+      {
+        "key": "l23-t1",
+        "label": "weather_sentence is a function",
+        "remediation": "Define it with def weather_sentence(city): and keep that exact name.",
+        "objective": "Define a function with a parameter",
+        "hidden": false,
+        "definition": {
+          "description": "weather_sentence is callable",
+          "expr": "callable(weather_sentence)",
+          "truthy": true
+        }
+      },
+      {
+        "key": "l23-t2",
+        "label": "The Pune sentence is printed",
+        "remediation": "Call print(weather_sentence(\"Pune\")). The sentence must be exactly: The temperature in Pune is 25 degrees. (read the number from data[\"temperature_c\"]).",
+        "objective": "Parse JSON with .json() and print one field",
+        "hidden": false,
+        "definition": {
+          "description": "Pune sentence",
+          "stdout_contains": "The temperature in Pune is 25 degrees."
+        }
+      },
+      {
+        "key": "l23-t3",
+        "label": "Atlantis gives a not-found message",
+        "remediation": "Check response.status_code before using .json(). When it is not 200, return a sentence that contains the words \"not found\", for example: Sorry, Atlantis was not found.",
+        "objective": "Check the status code before trusting the result",
+        "hidden": false,
+        "definition": {
+          "description": "not found message",
+          "stdout_contains": "not found",
+          "ignore_case": true
+        }
+      },
+      {
+        "key": "l23-t4",
+        "label": "Works for another known city",
+        "remediation": "The sentence must come from the API's answer: use the city you were given and data[\"temperature_c\"] from response.json(), never a fixed number.",
+        "objective": "Send a GET request with params",
+        "hidden": true
+      },
+      {
+        "key": "l23-t5",
+        "label": "Any unknown city gives a not-found message without crashing",
+        "remediation": "Only call .json() and read the temperature when response.status_code == 200. For every other status return a message containing \"not found\".",
+        "objective": "Check the status code before trusting the result",
+        "hidden": true
+      }
+    ],
+    "solution": "import requests\n\nURL = \"https://api.neuromind.lab/v1/weather\"\n\n\ndef weather_sentence(city):\n    response = requests.get(URL, params={\"city\": city})\n    if response.status_code == 200:\n        data = response.json()\n        return f\"The temperature in {city} is {data['temperature_c']} degrees.\"\n    else:\n        return f\"Sorry, {city} was not found.\"\n\n\nprint(weather_sentence(\"Pune\"))\nprint(weather_sentence(\"Atlantis\"))\n"
+  }
+}

@@ -6,12 +6,13 @@ from typing import Any, Protocol
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from grader_service.evaluate import GRADER_VERSION, RunResult, evaluate, required_vars
+from grader_service.evaluate import GRADER_VERSION, RunResult, evaluate, probe_exprs, required_vars
 from grader_service.runner import DockerRunner
 
 
 class Runner(Protocol):
-    async def run(self, code: str, capture_vars: list[str], timeout: float) -> RunResult: ...
+    async def run(self, code: str, capture_vars: list[str], timeout: float, *, files: dict | None = None, probes: list[str] | None = None,
+                  memory_mb: int | None = None, lab_api: bool = False) -> RunResult: ...
 
 
 class TestIn(BaseModel):
@@ -25,7 +26,10 @@ class GradeIn(BaseModel):
     source_code: str = Field(max_length=100_000)
     tests: list[TestIn] = Field(min_length=1, max_length=50)
     pass_threshold: float = Field(ge=0, le=100)
-    timeout_seconds: float = Field(default=5, gt=0, le=30)
+    timeout_seconds: float = Field(default=5, gt=0, le=60)
+    files: dict[str, Any] = Field(default_factory=dict)
+    packages: list[str] = Field(default_factory=list)
+    memory_mb: int | None = Field(default=None, ge=64, le=1024)
 
 
 def create_app(runner: Runner | None = None) -> FastAPI:
@@ -48,7 +52,8 @@ def create_app(runner: Runner | None = None) -> FastAPI:
             raise HTTPException(401)
         tests = [t.model_dump() for t in body.tests]
         async with sem:  # bounded concurrency: this is a laptop, not a worker pool
-            run = await runner.run(body.source_code, required_vars(tests), body.timeout_seconds)
+            run = await runner.run(body.source_code, required_vars(tests), body.timeout_seconds, files=body.files, probes=probe_exprs(tests),
+                                   memory_mb=body.memory_mb, lab_api="requests" in body.packages)
         result = evaluate(tests, run, body.pass_threshold)
         result.setdefault("criteria", [])
         result.setdefault("grader_version", GRADER_VERSION)

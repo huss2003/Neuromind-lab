@@ -70,7 +70,7 @@ test('axe and structure: administrator, certificate, portfolio, sign-up, verific
   await signedIn(page, 'admin@neuromind.test');
   for (const [name, path] of [['admin overview', '/admin'], ['admin users', '/admin/users'], ['admin cohorts', '/admin/cohorts'], ['admin content', '/admin/content'],
     ['admin queue', '/admin/queue'], ['admin audit', '/admin/audit'], ['admin issues', '/admin/issues'], ['admin settings', '/admin/settings'],
-    ['certificates', '/certificates'], ['portfolio', '/portfolio'], ['teacher dashboard', '/teacher'], ['teacher report', '/teacher/report'], ['profile', '/profile'], ['help', '/help'],
+    ['certificates', '/certificates'], ['portfolio', '/portfolio'], ['teacher dashboard', '/teacher'], ['teacher report', '/teacher/report'], ['teacher reviews', '/teacher/reviews'], ['practical labs', '/labs'], ['profile', '/profile'], ['help', '/help'],
     ['verify', '/verify/NM-2026-ABCD1234']]) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
